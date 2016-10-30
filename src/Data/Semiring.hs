@@ -34,10 +34,18 @@ import           Data.Set              (Set)
 import qualified Data.Set              as Set
 
 import           Data.Int              (Int16, Int32, Int64, Int8)
-import           Data.Word
-import           Foreign.C.Types
-import           Foreign.Ptr
-import           System.Posix.Types
+import           Data.Word             (Word16, Word32, Word64, Word8)
+import           Foreign.C.Types       (CChar, CClock, CDouble, CFloat, CInt,
+                                        CIntMax, CIntPtr, CLLong, CLong,
+                                        CPtrdiff, CSChar, CSUSeconds, CShort,
+                                        CSigAtomic, CSize, CTime, CUChar, CUInt,
+                                        CUIntMax, CUIntPtr, CULLong, CULong,
+                                        CUSeconds, CUShort, CWchar)
+
+import           Foreign.Ptr           (IntPtr, WordPtr)
+import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
+                                        COff, CPid, CRLim, CSpeed, CSsize,
+                                        CTcflag, CUid, Fd)
 
 import           GHC.Generics          (Generic, Generic1)
 
