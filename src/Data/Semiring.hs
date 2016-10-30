@@ -18,22 +18,29 @@ module Data.Semiring
   ) where
 
 import           Data.Coerce           (coerce)
-import           Data.Complex          (Complex)
-import           Data.Fixed            (Fixed, HasResolution)
+
 import           Data.Functor.Const    (Const (..))
 import           Data.Functor.Identity (Identity (..))
-import           Data.Int              (Int16, Int32, Int64, Int8)
+
 import           Data.Monoid
-import           Data.Ratio            (Ratio)
 import           Data.Semigroup        (Max (..), Min (..))
+
+import           Data.Complex          (Complex)
+import           Data.Fixed            (Fixed, HasResolution)
+import           Data.Ratio            (Ratio)
+import           Numeric.Natural       (Natural)
+
 import           Data.Set              (Set)
 import qualified Data.Set              as Set
+
+import           Data.Int              (Int16, Int32, Int64, Int8)
 import           Data.Word
 import           Foreign.C.Types
 import           Foreign.Ptr
-import           GHC.Generics          (Generic, Generic1)
-import           Numeric.Natural
 import           System.Posix.Types
+
+import           GHC.Generics          (Generic, Generic1)
+
 import           Test.QuickCheck       (Arbitrary)
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
