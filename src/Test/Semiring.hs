@@ -8,8 +8,8 @@ Stability: experimental
 
 module Test.Semiring where
 
-import Data.Semiring
-import Test.QuickCheck
+import           Data.Semiring   (Semiring (..))
+import           Test.QuickCheck (Property, counterexample)
 
 -- | Plus is associative.
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
