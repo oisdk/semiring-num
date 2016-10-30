@@ -15,11 +15,9 @@ module Data.Semiring
   ( Semiring(..)
   , Add(..)
   , Mul(..)
-  , Bottleneck(..)
-  , Division(..)
   ) where
 
-import           Data.Coerce
+import           Data.Coerce           (coerce)
 import           Data.Complex
 import           Data.Fixed
 import           Data.Functor.Const
@@ -36,6 +34,7 @@ import           Foreign.Ptr
 import           GHC.Generics
 import           Numeric.Natural
 import           System.Posix.Types
+import           Test.QuickCheck       (Arbitrary)
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -83,6 +82,9 @@ class Semiring a where
   (<+>) = (+)
   (<.>) = (*)
 
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
 instance Semiring Bool where
   one = True
   zero = False
@@ -95,15 +97,39 @@ instance Semiring () where
   _ <+> _ = ()
   _ <.> _ = ()
 
+cartProd :: (Ord a, Monoid a) => Set a -> Set a -> Set a
+cartProd xs ys =
+  Set.foldl' (\a x ->
+                Set.foldl' (flip (Set.insert . mappend x)) a ys)
+  Set.empty xs
+
+-- | The 'Set' 'Semiring' is 'Data.Set.union' for '<+>', and a Cartesian
+-- product for '<.>'.
+instance (Ord a, Monoid a) => Semiring (Set a) where
+  (<.>) = cartProd
+  (<+>) = Set.union
+  zero = Set.empty
+  one = Set.singleton mempty
+
+------------------------------------------------------------------------
+-- Addition and multiplication newtypes
+------------------------------------------------------------------------
+
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
+-- | Monoid under '<+>'. Analogous to 'Data.Monoid.Sum', but uses the
+-- 'Semiring' constraint, rather than 'Num'.
 newtype Add a = Add
   { getAdd :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Arbitrary)
 
+-- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
+-- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
   { getMul :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Arbitrary)
 
 instance Functor Add where fmap = coerce
 
@@ -165,99 +191,53 @@ instance Semiring a => Semiring (Mul a) where
   (<+>) = (coerce :: WrapBinary Mul a) (<+>)
   (<.>) = (coerce :: WrapBinary Mul a) (<.>)
 
+------------------------------------------------------------------------
+-- Ord wrappers
+------------------------------------------------------------------------
+
+-- | The 'Semiring' for 'Max' uses the 'max' operation for '<+>', and
+-- normal '+' for '<.>'.
 instance (Ord a, Bounded a, Semiring a) => Semiring (Max a) where
   (<+>) = mappend
   zero = mempty
   (<.>) = (coerce :: WrapBinary Max a) (<+>)
   one = Max zero
 
+-- | The 'Semiring' for 'Min' uses the 'min' operation for '<+>', and
+-- normal '+' for '<.>'.
 instance (Ord a, Bounded a, Semiring a) => Semiring (Min a) where
   (<+>) = mappend
   zero = mempty
   (<.>) = (coerce :: WrapBinary Min a) (<+>)
   one = Min zero
 
+------------------------------------------------------------------------
+-- (->) instance
+------------------------------------------------------------------------
+
+-- | The ('->') instance is analogous to the one for 'Monoid'.
 instance Semiring b => Semiring (a -> b) where
   zero = const zero
   one  = const one
   (f <+> g) x = f x <+> g x
   (f <.> g) x = f x <.> g x
 
--- | Needs a to be a commutative Monoid
+------------------------------------------------------------------------
+-- Endo instance
+------------------------------------------------------------------------
+
+-- | The 'Endo' semiring uses function composition for '<.>', and
+-- pointwise 'mappend' for '<+>'. The underlying 'Monoid' needs to be
+-- commutative.
 instance Monoid a => Semiring (Endo a) where
   (<.>) = mappend
   one = mempty
   Endo f <+> Endo g = Endo (\x -> f x `mappend` g x)
   zero = Endo (const mempty)
 
-newtype Bottleneck a = Bottleneck
-  { getBottleneck :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
-
-instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
-  (<+>) = (coerce :: WrapBinary Bottleneck a) max
-  (<.>) = (coerce :: WrapBinary Bottleneck a) min
-  zero = Bottleneck minBound
-  one  = Bottleneck maxBound
-
-instance Functor Bottleneck where fmap = coerce
-
-instance Foldable Bottleneck where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Bottleneck a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-
-instance Applicative Bottleneck where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Bottleneck (a -> b) -> Bottleneck a -> Bottleneck b)) ($)
-
-instance Monad Bottleneck where
-  (>>=) = flip coerce
-
-newtype Division a = Division
-  { getDivision :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
-
-instance (Integral a, Semiring a) => Semiring (Division a) where
-  (<+>) = (coerce :: WrapBinary Division a) lcm
-  (<.>) = (coerce :: WrapBinary Division a) gcd
-  zero = Division zero
-  one  = Division one
-
-instance Functor Division where fmap = coerce
-
-instance Foldable Division where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Division a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-
-instance Applicative Division where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Division (a -> b) -> Division a -> Division b)) ($)
-
-instance Monad Division where
-  (>>=) = flip coerce
-
-cartProd :: (Ord a, Monoid a) => Set a -> Set a -> Set a
-cartProd xs ys = Set.foldl' (\a x -> Set.foldl' (flip (Set.insert . mappend x)) a ys) Set.empty xs
-
-instance (Ord a, Monoid a) => Semiring (Set a) where
-  (<.>) = cartProd
-  (<+>) = Set.union
-  zero = Set.empty
-  one = Set.singleton mempty
+------------------------------------------------------------------------
+-- Boring instances
+------------------------------------------------------------------------
 
 instance Semiring Int
 instance Semiring Int8
