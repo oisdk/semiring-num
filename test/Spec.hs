@@ -2,9 +2,10 @@
 
 import           Test.DocTest
 import           Test.QuickCheck
+import           Test.Semiring
 
-prop_one_is_one :: Property
-prop_one_is_one = once $ 1 === (1 :: Int)
+prop_plusCommInteger :: Integer -> Integer -> Property
+prop_plusCommInteger = plusComm
 
 return []
 
@@ -14,5 +15,7 @@ runTests = $quickCheckAll
 main :: IO Bool
 main = do
   doctest [ "-isrc"
-          , "src/Data/Semiring.hs" ]
+          , "src/Data/Semiring.hs"
+          , "src/Data/Semiring/Numeric.hs"
+          , "src/Test/Semiring.hs" ]
   runTests
