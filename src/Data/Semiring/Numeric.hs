@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 {-|
-Module: Data.Semiring
+Module: Data.Semiring.Numeric
 Description: Some interesting numeric semirings
 License: MIT
 Maintainer: mail@doisinkidney.com
@@ -24,6 +24,7 @@ import           Test.QuickCheck.Gen
 
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
+-- | '<+>' is 'max', '<.>' is 'min'
 newtype Bottleneck a = Bottleneck
   { getBottleneck :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
@@ -35,57 +36,25 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   zero = Bottleneck minBound
   one  = Bottleneck maxBound
 
-instance Functor Bottleneck where fmap = coerce
-
-instance Foldable Bottleneck where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Bottleneck a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-
-instance Applicative Bottleneck where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Bottleneck (a -> b) -> Bottleneck a -> Bottleneck b)) ($)
-
-instance Monad Bottleneck where
-  (>>=) = flip coerce
-
+-- | '<+>' is 'gcd', '<.>' is 'lcm'. Positive numbers only.
 newtype Division a = Division
   { getDivision :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Arbitrary)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
 
+-- | Only expects positive numbers
 instance (Integral a, Semiring a) => Semiring (Division a) where
-  (<+>) = (coerce :: WrapBinary Division a) lcm
-  (<.>) = (coerce :: WrapBinary Division a) gcd
+  (<+>) = (coerce :: WrapBinary Division a) gcd
+  (<.>) = (coerce :: WrapBinary Division a) lcm
   zero = Division zero
-  one  = Division one
+  one = Division one
 
-instance Functor Division where fmap = coerce
+instance (Integral a, Arbitrary a) => Arbitrary (Division a) where
+  arbitrary = fmap (Division . abs) arbitrary
 
-instance Foldable Division where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Division a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-
-instance Applicative Division where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Division (a -> b) -> Division a -> Division b)) ($)
-
-instance Monad Division where
-  (>>=) = flip coerce
-
+-- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
+-- has some information on this. Also
+-- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
+-- paper.
 newtype Łukasiewicz a = Łukasiewicz
   { getŁukasiewicz :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
@@ -99,26 +68,10 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   zero = Łukasiewicz 0
   one  = Łukasiewicz 1
 
-instance Functor Łukasiewicz where fmap = coerce
-
-instance Foldable Łukasiewicz where
-  foldr =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Łukasiewicz a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-
-instance Applicative Łukasiewicz where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Łukasiewicz (a -> b) -> Łukasiewicz a -> Łukasiewicz b)) ($)
-
-instance Monad Łukasiewicz where
-  (>>=) = flip coerce
-
+-- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
+-- has some information on this. Also
+-- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
+-- paper. Apparently used for probabilistic parsing.
 newtype Viterbi a = Viterbi
   { getViterbi :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
@@ -132,7 +85,44 @@ instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   zero = Viterbi zero
   one  = Viterbi one
 
+------------------------------------------------------------------------
+-- Boring instances
+------------------------------------------------------------------------
+
+instance Functor Bottleneck where fmap = coerce
+instance Functor Division where fmap = coerce
+instance Functor Łukasiewicz where fmap = coerce
 instance Functor Viterbi where fmap = coerce
+
+instance Foldable Bottleneck where
+  foldr   =
+    (coerce :: ((a -> b -> c) -> (b -> a -> c))
+            -> (a -> b -> c)
+            -> (b -> Bottleneck a -> c)) flip
+  foldl   = coerce
+  foldMap = coerce
+  length  = const 1
+  null _ = False
+
+instance Foldable Division where
+  foldr   =
+    (coerce :: ((a -> b -> c) -> (b -> a -> c))
+            -> (a -> b -> c)
+            -> (b -> Division a -> c)) flip
+  foldl   = coerce
+  foldMap = coerce
+  length  = const 1
+  null _ = False
+
+instance Foldable Łukasiewicz where
+  foldr =
+    (coerce :: ((a -> b -> c) -> (b -> a -> c))
+            -> (a -> b -> c)
+            -> (b -> Łukasiewicz a -> c)) flip
+  foldl   = coerce
+  foldMap = coerce
+  length  = const 1
+  null _ = False
 
 instance Foldable Viterbi where
   foldr =
@@ -142,6 +132,25 @@ instance Foldable Viterbi where
   foldl   = coerce
   foldMap = coerce
   length  = const 1
+  null _ = False
+
+instance Applicative Bottleneck where
+  pure = coerce
+  (<*>) =
+    (coerce :: ((a -> b) -> a -> b)
+            -> (Bottleneck (a -> b) -> Bottleneck a -> Bottleneck b)) ($)
+
+instance Applicative Łukasiewicz where
+  pure = coerce
+  (<*>) =
+    (coerce :: ((a -> b) -> a -> b)
+            -> (Łukasiewicz (a -> b) -> Łukasiewicz a -> Łukasiewicz b)) ($)
+
+instance Applicative Division where
+  pure = coerce
+  (<*>) =
+    (coerce :: ((a -> b) -> a -> b)
+            -> (Division (a -> b) -> Division a -> Division b)) ($)
 
 instance Applicative Viterbi where
   pure = coerce
@@ -149,5 +158,7 @@ instance Applicative Viterbi where
     (coerce :: ((a -> b) -> a -> b)
             -> (Viterbi (a -> b) -> Viterbi a -> Viterbi b)) ($)
 
-instance Monad Viterbi where
-  (>>=) = flip coerce
+instance Monad Bottleneck where (>>=) = flip coerce
+instance Monad Division where (>>=) = flip coerce
+instance Monad Łukasiewicz where (>>=) = flip coerce
+instance Monad Viterbi where (>>=) = flip coerce

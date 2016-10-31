@@ -1,7 +1,7 @@
 name:                semiring
 version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
+synopsis:            Basic semiring class and instances
+description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring#readme
 license:             MIT
 license-file:        LICENSE
@@ -10,7 +10,6 @@ maintainer:          mail@doisinkidney.com
 copyright:           2016 Donnacha Oisín Kidney
 category:            Data
 build-type:          Simple
--- extra-source-files:
 cabal-version:       >=1.10
 
 library
@@ -32,7 +31,7 @@ test-suite semiring-test
   build-depends:       base
                      , semiring
                      , QuickCheck >= 2.8
-                     , doctest
+                     , doctest >= 0.11
                      , containers >= 0.5
   ghc-options:         -threaded
                        -rtsopts

@@ -21,7 +21,8 @@ module Test.Semiring
 
 import           Data.Proxy
 import           Data.Semiring   (Semiring (..))
-import           Test.QuickCheck (Arbitrary, Property, conjoin, counterexample, property)
+import           Test.QuickCheck (Arbitrary, Property, conjoin, counterexample,
+                                  property)
 
 -- | Plus is associative.
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
@@ -111,6 +112,7 @@ mulId x = counterexample s (l == x && r ==x) where
     , "x <.> one = " ++ show l
     , "one <.> x = " ++ show r ]
 
+-- | A property for all laws of 'Semiring'.
 semiringLaws :: (Eq a, Semiring a, Show a, Arbitrary a) => Proxy a -> Property
 semiringLaws (_ :: Proxy a) = conjoin
   [ property (plusAssoc   :: a -> a -> a -> Property)
