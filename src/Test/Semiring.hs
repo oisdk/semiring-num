@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {-|
 Module: Test.Semiring
 Description: Some QuickCheck properties for Semirings
@@ -6,10 +8,20 @@ Maintainer: mail@doisinkidney.com
 Stability: experimental
 -}
 
-module Test.Semiring where
+module Test.Semiring
+  ( plusAssoc
+  , mulAssoc
+  , plusComm
+  , mulDistribL
+  , mulDistribR
+  , plusId
+  , mulId
+  , semiringLaws
+  ) where
 
+import           Data.Proxy
 import           Data.Semiring   (Semiring (..))
-import           Test.QuickCheck (Property, counterexample)
+import           Test.QuickCheck (Arbitrary, Property, conjoin, counterexample, property)
 
 -- | Plus is associative.
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
@@ -76,9 +88,35 @@ mulDistribR x y z = counterexample s (l == r) where
     , "x <.> z <+> y <.> z = " ++ show r ]
 
 -- | Additive identity
-plusId :: (Eq a, Semiring a) => a -> Bool
-plusId x = x <+> zero == x && zero <+> x == x
+plusId :: (Eq a, Semiring a, Show a) => a -> Property
+plusId x = counterexample s (l == x && r ==x) where
+  l = x <+> zero
+  r = zero <+> x
+  s = unlines
+    [ "Testing identity of <+>."
+    , "Law: x <+> zero = zero <+> x = x"
+    , "x = " ++ show x
+    , "x <+> zero = " ++ show l
+    , "zero <+> x = " ++ show r ]
 
 -- | Multiplicative identity
-mulId :: (Eq a, Semiring a) => a -> Bool
-mulId x = x <.> one == x && one <.> x == x
+mulId :: (Eq a, Semiring a, Show a) => a -> Property
+mulId x = counterexample s (l == x && r ==x) where
+  l = x <.> one
+  r = one <.> x
+  s = unlines
+    [ "Testing identity of <.>."
+    , "Law: x <.> one = one <.> x = x"
+    , "x = " ++ show x
+    , "x <.> one = " ++ show l
+    , "one <.> x = " ++ show r ]
+
+semiringLaws :: (Eq a, Semiring a, Show a, Arbitrary a) => Proxy a -> Property
+semiringLaws (_ :: Proxy a) = conjoin
+  [ property (plusAssoc   :: a -> a -> a -> Property)
+  , property (mulAssoc    :: a -> a -> a -> Property)
+  , property (plusComm    ::      a -> a -> Property)
+  , property (mulDistribL :: a -> a -> a -> Property)
+  , property (mulDistribR :: a -> a -> a -> Property)
+  , property (plusId      ::           a -> Property)
+  , property (mulId       ::           a -> Property)]

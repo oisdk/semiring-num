@@ -230,7 +230,7 @@ instance (Ord a, Bounded a, Semiring a) => Semiring (Min a) where
 -- (->) instance
 ------------------------------------------------------------------------
 
--- | The ('->') instance is analogous to the one for 'Monoid'.
+-- | The (->) instance is analogous to the one for 'Monoid'.
 instance Semiring b => Semiring (a -> b) where
   zero = const zero
   one  = const one
@@ -314,3 +314,42 @@ instance RealFloat a => Semiring (Complex a)
 instance HasResolution a => Semiring (Fixed a)
 deriving instance Semiring a => Semiring (Identity a)
 deriving instance Semiring a => Semiring (Const a b)
+
+------------------------------------------------------------------------
+-- Very boring instances
+------------------------------------------------------------------------
+instance (Semiring a, Semiring b) => Semiring (a,b) where
+        zero = (zero, zero)
+        (a1,b1) <+> (a2,b2) =
+                (a1 <+> a2, b1 <+> b2)
+        one = (one, one)
+        (a1,b1) <.> (a2,b2) =
+                (a1 <.> a2, b1 <.> b2)
+
+instance (Semiring a, Semiring b, Semiring c) => Semiring (a,b,c) where
+        zero = (zero, zero, zero)
+        (a1,b1,c1) <+> (a2,b2,c2) =
+                (a1 <+> a2, b1 <+> b2, c1 <+> c2)
+        one = (one, one, one)
+        (a1,b1,c1) <.> (a2,b2,c2) =
+                (a1 <.> a2, b1 <.> b2, c1 <.> c2)
+
+instance (Semiring a, Semiring b, Semiring c, Semiring d) => Semiring (a,b,c,d) where
+        zero = (zero, zero, zero, zero)
+        (a1,b1,c1,d1) <+> (a2,b2,c2,d2) =
+                (a1 <+> a2, b1 <+> b2,
+                 c1 <+> c2, d1 <+> d2)
+        one = (one, one, one, one)
+        (a1,b1,c1,d1) <.> (a2,b2,c2,d2) =
+                (a1 <.> a2, b1 <.> b2, c1 <.> c2, d1 <.> d2)
+
+instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e) =>
+                Semiring (a,b,c,d,e) where
+        zero = (zero, zero, zero, zero, zero)
+        (a1,b1,c1,d1,e1) <+> (a2,b2,c2,d2,e2) =
+                (a1 <+> a2, b1 <+> b2, c1 <+> c2,
+                 d1 <+> d2, e1 <+> e2)
+        one = (one, one, one, one, one)
+        (a1,b1,c1,d1,e1) <.> (a2,b2,c2,d2,e2) =
+                (a1 <.> a2, b1 <.> b2, c1 <.> c2,
+                 d1 <.> d2, e1 <.> e2)

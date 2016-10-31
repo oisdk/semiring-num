@@ -31,8 +31,9 @@ test-suite semiring-test
   main-is:             Spec.hs
   build-depends:       base
                      , semiring
-                     , QuickCheck
+                     , QuickCheck >= 2.8
                      , doctest
+                     , containers >= 0.5
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N
