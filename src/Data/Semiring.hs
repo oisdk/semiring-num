@@ -68,8 +68,8 @@ import           Test.QuickCheck       (Arbitrary)
 -- * @a '<+>' b = b '<+>' a@
 --
 -- == Distribution of '<.>' over '<+>'
--- * @a'<.>'(b '<+>' c) = (a'<.>'b) '<+>' (a'<.>'c)@
--- * @(a '<+>' b)'<.>'c = (a'<.>'c) '<+>' (b'<.>'c)@
+-- * @a '<.>' (b '<+>' c) = (a '<.>' b) '<+>' (a '<.>' c)@
+-- * @(a '<+>' b) '<.>' c = (a '<.>' c) '<+>' (b '<.>' c)@
 --
 -- Another useful law, annihilation, may be deduced from the axioms
 -- above:
@@ -230,7 +230,7 @@ instance (Ord a, Bounded a, Semiring a) => Semiring (Min a) where
 -- (->) instance
 ------------------------------------------------------------------------
 
--- | The (->) instance is analogous to the one for 'Monoid'.
+-- | The @(->)@ instance is analogous to the one for 'Monoid'.
 instance Semiring b => Semiring (a -> b) where
   zero = const zero
   one  = const one
