@@ -1,8 +1,8 @@
-name:                semiring
+name:                semiring-num
 version:             0.1.0.0
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
-homepage:            https://github.com/oisdk/semiring#readme
+homepage:            https://github.com/oisdk/semiring-num
 license:             MIT
 license-file:        LICENSE
 author:              Donnacha Oisín Kidney
@@ -29,7 +29,7 @@ test-suite semiring-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , semiring
+                     , semiring-num
                      , QuickCheck >= 2.8
                      , doctest >= 0.11
                      , containers >= 0.5
@@ -41,4 +41,4 @@ test-suite semiring-test
 
 source-repository head
   type:     git
-  location: https://github.com/oisdk/semiring
+  location: https://github.com/oisdk/semiring-num

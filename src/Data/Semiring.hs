@@ -233,7 +233,7 @@ instance (Ord a, Bounded a, Semiring a) => Semiring (Min a) where
 -- | The @(->)@ instance is analogous to the one for 'Monoid'.
 instance Semiring b => Semiring (a -> b) where
   zero = const zero
-  one  = const one
+  one = const one
   (f <+> g) x = f x <+> g x
   (f <.> g) x = f x <.> g x
 
