@@ -251,6 +251,22 @@ instance Monoid a => Semiring (Endo a) where
   zero = Endo (const mempty)
 
 ------------------------------------------------------------------------
+-- Instances for Bool wrappers
+------------------------------------------------------------------------
+
+instance Semiring Any where
+  (<+>) = coerce (||)
+  zero = Any False
+  (<.>) = coerce (&&)
+  one = Any True
+
+instance Semiring All where
+  (<+>) = coerce (||)
+  zero = All False
+  (<.>) = coerce (&&)
+  one = All True
+
+------------------------------------------------------------------------
 -- Boring instances
 ------------------------------------------------------------------------
 
