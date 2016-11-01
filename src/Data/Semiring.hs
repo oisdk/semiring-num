@@ -281,6 +281,8 @@ instance Semiring Word8
 instance Semiring Word16
 instance Semiring Word32
 instance Semiring Word64
+instance Semiring Float
+instance Semiring Double
 instance Semiring CUIntMax
 instance Semiring CIntMax
 instance Semiring CUIntPtr
