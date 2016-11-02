@@ -71,9 +71,7 @@ import           Test.QuickCheck       (Arbitrary)
 -- * @a '<.>' (b '<+>' c) = (a '<.>' b) '<+>' (a '<.>' c)@
 -- * @(a '<+>' b) '<.>' c = (a '<.>' c) '<+>' (b '<.>' c)@
 --
--- Another useful law, annihilation, may be deduced from the axioms
--- above:
---
+-- == Annihilation
 -- * @'zero' '<.>' a = a '<.>' 'zero' = 'zero'@
 class Semiring a where
   -- | The identity of '<+>'.

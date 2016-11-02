@@ -16,6 +16,7 @@ module Test.Semiring
   , mulDistribR
   , plusId
   , mulId
+  , annihilate
   , semiringLaws
   ) where
 
@@ -88,7 +89,7 @@ mulDistribR x y z = counterexample s (l == r) where
     , "(x <+> y) <.> z = " ++ show l
     , "x <.> z <+> y <.> z = " ++ show r ]
 
--- | Additive identity
+-- | Additive identity.
 plusId :: (Eq a, Semiring a, Show a) => a -> Property
 plusId x = counterexample s (l == x && r ==x) where
   l = x <+> zero
@@ -100,7 +101,7 @@ plusId x = counterexample s (l == x && r ==x) where
     , "x <+> zero = " ++ show l
     , "zero <+> x = " ++ show r ]
 
--- | Multiplicative identity
+-- | Multiplicative identity.
 mulId :: (Eq a, Semiring a, Show a) => a -> Property
 mulId x = counterexample s (l == x && r ==x) where
   l = x <.> one
@@ -112,6 +113,18 @@ mulId x = counterexample s (l == x && r ==x) where
     , "x <.> one = " ++ show l
     , "one <.> x = " ++ show r ]
 
+-- | Annihilation of '<.>' by 'zero'.
+annihilate :: (Eq a, Semiring a, Show a) => a -> Property
+annihilate x = counterexample s (l == zero && r == zero) where
+  l = x <.> zero
+  r = zero <.> x
+  s = unlines
+    [ "Testing annihilation of <.> by zero."
+    , "Law: x <.> zero = zero <.> x = zero"
+    , "x = " ++ show x
+    , "x <.> zero = " ++ show l
+    , "zero <.> x = " ++ show r ]
+
 -- | A property for all laws of 'Semiring'.
 semiringLaws :: (Eq a, Semiring a, Show a, Arbitrary a) => Proxy a -> Property
 semiringLaws (_ :: Proxy a) = conjoin
@@ -121,4 +134,5 @@ semiringLaws (_ :: Proxy a) = conjoin
   , property (mulDistribL :: a -> a -> a -> Property)
   , property (mulDistribR :: a -> a -> a -> Property)
   , property (plusId      ::           a -> Property)
-  , property (mulId       ::           a -> Property)]
+  , property (mulId       ::           a -> Property)
+  , property (annihilate  ::           a -> Property)]

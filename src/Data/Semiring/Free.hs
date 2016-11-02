@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- | The Free semiring.
 module Data.Semiring.Free
   ( Free(..)
   , liftFree
