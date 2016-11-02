@@ -1,5 +1,5 @@
 name:                semiring-num
-version:             0.1.0.3
+version:             0.1.0.4
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring-num
@@ -16,6 +16,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Data.Semiring
                      , Data.Semiring.Numeric
+                     , Data.Semiring.Free
                      , Test.Semiring
   build-depends:       base >= 4.9 && < 5
                      , containers >= 0.5
