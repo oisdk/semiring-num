@@ -12,10 +12,13 @@ import           Test.DocTest
 import           Test.QuickCheck
 import           Test.Semiring
 
+smallCheck :: Testable prop => prop -> IO ()
+smallCheck = quickCheckWith (stdArgs { maxSuccess = 40, maxSize = 30})
 
 main :: IO ()
 main = do
-  quickCheckWith (stdArgs { maxSuccess = 40, maxSize = 30} ) (semiringLaws (Proxy :: Proxy (Free Word8)))
+  smallCheck (semiringLaws (Proxy :: Proxy (Free Word8)))
+  quickCheck (semiringLaws (Proxy :: Proxy [Integer]))
   quickCheck (semiringLaws (Proxy :: Proxy Integer))
   quickCheck (semiringLaws (Proxy :: Proxy Bool))
   quickCheck (semiringLaws (Proxy :: Proxy (Add Integer)))
