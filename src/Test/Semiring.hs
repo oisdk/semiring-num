@@ -1,5 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-
 {-|
 Module: Test.Semiring
 Description: Some QuickCheck properties for Semirings
@@ -18,12 +16,11 @@ module Test.Semiring
   , mulId
   , annihilate
   , semiringLaws
+  , Laws
   ) where
 
-import           Data.Proxy
 import           Data.Semiring   (Semiring (..))
-import           Test.QuickCheck (Arbitrary, Property, conjoin, counterexample,
-                                  property)
+import           Test.QuickCheck (Property, conjoin, counterexample)
 
 -- | Plus is associative.
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
@@ -126,13 +123,15 @@ annihilate x = counterexample s (l == zero && r == zero) where
     , "zero <.> x = " ++ show r ]
 
 -- | A property for all laws of 'Semiring'.
-semiringLaws :: (Eq a, Semiring a, Show a, Arbitrary a) => Proxy a -> Property
-semiringLaws (_ :: Proxy a) = conjoin
-  [ property (plusAssoc   :: a -> a -> a -> Property)
-  , property (mulAssoc    :: a -> a -> a -> Property)
-  , property (plusComm    ::      a -> a -> Property)
-  , property (mulDistribL :: a -> a -> a -> Property)
-  , property (mulDistribR :: a -> a -> a -> Property)
-  , property (plusId      ::           a -> Property)
-  , property (mulId       ::           a -> Property)
-  , property (annihilate  ::           a -> Property)]
+semiringLaws :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
+semiringLaws x y z = conjoin
+  [ plusAssoc   x y z
+  , mulAssoc    x y z
+  , plusComm    x y
+  , mulDistribL x y z
+  , mulDistribR x y z
+  , plusId      x
+  , mulId       x
+  , annihilate  x ]
+
+type Laws a = a -> a -> a -> Property

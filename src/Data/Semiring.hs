@@ -15,15 +15,13 @@ module Data.Semiring
   ( Semiring(..)
   , Add(..)
   , Mul(..)
+  , Max(..)
+  , Min(..)
   ) where
 
-import           Data.Coerce           (coerce)
 
 import           Data.Functor.Const    (Const (..))
 import           Data.Functor.Identity (Identity (..))
-
-import           Data.Monoid
-import           Data.Semigroup        (Max (..), Min (..))
 
 import           Data.Complex          (Complex)
 import           Data.Fixed            (Fixed, HasResolution)
@@ -47,8 +45,11 @@ import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
                                         COff, CPid, CRLim, CSpeed, CSsize,
                                         CTcflag, CUid, Fd)
 
-import           GHC.Generics          (Generic, Generic1)
+import           Data.Monoid
 
+import           Control.Applicative   (liftA2)
+import           Data.Coerce           (coerce)
+import           GHC.Generics          (Generic, Generic1)
 import           Test.QuickCheck       (Arbitrary)
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
@@ -149,54 +150,54 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Add a = Add
   { getAdd :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Arbitrary)
+             ,Arbitrary, Enum)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
   { getMul :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Arbitrary)
+             ,Arbitrary, Enum)
 
 instance Functor Add where fmap = coerce
 
 instance Functor Mul where fmap = coerce
 
 instance Foldable Add where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Add a -> c)) flip
-  foldl   = coerce
+  foldr =
+    (coerce :: ((a -> b -> c) -> (b ->     a -> c))
+            ->  (a -> b -> c) -> (b -> Add a -> c)
+    ) flip
+  foldl = coerce
   foldMap = coerce
-  length  = const 1
+  length = const 1
 
 instance Foldable Mul where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Mul a -> c)) flip
-  foldl   = coerce
+  foldr =
+    (coerce :: ((a -> b -> c) -> (b ->     a -> c))
+            ->  (a -> b -> c) -> (b -> Mul a -> c)
+    ) flip
+  foldl = coerce
   foldMap = coerce
-  length  = const 1
+  length = const 1
 
 instance Applicative Add where
   pure = coerce
   (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Add (a -> b) -> Add a -> Add b)) ($)
+    (coerce :: (    (a -> b) ->     a ->     b)
+            -> (Add (a -> b) -> Add a -> Add b)
+    ) ($)
 
 instance Applicative Mul where
   pure = coerce
   (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Mul (a -> b) -> Mul a -> Mul b)) ($)
+    (coerce :: (    (a -> b) ->     a ->     b)
+            -> (Mul (a -> b) -> Mul a -> Mul b)
+    ) ($)
 
-instance Monad Add where
-  (>>=) = flip coerce
+instance Monad Add where (>>=) = flip coerce
 
-instance Monad Mul where
-  (>>=) = flip coerce
+instance Monad Mul where (>>=) = flip coerce
 
 instance Semiring a => Monoid (Add a) where
   mempty = Add zero
@@ -222,21 +223,74 @@ instance Semiring a => Semiring (Mul a) where
 -- Ord wrappers
 ------------------------------------------------------------------------
 
--- | The 'Semiring' for 'Max' uses the 'max' operation for '<+>', and
--- normal '+' for '<.>'.
-instance (Ord a, Bounded a, Semiring a) => Semiring (Max a) where
-  (<+>) = mappend
-  zero = mempty
-  (<.>) = (coerce :: WrapBinary Max a) (<+>)
-  one = Max zero
 
--- | The 'Semiring' for 'Min' uses the 'min' operation for '<+>', and
--- normal '+' for '<.>'.
-instance (Ord a, Bounded a, Semiring a) => Semiring (Min a) where
+-- | The "<https://ncatlab.org/nlab/show/tropical+semiring Tropical>" or
+-- min-plus semiring. It is a semiring where:
+-- @'<+>'  = 'min'@
+-- @'zero' = -∞@ (represented by 'Nothing')
+-- @'<.>'  = '<+>'@ (over the inner value)
+-- @'one'  = 'zero'@ (over the inner value)
+newtype Min a = Min
+  { getMin :: Maybe a
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Arbitrary, Functor
+             ,Foldable)
+
+-- | The "<https://ncatlab.org/nlab/show/https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
+-- or max-plus semiring. It is a semiring where:
+-- @'<+>'  = 'max'@
+-- @'zero' = ∞@ (represented by 'Nothing')
+-- @'<.>'  = '<+>'@ (over the inner value)
+-- @'one'  = 'zero'@ (over the inner value)
+newtype Max a = Max
+  { getMax :: Maybe a
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Arbitrary, Functor
+             ,Foldable)
+
+instance Applicative Max where
+  pure = (coerce :: (a -> Maybe a) -> (a -> Max a)) Just
+  (<*>) = (coerce :: (Maybe (a -> b) -> Maybe a -> Maybe b)
+                  ->  Max   (a -> b) -> Max   a -> Max   b
+          ) (<*>)
+
+instance Applicative Min where
+  pure = (coerce :: (a -> Maybe a) -> (a -> Min a)) Just
+  (<*>) = (coerce :: (Maybe (a -> b) -> Maybe a -> Maybe b)
+                  ->  Min   (a -> b) -> Min   a -> Min   b
+          ) (<*>)
+
+instance Monad Max where
+  (>>=) = (coerce :: (Maybe a -> (a -> Maybe b) -> Maybe b)
+                  ->  Max   a -> (a -> Max   b) -> Max   b
+          ) (>>=)
+
+instance Monad Min where
+  (>>=) = (coerce :: (Maybe a -> (a -> Maybe b) -> Maybe b)
+                  ->  Min   a -> (a -> Min   b) -> Min   b
+          ) (>>=)
+
+instance Ord a => Monoid (Max a) where
+  mempty = Max Nothing
+  Max Nothing `mappend` x = x
+  x `mappend` Max Nothing = x
+  Max (Just x) `mappend` Max (Just y) = (Max . Just) (min x y)
+
+instance Ord a => Monoid (Min a) where
+  mempty = Min Nothing
+  Min Nothing `mappend` x = x
+  x `mappend` Min Nothing = x
+  Min (Just x) `mappend` Min (Just y) = (Min . Just) (min x y)
+
+instance (Semiring a, Ord a) => Semiring (Max a) where
   (<+>) = mappend
   zero = mempty
-  (<.>) = (coerce :: WrapBinary Min a) (<+>)
-  one = Min zero
+  (<.>) = liftA2 (<+>)
+  one = Max (Just zero)
+
+instance (Semiring a, Ord a) => Semiring (Min a) where
+  (<+>) = mappend
+  zero = mempty
+  (<.>) = liftA2 (<+>)
+  one = Min (Just zero)
 
 ------------------------------------------------------------------------
 -- (->) instance
@@ -248,19 +302,6 @@ instance Semiring b => Semiring (a -> b) where
   one = const one
   (f <+> g) x = f x <+> g x
   (f <.> g) x = f x <.> g x
-
-------------------------------------------------------------------------
--- Endo instance
-------------------------------------------------------------------------
-
--- | The 'Endo' semiring uses function composition for '<.>', and
--- pointwise 'mappend' for '<+>'. The underlying 'Monoid' needs to be
--- commutative.
-instance Monoid a => Semiring (Endo a) where
-  (<.>) = mappend
-  one = mempty
-  Endo f <+> Endo g = Endo (\x -> f x `mappend` g x)
-  zero = Endo (const mempty)
 
 ------------------------------------------------------------------------
 -- Instances for Bool wrappers
