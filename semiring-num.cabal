@@ -1,5 +1,5 @@
 name:                semiring-num
-version:             0.2.0.0
+version:             0.3.0.0
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring-num
@@ -20,8 +20,6 @@ library
                      , Test.Semiring
   build-depends:       base >= 4.9 && < 5
                      , containers >= 0.5
-                     , QuickCheck >= 2.8
-                     , random >= 1.1
   default-language:    Haskell2010
   ghc-options:         -Wall
 
@@ -31,7 +29,7 @@ test-suite semiring-test
   main-is:             Spec.hs
   build-depends:       base >= 4.9 && < 5
                      , semiring-num
-                     , QuickCheck >= 2.8
+                     , smallcheck >= 1.1
                      , doctest >= 0.11
                      , containers >= 0.5
   ghc-options:         -threaded

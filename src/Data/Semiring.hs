@@ -50,7 +50,7 @@ import           Data.Monoid
 import           Control.Applicative   (liftA2)
 import           Data.Coerce           (coerce)
 import           GHC.Generics          (Generic, Generic1)
-import           Test.QuickCheck       (Arbitrary)
+
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -150,14 +150,14 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Add a = Add
   { getAdd :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Arbitrary, Enum)
+             ,Enum)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
   { getMul :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Arbitrary, Enum)
+             ,Enum)
 
 instance Functor Add where fmap = coerce
 
@@ -232,7 +232,7 @@ instance Semiring a => Semiring (Mul a) where
 -- @'one'  = 'zero'@ (over the inner value)
 newtype Min a = Min
   { getMin :: Maybe a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Arbitrary, Functor
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
              ,Foldable)
 
 -- | The "<https://ncatlab.org/nlab/show/https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
@@ -243,7 +243,7 @@ newtype Min a = Min
 -- @'one'  = 'zero'@ (over the inner value)
 newtype Max a = Max
   { getMax :: Maybe a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Arbitrary, Functor
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
              ,Foldable)
 
 instance Applicative Max where

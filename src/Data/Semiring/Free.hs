@@ -24,8 +24,6 @@ import           Data.Ord (comparing)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 
-import           Test.QuickCheck (Arbitrary(..))
-
 -- | The free semiring. Adapted from PureScript's version, available
 -- <https://pursuit.purescript.org/packages/purescript-semirings/3.0.0/docs/Data.Semiring.Free here>.
 -- Only a valid semiring if treated as a multiset, as in:
@@ -60,9 +58,6 @@ instance Ord a => Eq (Free a) where
 
 instance Ord a => Ord (Free a) where
   compare = comparing (sort . getFree)
-
-instance Arbitrary a => Arbitrary (Free a) where
-  arbitrary = Free <$> arbitrary
 
 infixr 9 .#
 (.#) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {-|
 Module: Test.Semiring
 Description: Some QuickCheck properties for Semirings
@@ -15,123 +17,156 @@ module Test.Semiring
   , plusId
   , mulId
   , annihilate
-  , semiringLaws
-  , Laws
+  , unaryLaws
+  , binaryLaws
+  , ternaryLaws
   ) where
 
 import           Data.Semiring   (Semiring (..))
-import           Test.QuickCheck (Property, conjoin, counterexample)
 
 -- | Plus is associative.
-plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
-plusAssoc x y z = counterexample s res where
+plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
+plusAssoc x y z = if res then Right s else Left s where
   res = lp == rp
   l = x <+> y
   r = y <+> z
   lp = l <+> z
   rp = x <+> r
   s = unlines
-    [ "Testing associativity of plus."
-    , "Law: (x <+> y) <+> z = x <+> (y <+> z)"
-    , "x <+> y = " ++ show l
-    , "y <+> z = " ++ show r
-    , "(x <+> y) <+> z = " ++ show lp
-    , "x <+> (y <+> z) = " ++ show rp]
+    [ "<+> is " ++ (if res then "" else "not ") ++ "associative."
+    , "    Law:"
+    , "        (x <+> y) <+> z = x <+> (y <+> z)"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    z = " ++ show z
+    , "    x <+> y = " ++ show l
+    , "    y <+> z = " ++ show r
+    , "    (x <+> y) <+> z = " ++ show lp
+    , "    x <+> (y <+> z) = " ++ show rp ]
 
 -- | Multiplication is associative.
-mulAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
-mulAssoc x y z = counterexample s (lp == rp) where
+mulAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
+mulAssoc x y z = if res then Right s else Left s  where
+  res = lp == rp
   l = x <.> y
   r = y <.> z
   lp = l <.> z
   rp = x <.> r
   s = unlines
-    [ "Testing associativity of <.>."
-    , "Law: (x <.> y) <.> z = x <.> (y <.> z)"
-    , "x <.> y = " ++ show l
-    , "y <.> z = " ++ show r
-    , "(x <.> y) <.> z = " ++ show lp
-    , "x <.> (y <.> z) = " ++ show rp]
+    [ "<+> is " ++ (if res then "" else "not ") ++ "associative."
+    , "    Law:"
+    , "        (x <.> y) <.> z = x <.> (y <.> z)"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    z = " ++ show z
+    , "    x <.> y = " ++ show l
+    , "    y <.> z = " ++ show r
+    , "    (x <.> y) <.> z = " ++ show lp
+    , "    x <.> (y <.> z) = " ++ show rp]
 
 -- | Plus is commutative.
-plusComm :: (Eq a, Semiring a, Show a) => a -> a -> Property
-plusComm x y = counterexample s (l == r) where
+plusComm :: (Eq a, Semiring a, Show a) => a -> a -> Either String String
+plusComm x y = if res then Right s else Left s where
+  res = l == r
   l = x <+> y
   r = y <+> x
   s = unlines
-    [ "Testing commutativity of <+>."
-    , "Law: x <+> y = y <+> x"
-    , "x <+> y = " ++ show l
-    , "y <+> x = " ++ show r ]
+    [ "<+> is " ++ (if res then "" else "not ") ++ "commutative."
+    , "    Law:"
+    , "        x <+> y = y <+> x"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    x <+> y = " ++ show l
+    , "    y <+> x = " ++ show r ]
 
 -- | Multiplication distributes left.
-mulDistribL :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
-mulDistribL x y z = counterexample s (l == r) where
+mulDistribL :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
+mulDistribL x y z = if res then Right s else Left s where
+  res = l == r 
   l = x <.> (y <+> z)
   r = x <.> y <+> x <.> z
   s = unlines
-    [ "Testing left distributivity of <.> over <+>."
-    , "Law: x <.> (y <+> z) = x <.> y <+> x <.> z"
-    , "x <.> (y <+> z) = " ++ show l
-    , "x <.> y <+> x <.> z  = " ++ show r ]
+    [ "<.> does " ++ (if res then "" else "not ") ++ "distribute left over <+>."
+    , "    Law:"
+    , "        x <.> (y <+> z) = x <.> y <+> x <.> z"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    z = " ++ show z
+    , "    x <.> (y <+> z) = " ++ show l
+    , "    x <.> y <+> x <.> z  = " ++ show r ]
 
 -- | Multiplication distributes right.
-mulDistribR :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
-mulDistribR x y z = counterexample s (l == r) where
+mulDistribR :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
+mulDistribR x y z = if res then Right s else Left s where
+  res = l == r
   l = (x <+> y) <.> z
   r = x <.> z <+> y <.> z
   s = unlines
-    [ "Testing right distributivity of <.> over <+>."
-    , "Law: (x <+> y) <.> z = x <.> z <+> y <.> z"
-    , "(x <+> y) <.> z = " ++ show l
-    , "x <.> z <+> y <.> z = " ++ show r ]
+    [ "<.> does " ++ (if res then "" else "not ") ++ "distribute left over <+>."
+    , "    Law:"
+    , "        (x <+> y) <.> z = x <.> z <+> y <.> z"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    z = " ++ show z
+    , "    (x <+> y) <.> z = " ++ show l
+    , "    x <.> z <+> y <.> z = " ++ show r ]
 
 -- | Additive identity.
-plusId :: (Eq a, Semiring a, Show a) => a -> Property
-plusId x = counterexample s (l == x && r ==x) where
+plusId :: (Eq a, Semiring a, Show a) => a -> Either String String
+plusId (x :: a) = if res then Right s else Left s where
+  res = l == x && r ==x
   l = x <+> zero
   r = zero <+> x
   s = unlines
-    [ "Testing identity of <+>."
-    , "Law: x <+> zero = zero <+> x = x"
-    , "x = " ++ show x
-    , "x <+> zero = " ++ show l
-    , "zero <+> x = " ++ show r ]
+    [ "zero is" ++ (if res then "" else " not") ++ " the identity of <+>."
+    , "    Law:"
+    , "        x <+> zero = zero <+> x = x"
+    , "    x = " ++ show x
+    , "    zero = " ++ show (zero :: a)
+    , "    x <+> zero = " ++ show l
+    , "    zero <+> x = " ++ show r ]
 
 -- | Multiplicative identity.
-mulId :: (Eq a, Semiring a, Show a) => a -> Property
-mulId x = counterexample s (l == x && r ==x) where
+mulId :: (Eq a, Semiring a, Show a) => a -> Either String String
+mulId (x :: a) = if res then Right s else Left s where
+  res = l == x && r == x
   l = x <.> one
   r = one <.> x
   s = unlines
-    [ "Testing identity of <.>."
-    , "Law: x <.> one = one <.> x = x"
-    , "x = " ++ show x
-    , "x <.> one = " ++ show l
-    , "one <.> x = " ++ show r ]
+    [ "one is" ++ (if res then "" else " not") ++ " the identity of <+>."
+    , "    Law:"
+    , "        x <.> one = one <.> x = x"
+    , "    x = " ++ show x
+    , "    one = " ++ show (one :: a)
+    , "    x <.> one = " ++ show l
+    , "    one <.> x = " ++ show r ]
 
 -- | Annihilation of '<.>' by 'zero'.
-annihilate :: (Eq a, Semiring a, Show a) => a -> Property
-annihilate x = counterexample s (l == zero && r == zero) where
+annihilate :: (Eq a, Semiring a, Show a) => a -> Either String String
+annihilate (x :: a) = if res then Right s else Left s where
+  res = l == zero && r == zero
   l = x <.> zero
   r = zero <.> x
   s = unlines
-    [ "Testing annihilation of <.> by zero."
-    , "Law: x <.> zero = zero <.> x = zero"
-    , "x = " ++ show x
-    , "x <.> zero = " ++ show l
-    , "zero <.> x = " ++ show r ]
+    [ "zero does " ++ (if res then "" else "not ") ++ "annihilate with <.>."
+    , "    Law:"
+    , "        x <.> zero = zero <.> x = zero"
+    , "    x = " ++ show x
+    , "    zero = " ++ show (zero :: a)
+    , "    x <.> zero = " ++ show l
+    , "    zero <.> x = " ++ show r ]
 
--- | A property for all laws of 'Semiring'.
-semiringLaws :: (Eq a, Semiring a, Show a) => a -> a -> a -> Property
-semiringLaws x y z = conjoin
-  [ plusAssoc   x y z
-  , mulAssoc    x y z
-  , plusComm    x y
-  , mulDistribL x y z
-  , mulDistribR x y z
-  , plusId      x
-  , mulId       x
-  , annihilate  x ]
+unaryLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
+unaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilate x])
 
-type Laws a = a -> a -> a -> Property
+binaryLaws :: (Eq a, Semiring a, Show a)
+           => a -> a -> Either String String
+binaryLaws = plusComm
+
+ternaryLaws :: (Eq a, Semiring a, Show a)
+            => a -> a -> a -> Either String String
+ternaryLaws x y z =
+  fmap unlines (sequence [ plusAssoc x y z
+                         , mulAssoc x y z
+                         , mulDistribL x y z
+                         , mulDistribR x y z])

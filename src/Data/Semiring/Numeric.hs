@@ -18,17 +18,13 @@ module Data.Semiring.Numeric
 import           Data.Coerce
 import           Data.Semiring
 import           GHC.Generics
-import           System.Random
-import           Test.QuickCheck
-import           Test.QuickCheck.Gen
 
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
 -- | '<+>' is 'max', '<.>' is 'min'
 newtype Bottleneck a = Bottleneck
   { getBottleneck :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Arbitrary)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
 
 instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   (<+>) = (coerce :: WrapBinary Bottleneck a) max
@@ -48,9 +44,6 @@ instance (Integral a, Semiring a) => Semiring (Division a) where
   zero = Division zero
   one = Division one
 
-instance (Integral a, Arbitrary a) => Arbitrary (Division a) where
-  arbitrary = fmap (Division . abs) arbitrary
-
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
 -- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
@@ -58,9 +51,6 @@ instance (Integral a, Arbitrary a) => Arbitrary (Division a) where
 newtype Łukasiewicz a = Łukasiewicz
   { getŁukasiewicz :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
-
-instance (Num a, Random a) => Arbitrary (Łukasiewicz a) where
-  arbitrary = fmap Łukasiewicz (choose (0,1))
 
 instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   (<+>) = (coerce :: WrapBinary Łukasiewicz a) max
@@ -75,9 +65,6 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
 newtype Viterbi a = Viterbi
   { getViterbi :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
-
-instance (Semiring a, Random a) => Arbitrary (Viterbi a) where
-  arbitrary = fmap Viterbi (choose (zero,one))
 
 instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   (<+>) = (coerce :: WrapBinary Viterbi a) max
