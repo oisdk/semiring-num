@@ -15,8 +15,6 @@ module Data.Semiring
   ( Semiring(..)
   , Add(..)
   , Mul(..)
-  , Max(..)
-  , Min(..)
   ) where
 
 
@@ -46,6 +44,7 @@ import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
                                         CTcflag, CUid, Fd)
 
 import           Data.Monoid
+import           Data.Semigroup        (Max(..), Min(..))
 
 import           Control.Applicative   (liftA2)
 import           Data.Coerce           (coerce)
@@ -223,74 +222,29 @@ instance Semiring a => Semiring (Mul a) where
 -- Ord wrappers
 ------------------------------------------------------------------------
 
-
 -- | The "<https://ncatlab.org/nlab/show/tropical+semiring Tropical>" or
 -- min-plus semiring. It is a semiring where:
 -- @'<+>'  = 'min'@
--- @'zero' = -∞@ (represented by 'Nothing')
+-- @'zero' = -∞@ (represented by 'minBound')
 -- @'<.>'  = '<+>'@ (over the inner value)
 -- @'one'  = 'zero'@ (over the inner value)
-newtype Min a = Min
-  { getMin :: Maybe a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
-             ,Foldable)
+instance (Semiring a, Ord a, Bounded a) => Semiring (Min a) where
+  (<+>) = mappend
+  zero = mempty
+  (<.>) = (coerce :: WrapBinary Min a) (<+>)
+  one = Min zero
 
 -- | The "<https://ncatlab.org/nlab/show/https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
 -- or max-plus semiring. It is a semiring where:
 -- @'<+>'  = 'max'@
--- @'zero' = ∞@ (represented by 'Nothing')
+-- @'zero' = ∞@ (represented by 'maxBound')
 -- @'<.>'  = '<+>'@ (over the inner value)
 -- @'one'  = 'zero'@ (over the inner value)
-newtype Max a = Max
-  { getMax :: Maybe a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
-             ,Foldable)
-
-instance Applicative Max where
-  pure = (coerce :: (a -> Maybe a) -> (a -> Max a)) Just
-  (<*>) = (coerce :: (Maybe (a -> b) -> Maybe a -> Maybe b)
-                  ->  Max   (a -> b) -> Max   a -> Max   b
-          ) (<*>)
-
-instance Applicative Min where
-  pure = (coerce :: (a -> Maybe a) -> (a -> Min a)) Just
-  (<*>) = (coerce :: (Maybe (a -> b) -> Maybe a -> Maybe b)
-                  ->  Min   (a -> b) -> Min   a -> Min   b
-          ) (<*>)
-
-instance Monad Max where
-  (>>=) = (coerce :: (Maybe a -> (a -> Maybe b) -> Maybe b)
-                  ->  Max   a -> (a -> Max   b) -> Max   b
-          ) (>>=)
-
-instance Monad Min where
-  (>>=) = (coerce :: (Maybe a -> (a -> Maybe b) -> Maybe b)
-                  ->  Min   a -> (a -> Min   b) -> Min   b
-          ) (>>=)
-
-instance Ord a => Monoid (Max a) where
-  mempty = Max Nothing
-  Max Nothing `mappend` x = x
-  x `mappend` Max Nothing = x
-  Max (Just x) `mappend` Max (Just y) = (Max . Just) (min x y)
-
-instance Ord a => Monoid (Min a) where
-  mempty = Min Nothing
-  Min Nothing `mappend` x = x
-  x `mappend` Min Nothing = x
-  Min (Just x) `mappend` Min (Just y) = (Min . Just) (min x y)
-
-instance (Semiring a, Ord a) => Semiring (Max a) where
+instance (Semiring a, Ord a, Bounded a) => Semiring (Max a) where
   (<+>) = mappend
   zero = mempty
-  (<.>) = liftA2 (<+>)
-  one = Max (Just zero)
-
-instance (Semiring a, Ord a) => Semiring (Min a) where
-  (<+>) = mappend
-  zero = mempty
-  (<.>) = liftA2 (<+>)
-  one = Min (Just zero)
+  (<.>) = (coerce :: WrapBinary Max a) (<+>)
+  one = Max zero
 
 ------------------------------------------------------------------------
 -- (->) instance
