@@ -47,7 +47,8 @@ import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
                                         COff, CPid, CRLim, CSpeed, CSsize,
                                         CTcflag, CUid, Fd)
 
-import           Data.Monoid
+import           Data.Monoid           hiding ((<>))
+import           Data.Semigroup        (Semigroup (..))
 
 import           Control.Applicative   (liftA2)
 import           Data.Coerce           (coerce)
@@ -201,13 +202,19 @@ instance Monad Add where (>>=) = flip coerce
 
 instance Monad Mul where (>>=) = flip coerce
 
+instance Semiring a => Semigroup (Add a) where
+  (<>) = (coerce :: WrapBinary Add a) (<+>)
+
+instance Semiring a => Semigroup (Mul a) where
+  (<>) = (coerce :: WrapBinary Mul a) (<.>)
+
 instance Semiring a => Monoid (Add a) where
   mempty = Add zero
-  mappend = (coerce :: WrapBinary Add a) (<+>)
+  mappend = (<>)
 
 instance Semiring a => Monoid (Mul a) where
   mempty = Mul one
-  mappend = (coerce :: WrapBinary Mul a) (<.>)
+  mappend = (<>)
 
 instance Semiring a => Semiring (Add a) where
   zero = Add zero
@@ -302,17 +309,23 @@ instance Monad Min where
                   ->  Min   a -> (a -> Min   b) -> Min   b
           ) (>>=)
 
+instance Ord a => Semigroup (Max a) where
+  Max Nothing <> x = x
+  x <> Max Nothing = x
+  Max (Just x) <> Max (Just y) = (Max . Just) (min x y)
+
+instance Ord a => Semigroup (Min a) where
+  Min Nothing <> x = x
+  x <> Min Nothing = x
+  Min (Just x) <> Min (Just y) = (Min . Just) (min x y)
+
 instance Ord a => Monoid (Max a) where
   mempty = Max Nothing
-  Max Nothing `mappend` x = x
-  x `mappend` Max Nothing = x
-  Max (Just x) `mappend` Max (Just y) = (Max . Just) (min x y)
+  mappend = (<>)
 
 instance Ord a => Monoid (Min a) where
   mempty = Min Nothing
-  Min Nothing `mappend` x = x
-  x `mappend` Min Nothing = x
-  Min (Just x) `mappend` Min (Just y) = (Min . Just) (min x y)
+  mappend = (<>)
 
 instance (Semiring a, Ord a) => Semiring (Max a) where
   (<+>) = mappend
