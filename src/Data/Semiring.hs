@@ -15,6 +15,8 @@ module Data.Semiring
   ( Semiring(..)
   , Add(..)
   , Mul(..)
+  , add
+  , mul
   , Max(..)
   , Min(..)
   ) where
@@ -218,6 +220,20 @@ instance Semiring a => Semiring (Mul a) where
   one = Mul one
   (<+>) = (coerce :: WrapBinary Mul a) (<+>)
   (<.>) = (coerce :: WrapBinary Mul a) (<.>)
+
+------------------------------------------------------------------------
+-- Addition and multiplication folds
+------------------------------------------------------------------------
+
+-- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
+-- on numbers, or 'or' on 'Bool's.
+add :: (Foldable f, Semiring a) => f a -> a
+add = getAdd . foldMap Add
+
+-- | Takes the product of the elements of a 'Foldable'. Analogous to
+-- 'product' on numbers, or 'and' on 'Bool's.
+mul :: (Foldable f, Semiring a) => f a -> a
+mul = getMul . foldMap Mul
 
 ------------------------------------------------------------------------
 -- Ord wrappers
