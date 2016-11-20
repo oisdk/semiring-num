@@ -15,6 +15,8 @@ module Data.Semiring
   ( Semiring(..)
   , Add(..)
   , Mul(..)
+  , add
+  , mul
   , Max(..)
   , Min(..)
   ) where
