@@ -14,7 +14,6 @@ import           Data.IntMap.Strict     (IntMap)
 import qualified Data.IntMap.Strict     as IntMap
 import qualified Data.Map.Strict        as Map
 import           Data.Monoid
-import           Data.Semigroup         (Max (..), Min (..))
 import           Data.Semiring
 import           Data.Semiring.Free
 import           Data.Semiring.Numeric
@@ -90,14 +89,14 @@ main = do
   smallCheck 3 (ternLawsOn Set.fromList :: TernaryLaws [[Word2]])
 
   putStrLn "Min Integer"
-  smallCheck 1000 (unLawsOn   Min :: UnaryLaws   Word2)
-  smallCheck 100  (binLawsOn  Min :: BinaryLaws  Word2)
-  smallCheck 10   (ternLawsOn Min :: TernaryLaws Word2)
+  smallCheck 1000 (unLawsOn   Min :: UnaryLaws   (Maybe Integer))
+  smallCheck 100  (binLawsOn  Min :: BinaryLaws  (Maybe Integer))
+  smallCheck 10   (ternLawsOn Min :: TernaryLaws (Maybe Integer))
 
   putStrLn "Max Integer"
-  smallCheck 1000 (unLawsOn   Max :: UnaryLaws   Word2)
-  smallCheck 100  (binLawsOn  Max :: BinaryLaws  Word2)
-  smallCheck 10   (ternLawsOn Max :: TernaryLaws Word2)
+  smallCheck 1000 (unLawsOn   Max :: UnaryLaws   (Maybe Integer))
+  smallCheck 100  (binLawsOn  Max :: BinaryLaws  (Maybe Integer))
+  smallCheck 10   (ternLawsOn Max :: TernaryLaws (Maybe Integer))
 
   putStrLn "Free Word2"
   smallCheck 4 (unLawsOn   Free :: UnaryLaws   [[Word2]])
