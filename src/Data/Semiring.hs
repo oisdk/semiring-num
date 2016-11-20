@@ -242,21 +242,39 @@ mul = getMul . foldMap Mul
 
 -- | The "<https://ncatlab.org/nlab/show/tropical+semiring Tropical>" or
 -- min-plus semiring. It is a semiring where:
--- @'<+>'  = 'min'@
--- @'zero' = -∞@ (represented by 'Nothing')
--- @'<.>'  = '<+>'@ (over the inner value)
--- @'one'  = 'zero'@ (over the inner value)
+--
+-- @'<+>'  = 'min'
+--'zero' = -∞ -- represented by 'Nothing'
+--'<.>'  = '<+>'
+--'one'  = 'zero'@
+--
+-- Note that we can't use 'Data.Semigroup.Min' from 'Data.Semigroup'
+-- because annihilation needs to hold:
+--
+-- @-∞ '<+>' x = x '<+>' -∞ = -∞@
+--
+-- Taking -∞ to be 'minBound' would break the above law. Using 'Nothing'
+-- to represent it follows the law.
 newtype Min a = Min
   { getMin :: Maybe a
   } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
              ,Foldable)
 
--- | The "<https://ncatlab.org/nlab/show/https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
+-- | The "<https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
 -- or max-plus semiring. It is a semiring where:
--- @'<+>'  = 'max'@
--- @'zero' = ∞@ (represented by 'Nothing')
--- @'<.>'  = '<+>'@ (over the inner value)
--- @'one'  = 'zero'@ (over the inner value)
+--
+-- @'<+>'  = 'max'
+--'zero' = ∞ -- represented by 'Nothing'
+--'<.>'  = '<+>'
+--'one'  = 'zero'@
+--
+-- Note that we can't use 'Data.Semigroup.Max' from 'Data.Semigroup'
+-- because annihilation needs to hold:
+--
+-- @∞ '<+>' x = x '<+>' ∞ = ∞@
+--
+-- Taking ∞ to be 'maxBound' would break the above law. Using 'Nothing'
+-- to represent it follows the law.
 newtype Max a = Max
   { getMax :: Maybe a
   } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
