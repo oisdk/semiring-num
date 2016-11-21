@@ -128,6 +128,14 @@ main = do
   smallCheck 2 (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
   smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
 
+  putStrLn "Endo (Add Bool)"
+  smallCheck 3 (unOn plusId        eFromFunc :: UnaryLaws   (Bool -> Bool))
+  smallCheck 3 (unOn mulId         eFromFunc :: UnaryLaws   (Bool -> Bool))
+  smallCheck 2 (binLawsOn          eFromFunc :: BinaryLaws  (Bool -> Bool))
+  smallCheck 2 (ternOn plusAssoc   eFromFunc :: TernaryLaws (Bool -> Bool))
+  smallCheck 2 (ternOn mulAssoc    eFromFunc :: TernaryLaws (Bool -> Bool))
+  smallCheck 2 (ternOn mulDistribR eFromFunc :: TernaryLaws (Bool -> Bool))
+
   doctest [ "-isrc"
           , "src/Data/Semiring.hs"
           , "src/Data/Semiring/Numeric.hs"
@@ -141,14 +149,23 @@ type UnaryLaws   a =           a -> Either String String
 type BinaryLaws  a =      a -> a -> Either String String
 type TernaryLaws a = a -> a -> a -> Either String String
 
+unOn :: UnaryLaws b -> (a -> b) -> UnaryLaws a
+unOn = (.)
+
+binOn :: BinaryLaws b -> (a -> b) -> BinaryLaws a
+binOn = on
+
+ternOn :: TernaryLaws b -> (a -> b) -> TernaryLaws a
+ternOn t f x y z = t (f x) (f y) (f z)
+
 unLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> UnaryLaws a
-unLawsOn f = unaryLaws . f
+unLawsOn = unOn unaryLaws
 
 binLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> BinaryLaws a
-binLawsOn f = binaryLaws `on` f
+binLawsOn = binOn binaryLaws
 
 ternLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> TernaryLaws a
-ternLawsOn f x y z = ternaryLaws (f x) (f y) (f z)
+ternLawsOn = ternOn ternaryLaws
 
 ------------------------------------------------------------------------
 -- Serial wrappers
@@ -203,6 +220,14 @@ instance Semiring Word2
 data Func a b = Func b (IntMap b)
   deriving (Eq, Ord)
 
+newtype EndoFunc a = EndoFunc (Endo a) deriving Semiring
+
+instance (Enum a, Bounded a, Ord a) => Eq (EndoFunc a) where
+  EndoFunc (Endo f) == EndoFunc (Endo g) = fromFunc f == fromFunc g
+
+instance (Enum a, Bounded a, Ord a, Show a) => Show (EndoFunc a) where
+  show (EndoFunc (Endo f)) = show (fromFunc f)
+
 fromList' :: Eq b => b -> [(Int,b)] -> Func a b
 fromList' cnst
   = Func cnst
@@ -219,6 +244,9 @@ fromFunc f = fromList cnst (zip xs ys) where
   xs = [minBound..maxBound]
   ys = map f xs
   Just cnst = mostFrequent ys
+
+eFromFunc :: (a -> a) -> EndoFunc (Add a)
+eFromFunc f = (EndoFunc . Endo) (Add . f . getAdd)
 
 mostFrequent :: (Ord a, Foldable f) => f a -> Maybe a
 mostFrequent = fmap fst . fst . foldl' f (Nothing, Map.empty :: Map.Map a Int) where

@@ -47,8 +47,7 @@ import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
                                         COff, CPid, CRLim, CSpeed, CSsize,
                                         CTcflag, CUid, Fd)
 
-import           Data.Monoid           hiding ((<>))
-import           Data.Semigroup        (Semigroup (..))
+import           Data.Semigroup        hiding (Max (..), Min (..))
 
 import           Control.Applicative   (liftA2)
 import           Data.Coerce           (coerce)
@@ -371,6 +370,25 @@ instance Semiring b => Semiring (a -> b) where
   one = const one
   (f <+> g) x = f x <+> g x
   (f <.> g) x = f x <.> g x
+
+
+------------------------------------------------------------------------
+-- Endo instance
+------------------------------------------------------------------------
+
+-- | This is /not/ a true semiring. In particular, it requires the
+-- underlying monoid to be commutative, and even then, it is only a near
+-- semiring. It is, however, extremely useful. For instance, this type:
+--
+-- @forall a. 'Endo' ('Endo' a)@
+--
+-- Is a valid encoding of church numerals, with addition and
+-- multiplication being their semiring variants.
+instance Monoid a => Semiring (Endo a) where
+  zero = Endo mempty
+  Endo f <+> Endo g = Endo (f `mappend` g)
+  one = mempty
+  (<.>) = mappend
 
 ------------------------------------------------------------------------
 -- Instances for Bool wrappers

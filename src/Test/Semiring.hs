@@ -82,7 +82,7 @@ plusComm x y = if res then Right s else Left s where
 -- | Multiplication distributes left.
 mulDistribL :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
 mulDistribL x y z = if res then Right s else Left s where
-  res = l == r 
+  res = l == r
   l = x <.> (y <+> z)
   r = x <.> y <+> x <.> z
   s = unlines
