@@ -62,21 +62,22 @@ import           GHC.Generics          (Generic, Generic1)
 -- and it must distribute over '<+>'.
 --
 -- = Laws
--- == Normal 'Precursor.Algebra.Monoid.Monoid' laws
--- * @(a '<+>' b) '<+>' c = a '<+>' (b '<+>' c)@
--- * @'zero' '<+>' a = a '<+>' 'zero' = a@
--- * @(a '<.>' b) '<.>' c = a '<.>' (b '<.>' c)@
--- * @'one' '<.>' a = a '<.>' 'one' = a@
+-- == Normal 'Monoid' laws
+--
+-- @(a '<+>' b) '<+>' c = a '<+>' (b '<+>' c)
+--'zero' '<+>' a = a '<+>' 'zero' = a
+--(a '<.>' b) '<.>' c = a '<.>' (b '<.>' c)
+--'one' '<.>' a = a '<.>' 'one' = a@
 --
 -- == Commutativity of '<+>'
--- * @a '<+>' b = b '<+>' a@
+-- @a '<+>' b = b '<+>' a@
 --
 -- == Distribution of '<.>' over '<+>'
--- * @a '<.>' (b '<+>' c) = (a '<.>' b) '<+>' (a '<.>' c)@
--- * @(a '<+>' b) '<.>' c = (a '<.>' c) '<+>' (b '<.>' c)@
+-- @a '<.>' (b '<+>' c) = (a '<.>' b) '<+>' (a '<.>' c)
+--(a '<+>' b) '<.>' c = (a '<.>' c) '<+>' (b '<.>' c)@
 --
 -- == Annihilation
--- * @'zero' '<.>' a = a '<.>' 'zero' = 'zero'@
+-- @'zero' '<.>' a = a '<.>' 'zero' = 'zero'@
 class Semiring a where
   -- | The identity of '<+>'.
   zero :: a
@@ -234,6 +235,7 @@ instance Semiring a => Semiring (Mul a) where
 
 -- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
 -- on numbers, or 'or' on 'Bool's.
+--
 -- >>> add [1..5]
 -- 15
 -- >>> add [False, False]
@@ -247,6 +249,7 @@ add = getAdd . foldMap Add
 
 -- | Takes the product of the elements of a 'Foldable'. Analogous to
 -- 'product' on numbers, or 'and' on 'Bool's.
+--
 -- >>> mul [1..5]
 -- 120
 -- >>> mul [True, True]
