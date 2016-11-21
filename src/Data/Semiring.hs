@@ -234,11 +234,27 @@ instance Semiring a => Semiring (Mul a) where
 
 -- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
 -- on numbers, or 'or' on 'Bool's.
+-- >>> add [1..5]
+-- 15
+-- >>> add [False, False]
+-- False
+-- >>> add [False, True]
+-- True
+-- >>> add [True, undefined]
+-- True
 add :: (Foldable f, Semiring a) => f a -> a
 add = getAdd . foldMap Add
 
 -- | Takes the product of the elements of a 'Foldable'. Analogous to
 -- 'product' on numbers, or 'and' on 'Bool's.
+-- >>> mul [1..5]
+-- 120
+-- >>> mul [True, True]
+-- True
+-- >>> mul [True, False]
+-- False
+-- >>> mul [False, undefined]
+-- False
 mul :: (Foldable f, Semiring a) => f a -> a
 mul = getMul . foldMap Mul
 
@@ -246,21 +262,20 @@ mul = getMul . foldMap Mul
 -- Ord wrappers
 ------------------------------------------------------------------------
 
-
 -- | The "<https://ncatlab.org/nlab/show/tropical+semiring Tropical>" or
 -- min-plus semiring. It is a semiring where:
 --
 -- @'<+>'  = 'min'
---'zero' = -∞ -- represented by 'Nothing'
+--'zero' = ∞ -- represented by 'Nothing'
 --'<.>'  = '<+>'
 --'one'  = 'zero'@
 --
 -- Note that we can't use 'Data.Semigroup.Min' from 'Data.Semigroup'
 -- because annihilation needs to hold:
 --
--- @-∞ '<+>' x = x '<+>' -∞ = -∞@
+-- @∞ '<+>' x = x '<+>' ∞ = ∞@
 --
--- Taking -∞ to be 'minBound' would break the above law. Using 'Nothing'
+-- Taking ∞ to be 'maxBound' would break the above law. Using 'Nothing'
 -- to represent it follows the law.
 newtype Min a = Min
   { getMin :: Maybe a
@@ -271,16 +286,16 @@ newtype Min a = Min
 -- or max-plus semiring. It is a semiring where:
 --
 -- @'<+>'  = 'max'
---'zero' = ∞ -- represented by 'Nothing'
+--'zero' = -∞ -- represented by 'Nothing'
 --'<.>'  = '<+>'
 --'one'  = 'zero'@
 --
 -- Note that we can't use 'Data.Semigroup.Max' from 'Data.Semigroup'
 -- because annihilation needs to hold:
 --
--- @∞ '<+>' x = x '<+>' ∞ = ∞@
+-- @-∞ '<+>' x = x '<+>' -∞ = -∞@
 --
--- Taking ∞ to be 'maxBound' would break the above law. Using 'Nothing'
+-- Taking -∞ to be 'minBound' would break the above law. Using 'Nothing'
 -- to represent it follows the law.
 newtype Max a = Max
   { getMax :: Maybe a
@@ -312,17 +327,21 @@ instance Monad Min where
 instance Ord a => Semigroup (Max a) where
   Max Nothing <> x = x
   x <> Max Nothing = x
-  Max (Just x) <> Max (Just y) = (Max . Just) (min x y)
+  Max (Just x) <> Max (Just y) = (Max . Just) (max x y)
 
 instance Ord a => Semigroup (Min a) where
   Min Nothing <> x = x
   x <> Min Nothing = x
   Min (Just x) <> Min (Just y) = (Min . Just) (min x y)
 
+-- | >>> (getMax . foldMap pure) [1..10]
+-- Just 10
 instance Ord a => Monoid (Max a) where
   mempty = Max Nothing
   mappend = (<>)
 
+-- | >>> (getMin . foldMap pure) [1..10]
+-- Just 1
 instance Ord a => Monoid (Min a) where
   mempty = Min Nothing
   mappend = (<>)
