@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
@@ -13,18 +15,23 @@ module Data.Semiring.Numeric
   , Division(..)
   , Łukasiewicz(..)
   , Viterbi(..)
+  , Log(..)
   ) where
 
 import           Data.Coerce
 import           Data.Semiring
 import           GHC.Generics
 
+import           Data.Typeable    (Typeable)
+import           Foreign.Storable (Storable)
+
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
 -- | '<+>' is 'max', '<.>' is 'min'
 newtype Bottleneck a = Bottleneck
   { getBottleneck :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
 
 instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   (<+>) = (coerce :: WrapBinary Bottleneck a) max
@@ -35,7 +42,8 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
 -- | '<+>' is 'gcd', '<.>' is 'lcm'. Positive numbers only.
 newtype Division a = Division
   { getDivision :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
 
 -- | Only expects positive numbers
 instance (Integral a, Semiring a) => Semiring (Division a) where
@@ -50,7 +58,8 @@ instance (Integral a, Semiring a) => Semiring (Division a) where
 -- paper.
 newtype Łukasiewicz a = Łukasiewicz
   { getŁukasiewicz :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
 
 instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   (<+>) = (coerce :: WrapBinary Łukasiewicz a) max
@@ -64,13 +73,35 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
 -- paper. Apparently used for probabilistic parsing.
 newtype Viterbi a = Viterbi
   { getViterbi :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num)
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
 
 instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   (<+>) = (coerce :: WrapBinary Viterbi a) max
   (<.>) = (coerce :: WrapBinary Viterbi a) (<.>)
   zero = Viterbi zero
   one  = Viterbi one
+
+newtype Log a = Log
+  { getLog :: Maybe a
+  } deriving (Eq, Read, Show, Generic, Generic1, Typeable, Functor
+             ,Foldable, Applicative, Monad)
+
+instance (Semiring a, Floating a) => Semiring (Log a) where
+  zero = Log Nothing
+  one = Log (Just zero)
+  Log (Just x) <.> Log (Just y) = Log (Just (x + y))
+  _ <.> _ = Log Nothing
+  Log Nothing <+> y = y
+  x <+> Log Nothing = x
+  Log (Just x) <+> Log (Just y)
+    = Log (Just (negate (log (exp (negate x) + exp (negate y)))))
+
+instance Ord a => Ord (Log a) where
+  compare (Log Nothing) (Log Nothing)   = EQ
+  compare (Log Nothing) _               = LT
+  compare _ (Log Nothing)               = GT
+  compare (Log (Just x)) (Log (Just y)) = compare x y
 
 ------------------------------------------------------------------------
 -- Boring instances

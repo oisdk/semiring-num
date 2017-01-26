@@ -53,6 +53,9 @@ import           Control.Applicative   (liftA2)
 import           Data.Coerce           (coerce)
 import           GHC.Generics          (Generic, Generic1)
 
+import           Data.Typeable         (Typeable)
+
+import           Foreign.Storable      (Storable)
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -153,14 +156,14 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Add a = Add
   { getAdd :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
   { getMul :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
 
 instance Functor Add where fmap = coerce
 
@@ -281,8 +284,10 @@ mul = getMul . foldMap Mul
 -- to represent it follows the law.
 newtype Min a = Min
   { getMin :: Maybe a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
-             ,Foldable)
+  } deriving (Eq, Read, Show, Generic, Generic1, Functor, Foldable
+             ,Typeable)
+  -- } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
+  --            ,Foldable)
 
 -- | The "<https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
 -- or max-plus semiring. It is a semiring where:
@@ -301,8 +306,21 @@ newtype Min a = Min
 -- to represent it follows the law.
 newtype Max a = Max
   { getMax :: Maybe a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
-             ,Foldable)
+  } deriving (Eq, Read, Show, Generic, Generic1, Functor, Foldable
+             ,Typeable)
+
+instance Ord a => Ord (Min a) where
+  compare (Min Nothing) (Min Nothing)   = EQ
+  compare (Min Nothing) _               = LT
+  compare _ (Min Nothing)               = GT
+  compare (Min (Just x)) (Min (Just y)) = compare x y
+
+instance Ord a => Ord (Max a) where
+  compare (Max Nothing) (Max Nothing)   = EQ
+  compare (Max Nothing) _               = GT
+  compare _ (Max Nothing)               = LT
+  compare (Max (Just x)) (Max (Just y)) = compare x y
+
 
 instance Applicative Max where
   pure = (coerce :: (a -> Maybe a) -> (a -> Max a)) Just
@@ -359,6 +377,14 @@ instance (Semiring a, Ord a) => Semiring (Min a) where
   zero = mempty
   (<.>) = liftA2 (<+>)
   one = Min (Just zero)
+
+instance Bounded a => Bounded (Min a) where
+  maxBound = Min (Just maxBound)
+  minBound = Min Nothing
+
+instance Bounded a => Bounded (Max a) where
+  minBound = Max (Just minBound)
+  maxBound = Max Nothing
 
 ------------------------------------------------------------------------
 -- (->) instance
