@@ -27,7 +27,12 @@ import           Foreign.Storable (Storable)
 
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
--- | '<+>' is 'max', '<.>' is 'min'
+-- | Useful for some constraint problems.
+--
+-- @('<+>') = 'max'
+--('<.>') = 'min'
+--'zero'  = 'minBound'
+--'one'   = 'maxBound'@
 newtype Bottleneck a = Bottleneck
   { getBottleneck :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
@@ -39,7 +44,12 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   zero = Bottleneck minBound
   one  = Bottleneck maxBound
 
--- | '<+>' is 'gcd', '<.>' is 'lcm'. Positive numbers only.
+-- | Positive numbers only.
+--
+-- @('<+>') = 'gcd'
+--('<.>') = 'lcm'
+--'zero'  = 'zero'
+--'one'   = 'one'@
 newtype Division a = Division
   { getDivision :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
@@ -56,6 +66,11 @@ instance (Integral a, Semiring a) => Semiring (Division a) where
 -- has some information on this. Also
 -- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
 -- paper.
+--
+-- @('<+>')   = 'max'
+--x '<.>' y = 'max' 0 (x '+' y '-' 1)
+--'zero'    = 'zero'
+--'one'     = 'one'@
 newtype Łukasiewicz a = Łukasiewicz
   { getŁukasiewicz :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
@@ -71,6 +86,11 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
 -- has some information on this. Also
 -- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
 -- paper. Apparently used for probabilistic parsing.
+--
+-- @('<+>') = 'max'
+--('<.>') = ('<.>')
+--'zero'  = 'zero'
+--'one'   = 'one'@
 newtype Viterbi a = Viterbi
   { getViterbi :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
@@ -82,6 +102,12 @@ instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   zero = Viterbi zero
   one  = Viterbi one
 
+-- | Useful for optimizing multiplication, or working with large numbers.
+--
+-- @('<.>')   = ('+')
+--x '<+>' y = -('log' ('exp' (-x) + 'exp' (-y)))
+--'zero'    = ∞ -- represented by 'Nothing'
+--'one'     = 0@
 newtype Log a = Log
   { getLog :: Maybe a
   } deriving (Eq, Read, Show, Generic, Generic1, Typeable, Functor
@@ -95,7 +121,7 @@ instance (Semiring a, Floating a) => Semiring (Log a) where
   Log Nothing <+> y = y
   x <+> Log Nothing = x
   Log (Just x) <+> Log (Just y)
-    = Log (Just (negate (log (exp (negate x) + exp (negate y)))))
+    = Log (Just (-(log (exp (-x) + exp (-y)))))
 
 instance Ord a => Ord (Log a) where
   compare (Log Nothing) (Log Nothing)   = EQ
