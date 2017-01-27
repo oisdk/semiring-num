@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Main (main) where
 
@@ -22,10 +23,13 @@ import qualified Data.Set               as Set
 import           Test.DocTest
 import           Test.Semiring
 import           Test.SmallCheck
-import           Test.SmallCheck.Series
+import           Test.SmallCheck.Series hiding (Positive)
+import qualified Test.SmallCheck.Series as SC
 import           GHC.TypeLits
 import           Data.Function
 import           Data.Bits
+import           Data.Bool
+import Test.QuickCheck
 
 ------------------------------------------------------------------------
 
@@ -65,11 +69,13 @@ main = do
   smallCheck 1 (unaryLaws   :: UnaryLaws   ())
   smallCheck 1 (binaryLaws  :: BinaryLaws  ())
   smallCheck 1 (ternaryLaws :: TernaryLaws ())
+  smallCheck 1 (starLaws    :: UnaryLaws   ())
 
   putStrLn "Bool"
   smallCheck 2 (unaryLaws   :: UnaryLaws   Bool)
   smallCheck 4 (binaryLaws  :: BinaryLaws  Bool)
   smallCheck 8 (ternaryLaws :: TernaryLaws Bool)
+  smallCheck 2 (starLaws    :: UnaryLaws   Bool)
 
   putStrLn "Any"
   smallCheck 2 (unLawsOn   Any :: UnaryLaws   Bool)
@@ -92,14 +98,16 @@ main = do
   smallCheck 3 (ternLawsOn Set.fromList :: TernaryLaws [[WordN 2]])
 
   putStrLn "Min Integer"
-  smallCheck 1000 (unLawsOn   Min :: UnaryLaws   (Maybe Integer))
-  smallCheck 100  (binLawsOn  Min :: BinaryLaws  (Maybe Integer))
-  smallCheck 10   (ternLawsOn Min :: TernaryLaws (Maybe Integer))
+  smallCheck 1000 (unLawsOn   Min :: UnaryLaws   (PositiveInfinite Integer))
+  smallCheck 100  (binLawsOn  Min :: BinaryLaws  (PositiveInfinite Integer))
+  smallCheck 10   (ternLawsOn Min :: TernaryLaws (PositiveInfinite Integer))
+  smallCheck 1000 (starLaws . Min :: UnaryLaws   (Infinite    Integer))
 
   putStrLn "Max Integer"
-  smallCheck 1000 (unLawsOn   Max :: UnaryLaws   (Maybe Integer))
-  smallCheck 100  (binLawsOn  Max :: BinaryLaws  (Maybe Integer))
-  smallCheck 10   (ternLawsOn Max :: TernaryLaws (Maybe Integer))
+  smallCheck 1000 (unLawsOn   Max :: UnaryLaws   (NegativeInfinite Integer))
+  smallCheck 100  (binLawsOn  Max :: BinaryLaws  (NegativeInfinite Integer))
+  smallCheck 10   (ternLawsOn Max :: TernaryLaws (NegativeInfinite Integer))
+  smallCheck 1000 (starLaws . Max :: UnaryLaws   (Infinite    Integer))
 
   putStrLn "Free (WordN 2)"
   smallCheck 4 (unLawsOn   Free :: UnaryLaws   [[WordN 2]])
@@ -112,9 +120,9 @@ main = do
   smallCheck 10   (ternLawsOn Bottleneck :: TernaryLaws (WordN 2))
 
   putStrLn "Division Integer"
-  smallCheck 1000 (unLawsOn   (Division . getPositive) :: UnaryLaws   (Positive Integer))
-  smallCheck 100  (binLawsOn  (Division . getPositive) :: BinaryLaws  (Positive Integer))
-  smallCheck 10   (ternLawsOn (Division . getPositive) :: TernaryLaws (Positive Integer))
+  smallCheck 1000 (unLawsOn   (Division . getPositive) :: UnaryLaws   (SC.Positive Integer))
+  smallCheck 100  (binLawsOn  (Division . getPositive) :: BinaryLaws  (SC.Positive Integer))
+  smallCheck 10   (ternLawsOn (Division . getPositive) :: TernaryLaws (SC.Positive Integer))
 
   putStrLn "Łukasiewicz Double"
   smallCheck 1000 (unLawsOn   Łukasiewicz :: UnaryLaws   Fraction)
@@ -242,6 +250,15 @@ instance (Monad m, KnownNat n) => Serial m (WordN n) where
 
 instance KnownNat n => Semiring (WordN n)
 
+instance (Monad m, Serial m a) => Serial m (PositiveInfinite a) where
+  series = fmap (maybe PositiveInfinity PosFinite) series
+
+instance (Monad m, Serial m a) => Serial m (NegativeInfinite a) where
+  series = fmap (maybe NegativeInfinity NegFinite) series
+
+instance (Monad m, Serial m a) => Serial m (Infinite a) where
+  series = fmap (either (bool Positive Negative) Finite) series
+
 ------------------------------------------------------------------------
 -- Function Equality
 
@@ -298,3 +315,8 @@ instance (Enum a, Bounded a, Ord b, Semiring b) => Semiring (Func a b) where
   one = fromFunc one
   f <+> g = fromFunc (apply f <+> apply g)
   f <.> g = fromFunc (apply f <.> apply g)
+
+------------------------------------------------------------------------
+-- QuickCheck wrappers
+
+

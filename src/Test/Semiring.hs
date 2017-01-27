@@ -20,9 +20,12 @@ module Test.Semiring
   , unaryLaws
   , binaryLaws
   , ternaryLaws
+  , starLaw
+  , plusLaw
+  , starLaws
   ) where
 
-import           Data.Semiring   (Semiring (..))
+import           Data.Semiring   (Semiring (..), StarSemiring (..))
 
 -- | Plus is associative.
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
@@ -170,3 +173,35 @@ ternaryLaws x y z =
                          , mulAssoc x y z
                          , mulDistribL x y z
                          , mulDistribR x y z])
+
+starLaw :: (Eq a, StarSemiring a, Show a) => a -> Either String String
+starLaw (x :: a) = if res then Right s else Left s where
+  res = l == st && r == st
+  l = one <+> x <.> star x
+  r = one <+> star x <.> x
+  st = star x
+  s = unlines
+    [ "star law" ++ (if res then "" else " not") ++ " followed."
+    , "    Law:"
+    , "        star x = one <+> x <.> star x = one <+> star x <.> x"
+    , "    x = " ++ show x
+    , "    one = " ++ show (one :: a)
+    , "    star x = " ++ show st
+    , "    one <+> x <.> star x = " ++ show l
+    , "    one <+> star x <.> x = " ++ show r ]
+
+plusLaw :: (Eq a, StarSemiring a, Show a) => a -> Either String String
+plusLaw (x :: a) = if res then Right s else Left s where
+  res = r == st
+  r = x <.> star x
+  st = plus x
+  s = unlines
+    [ "plus law" ++ (if res then "" else " not") ++ " followed."
+    , "    Law:"
+    , "        plus x = x <.> star x"
+    , "    x = " ++ show x
+    , "    star x = " ++ show st
+    , "    x <.> star x = " ++ show r ]
+
+starLaws :: (Eq a, StarSemiring a, Show a) => a -> Either String String
+starLaws x = fmap unlines (sequence [starLaw x, plusLaw x])

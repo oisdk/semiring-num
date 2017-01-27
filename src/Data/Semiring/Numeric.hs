@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 {-|
@@ -36,7 +37,8 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Bottleneck a = Bottleneck
   { getBottleneck :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
 
 instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   (<+>) = (coerce :: WrapBinary Bottleneck a) max
@@ -53,7 +55,8 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
 newtype Division a = Division
   { getDivision :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
 
 -- | Only expects positive numbers
 instance (Integral a, Semiring a) => Semiring (Division a) where
@@ -74,7 +77,8 @@ instance (Integral a, Semiring a) => Semiring (Division a) where
 newtype Łukasiewicz a = Łukasiewicz
   { getŁukasiewicz :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
 
 instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   (<+>) = (coerce :: WrapBinary Łukasiewicz a) max
@@ -94,7 +98,8 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
 newtype Viterbi a = Viterbi
   { getViterbi :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
 
 instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   (<+>) = (coerce :: WrapBinary Viterbi a) max
@@ -132,51 +137,6 @@ instance Ord a => Ord (Log a) where
 ------------------------------------------------------------------------
 -- Boring instances
 ------------------------------------------------------------------------
-
-instance Functor Bottleneck where fmap = coerce
-instance Functor Division where fmap = coerce
-instance Functor Łukasiewicz where fmap = coerce
-instance Functor Viterbi where fmap = coerce
-
-instance Foldable Bottleneck where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Bottleneck a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-  null _ = False
-
-instance Foldable Division where
-  foldr   =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Division a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-  null _ = False
-
-instance Foldable Łukasiewicz where
-  foldr =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Łukasiewicz a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-  null _ = False
-
-instance Foldable Viterbi where
-  foldr =
-    (coerce :: ((a -> b -> c) -> (b -> a -> c))
-            -> (a -> b -> c)
-            -> (b -> Viterbi a -> c)) flip
-  foldl   = coerce
-  foldMap = coerce
-  length  = const 1
-  null _ = False
 
 instance Applicative Bottleneck where
   pure = coerce

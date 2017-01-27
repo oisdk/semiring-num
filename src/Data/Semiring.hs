@@ -1,5 +1,8 @@
 {-# LANGUAGE DefaultSignatures          #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 
@@ -13,6 +16,12 @@ Stability: experimental
 
 module Data.Semiring
   ( Semiring(..)
+  , StarSemiring(..)
+  , HasPositiveInfinity(..)
+  , HasNegativeInfinity(..)
+  , PositiveInfinite(..)
+  , NegativeInfinite(..)
+  , Infinite(..)
   , Add(..)
   , Mul(..)
   , add
@@ -54,8 +63,11 @@ import           Data.Coerce           (coerce)
 import           GHC.Generics          (Generic, Generic1)
 
 import           Data.Typeable         (Typeable)
-
 import           Foreign.Storable      (Storable)
+
+import           Data.Function         (fix)
+
+import           Data.Infinite
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -102,6 +114,32 @@ class Semiring a where
   (<+>) = (+)
   (<.>) = (*)
 
+-- | A <https://en.wikipedia.org/wiki/Semiring#Star_semirings Star semiring>
+-- adds one operation, 'star' to a 'Semiring', such that it follows the
+-- law:
+--
+-- @'star' x = 'one' '<+>' x '<.>' 'star' x = 'one' '<+>' 'star' x '<.>' x@
+--
+-- For the semiring of types, this is equivalent to a list. When looking
+-- at the 'Applicative' and 'Control.Applicative.Alternative' classes as
+-- (near-) semirings, this is equivalent to the
+-- 'Control.Applicative.many' operation.
+--
+-- Another operation, 'plus', can be defined in relation to 'star':
+--
+-- @'plus' x = x '<.>' 'star' x@
+--
+-- This should be recognizable as a non-empty list on types, or the
+-- 'Control.Applicative.some' operation in
+-- 'Control.Applicative.Alternative'.
+
+class Semiring a => StarSemiring a where
+  {-# MINIMAL star | plus #-}
+  star :: a -> a
+  plus :: a -> a
+  star x = one <+> plus x
+  plus x = x <.> star x
+
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
@@ -111,11 +149,43 @@ instance Semiring Bool where
   (<+>) = (||)
   (<.>) = (&&)
 
+instance StarSemiring Bool where
+  star _ = True
+  plus = id
+
+instance Semiring a => Semiring (NegativeInfinite a) where
+  one = pure one
+  zero = pure zero
+  (<+>) = liftA2 (<+>)
+  (<.>) = liftA2 (<.>)
+
+instance Semiring a => Semiring (PositiveInfinite a) where
+  one = pure one
+  zero = pure zero
+  (<+>) = liftA2 (<+>)
+  (<.>) = liftA2 (<.>)
+
+instance Semiring a => Semiring (Infinite a) where
+  one = pure one
+  zero = pure zero
+  Negative <+> Positive = pure zero
+  Positive <+> Negative = pure zero
+  Negative <+> _ = Negative
+  Positive <+> _ = Positive
+  _ <+> Negative = Negative
+  _ <+> Positive = Positive
+  Finite x <+> Finite y = Finite (x <+> y)
+  (<.>) = liftA2 (<.>)
+
 instance Semiring () where
   one = ()
   zero = ()
   _ <+> _ = ()
   _ <.> _ = ()
+
+instance StarSemiring () where
+  star _ = ()
+  plus _ = ()
 
 cartProd :: (Ord a, Monoid a) => Set a -> Set a -> Set a
 cartProd xs ys =
@@ -156,36 +226,16 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Add a = Add
   { getAdd :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable, Semiring, StarSemiring)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
   { getMul :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac)
-
-instance Functor Add where fmap = coerce
-
-instance Functor Mul where fmap = coerce
-
-instance Foldable Add where
-  foldr =
-    (coerce :: ((a -> b -> c) -> (b ->     a -> c))
-            ->  (a -> b -> c) -> (b -> Add a -> c)
-    ) flip
-  foldl = coerce
-  foldMap = coerce
-  length = const 1
-
-instance Foldable Mul where
-  foldr =
-    (coerce :: ((a -> b -> c) -> (b ->     a -> c))
-            ->  (a -> b -> c) -> (b -> Mul a -> c)
-    ) flip
-  foldl = coerce
-  foldMap = coerce
-  length = const 1
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable, Semiring, StarSemiring)
 
 instance Applicative Add where
   pure = coerce
@@ -218,18 +268,6 @@ instance Semiring a => Monoid (Add a) where
 instance Semiring a => Monoid (Mul a) where
   mempty = Mul one
   mappend = (<>)
-
-instance Semiring a => Semiring (Add a) where
-  zero = Add zero
-  one = Add one
-  (<+>) = (coerce :: WrapBinary Add a) (<+>)
-  (<.>) = (coerce :: WrapBinary Add a) (<.>)
-
-instance Semiring a => Semiring (Mul a) where
-  zero = Mul zero
-  one = Mul one
-  (<+>) = (coerce :: WrapBinary Mul a) (<+>)
-  (<.>) = (coerce :: WrapBinary Mul a) (<.>)
 
 ------------------------------------------------------------------------
 -- Addition and multiplication folds
@@ -283,9 +321,10 @@ mul = getMul . foldMap Mul
 -- Taking ∞ to be 'maxBound' would break the above law. Using 'Nothing'
 -- to represent it follows the law.
 newtype Min a = Min
-  { getMin :: Maybe a
-  } deriving (Eq, Read, Show, Generic, Generic1, Functor, Foldable
-             ,Typeable)
+  { getMin :: a
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
   -- } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
   --            ,Foldable)
 
@@ -305,86 +344,63 @@ newtype Min a = Min
 -- Taking -∞ to be 'minBound' would break the above law. Using 'Nothing'
 -- to represent it follows the law.
 newtype Max a = Max
-  { getMax :: Maybe a
-  } deriving (Eq, Read, Show, Generic, Generic1, Functor, Foldable
-             ,Typeable)
-
-instance Ord a => Ord (Min a) where
-  compare (Min Nothing) (Min Nothing)   = EQ
-  compare (Min Nothing) _               = LT
-  compare _ (Min Nothing)               = GT
-  compare (Min (Just x)) (Min (Just y)) = compare x y
-
-instance Ord a => Ord (Max a) where
-  compare (Max Nothing) (Max Nothing)   = EQ
-  compare (Max Nothing) _               = GT
-  compare _ (Max Nothing)               = LT
-  compare (Max (Just x)) (Max (Just y)) = compare x y
-
+  { getMax :: a
+  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
 
 instance Applicative Max where
-  pure = (coerce :: (a -> Maybe a) -> (a -> Max a)) Just
-  (<*>) = (coerce :: (Maybe (a -> b) -> Maybe a -> Maybe b)
-                  ->  Max   (a -> b) -> Max   a -> Max   b
-          ) (<*>)
+  pure = Max
+  (<*>) = (coerce :: (    (a -> b) ->     a ->     b)
+                  ->  Max (a -> b) -> Max a -> Max b
+          ) ($)
 
 instance Applicative Min where
-  pure = (coerce :: (a -> Maybe a) -> (a -> Min a)) Just
-  (<*>) = (coerce :: (Maybe (a -> b) -> Maybe a -> Maybe b)
-                  ->  Min   (a -> b) -> Min   a -> Min   b
-          ) (<*>)
+  pure = Min
+  (<*>) = (coerce :: (    (a -> b) ->     a ->     b)
+                  ->  Min (a -> b) -> Min a -> Min b
+          ) ($)
 
-instance Monad Max where
-  (>>=) = (coerce :: (Maybe a -> (a -> Maybe b) -> Maybe b)
-                  ->  Max   a -> (a -> Max   b) -> Max   b
-          ) (>>=)
-
-instance Monad Min where
-  (>>=) = (coerce :: (Maybe a -> (a -> Maybe b) -> Maybe b)
-                  ->  Min   a -> (a -> Min   b) -> Min   b
-          ) (>>=)
+instance Monad Max where Max x >>= f = f x
+instance Monad Min where Min x >>= f = f x
 
 instance Ord a => Semigroup (Max a) where
-  Max Nothing <> x = x
-  x <> Max Nothing = x
-  Max (Just x) <> Max (Just y) = (Max . Just) (max x y)
+  (<>) = (coerce :: (a -> a -> a) -> (Max a -> Max a -> Max a)) max
 
 instance Ord a => Semigroup (Min a) where
-  Min Nothing <> x = x
-  x <> Min Nothing = x
-  Min (Just x) <> Min (Just y) = (Min . Just) (min x y)
+  (<>) = (coerce :: (a -> a -> a) -> (Min a -> Min a -> Min a)) min
 
--- | >>> (getMax . foldMap pure) [1..10]
--- Just 10
-instance Ord a => Monoid (Max a) where
-  mempty = Max Nothing
+-- | >>> (getMax . foldMap Max) [1..10]
+-- 10.0
+instance (Ord a, HasNegativeInfinity a) => Monoid (Max a) where
+  mempty = Max negativeInfinity
   mappend = (<>)
 
--- | >>> (getMin . foldMap pure) [1..10]
--- Just 1
-instance Ord a => Monoid (Min a) where
-  mempty = Min Nothing
+-- | >>> (getMin . foldMap Min) [1..10]
+-- 1.0
+instance (Ord a, HasPositiveInfinity a) => Monoid (Min a) where
+  mempty = Min positiveInfinity
   mappend = (<>)
 
-instance (Semiring a, Ord a) => Semiring (Max a) where
+instance (Semiring a, Ord a, HasNegativeInfinity a) => Semiring (Max a) where
   (<+>) = mappend
   zero = mempty
   (<.>) = liftA2 (<+>)
-  one = Max (Just zero)
+  one = Max zero
 
-instance (Semiring a, Ord a) => Semiring (Min a) where
+instance (Semiring a, Ord a, HasPositiveInfinity a) => Semiring (Min a) where
   (<+>) = mappend
   zero = mempty
   (<.>) = liftA2 (<+>)
-  one = Min (Just zero)
+  one = Min zero
 
-instance Bounded a => Bounded (Min a) where
-  maxBound = Min (Just maxBound)
-  minBound = Min Nothing
+instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) => StarSemiring (Max a) where
+  star (Max x) | x > zero = Max positiveInfinity
+               | otherwise = Max zero
 
-instance Bounded a => Bounded (Max a) where
-  minBound = Max (Just minBound)
-  maxBound = Max Nothing
+instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) => StarSemiring (Min a) where
+  star (Min x) | x < zero = Min negativeInfinity
+               | otherwise = Min zero
 
 ------------------------------------------------------------------------
 -- (->) instance
@@ -397,6 +413,9 @@ instance Semiring b => Semiring (a -> b) where
   (f <+> g) x = f x <+> g x
   (f <.> g) x = f x <.> g x
 
+instance StarSemiring b => StarSemiring (a -> b) where
+  star f x = star (f x)
+  plus f x = plus (f x)
 
 ------------------------------------------------------------------------
 -- Endo instance
@@ -416,6 +435,13 @@ instance Monoid a => Semiring (Endo a) where
   one = mempty
   (<.>) = mappend
 
+instance (Monoid a, Eq a) => StarSemiring (Endo a) where
+  star (Endo f) = Endo g where
+    g x | x /= y = y `mappend` g y
+        | y /= mempty = fix (mappend y)
+        | otherwise = mempty
+        where y = f x
+
 ------------------------------------------------------------------------
 -- Instances for Bool wrappers
 ------------------------------------------------------------------------
@@ -426,11 +452,19 @@ instance Semiring Any where
   (<.>) = coerce (&&)
   one = Any True
 
+instance StarSemiring Any where
+  star _ = Any True
+  plus = id
+
 instance Semiring All where
   (<+>) = coerce (||)
   zero = All False
   (<.>) = coerce (&&)
   one = All True
+
+instance StarSemiring All where
+  star _ = All True
+  plus = id
 
 ------------------------------------------------------------------------
 -- Boring instances
