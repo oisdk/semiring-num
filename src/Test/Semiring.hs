@@ -23,6 +23,8 @@ module Test.Semiring
   , starLaw
   , plusLaw
   , starLaws
+  , nearUnLaws
+  , nearTernaryLaws
   ) where
 
 import           Data.Semiring   (Semiring (..), StarSemiring (..))
@@ -161,6 +163,16 @@ annihilate (x :: a) = if res then Right s else Left s where
 
 unaryLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
 unaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilate x])
+
+nearUnLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
+nearUnLaws = plusId
+
+nearTernaryLaws :: (Eq a, Semiring a, Show a)
+            => a -> a -> a -> Either String String
+nearTernaryLaws x y z =
+  fmap unlines (sequence [ plusAssoc x y z
+                         , mulAssoc x y z
+                         , mulDistribR x y z])
 
 binaryLaws :: (Eq a, Semiring a, Show a)
            => a -> a -> Either String String

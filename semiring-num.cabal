@@ -19,8 +19,10 @@ library
                      , Data.Semiring.Free
                      , Test.Semiring
   other-modules:       Data.Infinite
+                     , Data.Semiring.TH
   build-depends:       base >= 4.9 && < 5
                      , containers >= 0.5
+                     , template-haskell >= 2.11
   default-language:    Haskell2010
   ghc-options:         -Wall
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE DefaultSignatures          #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
@@ -68,6 +69,8 @@ import           Foreign.Storable      (Storable)
 import           Data.Function         (fix)
 
 import           Data.Infinite
+import           Data.Semiring.TH
+
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -153,30 +156,33 @@ instance StarSemiring Bool where
   star _ = True
   plus = id
 
+-- | Not lawful. Only for convenience.
 instance Semiring a => Semiring (NegativeInfinite a) where
   one = pure one
   zero = pure zero
   (<+>) = liftA2 (<+>)
   (<.>) = liftA2 (<.>)
 
+-- | Not lawful. Only for convenience.
 instance Semiring a => Semiring (PositiveInfinite a) where
   one = pure one
   zero = pure zero
   (<+>) = liftA2 (<+>)
   (<.>) = liftA2 (<.>)
 
+-- | Not lawful. Only for convenience.
 instance Semiring a => Semiring (Infinite a) where
   one = pure one
   zero = pure zero
-  Negative <+> Positive = pure zero
-  Positive <+> Negative = pure zero
-  Negative <+> _ = Negative
-  Positive <+> _ = Positive
-  _ <+> Negative = Negative
-  _ <+> Positive = Positive
-  Finite x <+> Finite y = Finite (x <+> y)
+  (<+>) = (coerce :: (Infinite (Add a) -> Infinite (Add a) -> Infinite (Add a))
+                  ->  Infinite      a  -> Infinite      a  -> Infinite      a
+          ) mappend
   (<.>) = liftA2 (<.>)
 
+instance (Eq a, Semiring a) => StarSemiring (PositiveInfinite a) where
+  star (PosFinite x) | x == zero = one
+  star _ = PositiveInfinity
+  
 instance Semiring () where
   one = ()
   zero = ()
@@ -325,8 +331,6 @@ newtype Min a = Min
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
              ,Enum, Typeable, Storable, Fractional, Real, RealFrac
              ,Functor, Foldable, Traversable)
-  -- } deriving (Eq, Ord, Read, Show, Generic, Generic1, Functor
-  --            ,Foldable)
 
 -- | The "<https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
 -- or max-plus semiring. It is a semiring where:
@@ -365,10 +369,10 @@ instance Monad Max where Max x >>= f = f x
 instance Monad Min where Min x >>= f = f x
 
 instance Ord a => Semigroup (Max a) where
-  (<>) = (coerce :: (a -> a -> a) -> (Max a -> Max a -> Max a)) max
+  (<>) = (coerce :: WrapBinary Max a) max
 
 instance Ord a => Semigroup (Min a) where
-  (<>) = (coerce :: (a -> a -> a) -> (Min a -> Min a -> Min a)) min
+  (<>) = (coerce :: WrapBinary Min a) min
 
 -- | >>> (getMax . foldMap Max) [1..10]
 -- 10.0
@@ -385,22 +389,24 @@ instance (Ord a, HasPositiveInfinity a) => Monoid (Min a) where
 instance (Semiring a, Ord a, HasNegativeInfinity a) => Semiring (Max a) where
   (<+>) = mappend
   zero = mempty
-  (<.>) = liftA2 (<+>)
+  (<.>) = (coerce :: WrapBinary Max a) (<+>)
   one = Max zero
 
 instance (Semiring a, Ord a, HasPositiveInfinity a) => Semiring (Min a) where
   (<+>) = mappend
   zero = mempty
-  (<.>) = liftA2 (<+>)
+  (<.>) = (coerce :: WrapBinary Min a) (<+>)
   one = Min zero
 
-instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) => StarSemiring (Max a) where
-  star (Max x) | x > zero = Max positiveInfinity
-               | otherwise = Max zero
+instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a)
+  => StarSemiring (Max a) where
+    star (Max x) | x > zero = Max positiveInfinity
+                | otherwise = Max zero
 
-instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) => StarSemiring (Min a) where
-  star (Min x) | x < zero = Min negativeInfinity
-               | otherwise = Min zero
+instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a)
+  => StarSemiring (Min a) where
+    star (Min x) | x < zero = Min negativeInfinity
+                | otherwise = Min zero
 
 ------------------------------------------------------------------------
 -- (->) instance
@@ -536,38 +542,104 @@ deriving instance Semiring a => Semiring (Const a b)
 ------------------------------------------------------------------------
 -- Very boring instances
 ------------------------------------------------------------------------
+
 instance (Semiring a, Semiring b) => Semiring (a,b) where
-        zero = (zero, zero)
-        (a1,b1) <+> (a2,b2) =
-                (a1 <+> a2, b1 <+> b2)
-        one = (one, one)
-        (a1,b1) <.> (a2,b2) =
-                (a1 <.> a2, b1 <.> b2)
+  zero  = $(repN 2 [| zero  |])
+  (<+>) = $(cmbN 2 [| (<+>) |])
+  one   = $(repN 2 [| one   |])
+  (<.>) = $(cmbN 2 [| (<.>) |])
 
 instance (Semiring a, Semiring b, Semiring c) => Semiring (a,b,c) where
-        zero = (zero, zero, zero)
-        (a1,b1,c1) <+> (a2,b2,c2) =
-                (a1 <+> a2, b1 <+> b2, c1 <+> c2)
-        one = (one, one, one)
-        (a1,b1,c1) <.> (a2,b2,c2) =
-                (a1 <.> a2, b1 <.> b2, c1 <.> c2)
+  zero  = $(repN 3 [| zero  |])
+  (<+>) = $(cmbN 3 [| (<+>) |])
+  one   = $(repN 3 [| one   |])
+  (<.>) = $(cmbN 3 [| (<.>) |])
 
 instance (Semiring a, Semiring b, Semiring c, Semiring d) => Semiring (a,b,c,d) where
-        zero = (zero, zero, zero, zero)
-        (a1,b1,c1,d1) <+> (a2,b2,c2,d2) =
-                (a1 <+> a2, b1 <+> b2,
-                 c1 <+> c2, d1 <+> d2)
-        one = (one, one, one, one)
-        (a1,b1,c1,d1) <.> (a2,b2,c2,d2) =
-                (a1 <.> a2, b1 <.> b2, c1 <.> c2, d1 <.> d2)
+  zero  = $(repN 4 [| zero  |])
+  (<+>) = $(cmbN 4 [| (<+>) |])
+  one   = $(repN 4 [| one   |])
+  (<.>) = $(cmbN 4 [| (<.>) |])
 
-instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e) =>
-                Semiring (a,b,c,d,e) where
-        zero = (zero, zero, zero, zero, zero)
-        (a1,b1,c1,d1,e1) <+> (a2,b2,c2,d2,e2) =
-                (a1 <+> a2, b1 <+> b2, c1 <+> c2,
-                 d1 <+> d2, e1 <+> e2)
-        one = (one, one, one, one, one)
-        (a1,b1,c1,d1,e1) <.> (a2,b2,c2,d2,e2) =
-                (a1 <.> a2, b1 <.> b2, c1 <.> c2,
-                 d1 <.> d2, e1 <.> e2)
+instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e)
+  => Semiring (a,b,c,d,e) where
+    zero  = $(repN 5 [| zero  |])
+    (<+>) = $(cmbN 5 [| (<+>) |])
+    one   = $(repN 5 [| one   |])
+    (<.>) = $(cmbN 5 [| (<.>) |])
+
+instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e, Semiring f)
+  => Semiring (a,b,c,d,e,f) where
+    zero  = $(repN 6 [| zero  |])
+    (<+>) = $(cmbN 6 [| (<+>) |])
+    one   = $(repN 6 [| one   |])
+    (<.>) = $(cmbN 6 [| (<.>) |])
+
+instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e, Semiring f
+         ,Semiring g)
+  => Semiring (a,b,c,d,e,f,g) where
+    zero  = $(repN 7 [| zero  |])
+    (<+>) = $(cmbN 7 [| (<+>) |])
+    one   = $(repN 7 [| one   |])
+    (<.>) = $(cmbN 7 [| (<.>) |])
+
+instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e, Semiring f
+         ,Semiring g, Semiring h)
+  => Semiring (a,b,c,d,e,f,g,h) where
+    zero  = $(repN 8 [| zero  |])
+    (<+>) = $(cmbN 8 [| (<+>) |])
+    one   = $(repN 8 [| one   |])
+    (<.>) = $(cmbN 8 [| (<.>) |])
+
+instance (Semiring a, Semiring b, Semiring c, Semiring d, Semiring e, Semiring f
+         ,Semiring g, Semiring h, Semiring i)
+  => Semiring (a,b,c,d,e,f,g,h,i) where
+    zero  = $(repN 9 [| zero  |])
+    (<+>) = $(cmbN 9 [| (<+>) |])
+    one   = $(repN 9 [| one   |])
+    (<.>) = $(cmbN 9 [| (<.>) |])
+
+instance (StarSemiring a, StarSemiring b) => StarSemiring (a,b) where
+  star = $(appN 2 [| star |])
+  plus = $(appN 2 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c)
+  => StarSemiring (a,b,c) where
+    star = $(appN 3 [| star |])
+    plus = $(appN 3 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c, StarSemiring d)
+  => StarSemiring (a,b,c,d) where
+    star = $(appN 4 [| star |])
+    plus = $(appN 4 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c, StarSemiring d
+         ,StarSemiring e)
+  => StarSemiring (a,b,c,d,e) where
+    star = $(appN 5 [| star |])
+    plus = $(appN 5 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c, StarSemiring d
+         ,StarSemiring e, StarSemiring f)
+  => StarSemiring (a,b,c,d,e,f) where
+    star = $(appN 6 [| star |])
+    plus = $(appN 6 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c, StarSemiring d
+         ,StarSemiring e, StarSemiring f, StarSemiring g)
+  => StarSemiring (a,b,c,d,e,f,g) where
+    star = $(appN 7 [| star |])
+    plus = $(appN 7 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c, StarSemiring d
+         ,StarSemiring e, StarSemiring f, StarSemiring g, StarSemiring h)
+  => StarSemiring (a,b,c,d,e,f,g,h) where
+    star = $(appN 8 [| star |])
+    plus = $(appN 8 [| plus |])
+
+instance (StarSemiring a, StarSemiring b, StarSemiring c, StarSemiring d
+         ,StarSemiring e, StarSemiring f, StarSemiring g, StarSemiring h
+         ,StarSemiring i)
+  => StarSemiring (a,b,c,d,e,f,g,h,i) where
+    star = $(appN 9 [| star |])
+    plus = $(appN 9 [| plus |])

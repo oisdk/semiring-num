@@ -22,14 +22,14 @@ import           Data.Semiring.Numeric
 import qualified Data.Set               as Set
 import           Test.DocTest
 import           Test.Semiring
-import           Test.SmallCheck
+import           Test.SmallCheck hiding (Testable)
 import           Test.SmallCheck.Series hiding (Positive)
 import qualified Test.SmallCheck.Series as SC
 import           GHC.TypeLits
 import           Data.Function
 import           Data.Bits
 import           Data.Bool
-import Test.QuickCheck
+import           Test.QuickCheck        hiding (Positive(..), generate, (.&.))
 
 ------------------------------------------------------------------------
 
@@ -44,26 +44,111 @@ main = do
   smallCheck 16  (unaryLaws   :: UnaryLaws   (WordN 2))
   smallCheck 16  (binaryLaws  :: BinaryLaws  (WordN 2))
   smallCheck 16  (ternaryLaws :: TernaryLaws (WordN 2))
+  smallCheck 16  (starLaws    :: UnaryLaws   (PositiveInfinite (WordN 2)))
 
   putStrLn "(WordN 2,WordN 2)"
   smallCheck 16 (unaryLaws   :: UnaryLaws   (WordN 2,WordN 2))
   smallCheck 14 (binaryLaws  :: BinaryLaws  (WordN 2,WordN 2))
   smallCheck 8  (ternaryLaws :: TernaryLaws (WordN 2,WordN 2))
+  smallCheck 16 (starLaws    :: UnaryLaws   (PositiveInfinite (WordN 2)
+                                            ,PositiveInfinite (WordN 2)))
 
   putStrLn "(WordN 2,WordN 2,WordN 2)"
   smallCheck 10 (unaryLaws   :: UnaryLaws   (WordN 2,WordN 2,WordN 2))
   smallCheck 5  (binaryLaws  :: BinaryLaws  (WordN 2,WordN 2,WordN 2))
   smallCheck 2  (ternaryLaws :: TernaryLaws (WordN 2,WordN 2,WordN 2))
+  smallCheck 10 (starLaws    :: UnaryLaws   (PositiveInfinite (WordN 2)
+                                            ,PositiveInfinite (WordN 2)
+                                            ,PositiveInfinite (WordN 2)))
 
   putStrLn "(WordN 2,WordN 2,WordN 2,WordN 2)"
   smallCheck 8 (unaryLaws   :: UnaryLaws   (WordN 2,WordN 2,WordN 2,WordN 2))
   smallCheck 4 (binaryLaws  :: BinaryLaws  (WordN 2,WordN 2,WordN 2,WordN 2))
   smallCheck 1 (ternaryLaws :: TernaryLaws (WordN 2,WordN 2,WordN 2,WordN 2))
+  smallCheck 16 (starLaws    :: UnaryLaws   (PositiveInfinite (WordN 2)
+                                            ,PositiveInfinite (WordN 2)
+                                            ,PositiveInfinite (WordN 2)
+                                            ,PositiveInfinite (WordN 2)))
+
+  putStrLn "(Int,Int,Int,Int,Int)"
+  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int))
+  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int))
+  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int))
+  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int))
+
+  putStrLn "(Int,Int,Int,Int,Int,Int)"
+  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int))
+  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int))
+  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int))
+  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int))
+
+  putStrLn "(Int,Int,Int,Int,Int,Int,Int)"
+  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int))
+
+  putStrLn "(Int,Int,Int,Int,Int,Int,Int,Int)"
+  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int))
+
+  putStrLn "(Int,Int,Int,Int,Int,Int,Int,Int,Int)"
+  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int
+                                         ,PositiveInfinite Int))
 
   putStrLn "Int"
   smallCheck 1000 (unaryLaws   :: UnaryLaws   Int)
   smallCheck 100  (binaryLaws  :: BinaryLaws  Int)
   smallCheck 10   (ternaryLaws :: TernaryLaws Int)
+
+  putStrLn "PosInf Integer"
+  smallCheck 1000 (nearUnLaws      :: UnaryLaws   (PositiveInfinite Integer))
+  smallCheck 100  (binaryLaws      :: BinaryLaws  (PositiveInfinite Integer))
+  smallCheck 10   (nearTernaryLaws :: TernaryLaws (PositiveInfinite Integer))
+
+  putStrLn "NegInf Integer"
+  smallCheck 1000 (nearUnLaws      :: UnaryLaws   (NegativeInfinite Integer))
+  smallCheck 100  (binaryLaws      :: BinaryLaws  (NegativeInfinite Integer))
+  smallCheck 10   (nearTernaryLaws :: TernaryLaws (NegativeInfinite Integer))
+
+  putStrLn "Inf Integer"
+  smallCheck 1000 (nearUnLaws      :: UnaryLaws   (Infinite Integer))
+  smallCheck 100  (binaryLaws      :: BinaryLaws  (Infinite Integer))
+  -- smallCheck 10   (nearTernaryLaws :: TernaryLaws (Infinite Integer))
 
   putStrLn "()"
   smallCheck 1 (unaryLaws   :: UnaryLaws   ())
@@ -143,6 +228,10 @@ main = do
   smallCheck 3 (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
   smallCheck 2 (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
   smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
+  quickCheck (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
+  quickCheck (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
+  quickCheck (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
+
 
   putStrLn "Endo (Add Bool)"
   smallCheck 3 (unOn plusId        eFromFunc :: UnaryLaws   (Bool -> Bool))
@@ -248,6 +337,9 @@ instance KnownNat n => Integral (WordN n) where
 instance (Monad m, KnownNat n) => Serial m (WordN n) where
   series = generate (`take` [minBound..maxBound])
 
+instance KnownNat n => Arbitrary (WordN n) where
+  arbitrary = arbitraryBoundedEnum
+
 instance KnownNat n => Semiring (WordN n)
 
 instance (Monad m, Serial m a) => Serial m (PositiveInfinite a) where
@@ -319,4 +411,60 @@ instance (Enum a, Bounded a, Ord b, Semiring b) => Semiring (Func a b) where
 ------------------------------------------------------------------------
 -- QuickCheck wrappers
 
+instance Arbitrary a => Arbitrary (PositiveInfinite a) where
+  arbitrary = fmap (maybe PositiveInfinity PosFinite) arbitrary
 
+instance Arbitrary a => Arbitrary (NegativeInfinite a) where
+  arbitrary = fmap (maybe NegativeInfinity NegFinite) arbitrary
+
+instance Arbitrary a => Arbitrary (Infinite a) where
+  arbitrary = fmap (either (bool Positive Negative) Finite) arbitrary
+
+instance Testable (Either String String) where
+  property = either (`counterexample` False) (const (property True))
+
+instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         ,Arbitrary f)
+  => Arbitrary (a,b,c,d,e,f) where
+    arbitrary = (,,,,,) <$> arbitrary
+                        <*> arbitrary
+                        <*> arbitrary
+                        <*> arbitrary
+                        <*> arbitrary
+                        <*> arbitrary
+
+instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         ,Arbitrary f, Arbitrary g)
+  => Arbitrary (a,b,c,d,e,f,g) where
+    arbitrary = (,,,,,,) <$> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+
+instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         ,Arbitrary f, Arbitrary g, Arbitrary h)
+  => Arbitrary (a,b,c,d,e,f,g,h) where
+    arbitrary = (,,,,,,,) <$> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+
+instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         ,Arbitrary f, Arbitrary g, Arbitrary h, Arbitrary i)
+  => Arbitrary (a,b,c,d,e,f,g,h,i) where
+    arbitrary = (,,,,,,,,) <$> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary

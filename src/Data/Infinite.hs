@@ -4,7 +4,6 @@
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE DeriveTraversable   #-}
 {-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE Safe                #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Data.Infinite
@@ -25,6 +24,9 @@ import           Data.Word           (Word8)
 import           Foreign.Ptr         (Ptr, castPtr)
 import           Foreign.Storable    (Storable, alignment, peek, peekByteOff,
                                       poke, pokeByteOff, sizeOf)
+
+import           Data.Coerce
+import           Data.Monoid
 
 class HasPositiveInfinity a where
   positiveInfinity :: a
@@ -89,27 +91,37 @@ instance Applicative Infinite where
   {-# INLINE (<*>) #-}
 
 instance Bounded a => Bounded (NegativeInfinite a) where
+  {-# INLINE minBound #-}
+  {-# INLINE maxBound #-}
   minBound = NegativeInfinity
   maxBound = pure maxBound
 
 instance Bounded a => Bounded (PositiveInfinite a) where
+  {-# INLINE minBound #-}
+  {-# INLINE maxBound #-}
   minBound = pure minBound
   maxBound = PositiveInfinity
 
 instance Bounded (Infinite a) where
+  {-# INLINE minBound #-}
+  {-# INLINE maxBound #-}
   minBound = Negative
   maxBound = Positive
 
 instance HasNegativeInfinity (NegativeInfinite a) where
+  {-# INLINE negativeInfinity #-}
   negativeInfinity = NegativeInfinity
 
 instance HasPositiveInfinity (PositiveInfinite a) where
+  {-# INLINE positiveInfinity #-}
   positiveInfinity = PositiveInfinity
 
 instance HasNegativeInfinity (Infinite a) where
+  {-# INLINE negativeInfinity #-}
   negativeInfinity = Negative
 
 instance HasPositiveInfinity (Infinite a) where
+  {-# INLINE positiveInfinity #-}
   positiveInfinity = Positive
 
 instance (Enum a, Bounded a, Eq a) => Enum (NegativeInfinite a) where
@@ -158,51 +170,59 @@ instance (Enum a, Bounded a, Eq a) => Enum (Infinite a) where
   enumFrom Negative   = Negative : map pure [minBound..] ++ [Positive]
   enumFrom (Finite x) = map pure (enumFrom x) ++ [Positive]
 
-instance (Num a, Eq a) => Num (NegativeInfinite a) where
+instance Monoid a => Monoid (NegativeInfinite a) where
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
+  mempty = pure mempty
+  mappend = liftA2 mappend
+
+instance Monoid a => Monoid (PositiveInfinite a) where
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
+  mempty = pure mempty
+  mappend = liftA2 mappend
+
+instance Monoid a => Monoid (Infinite a) where
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
+  mempty = pure mempty
+  Negative `mappend` Positive = pure mempty
+  Positive `mappend` Negative = pure mempty
+  Negative `mappend` _ = Negative
+  Positive `mappend` _ = Positive
+  Finite x `mappend` Finite y = pure (x `mappend` y)
+  _ `mappend` y = y
+
+instance Num a => Num (NegativeInfinite a) where
   fromInteger = pure . fromInteger
   (+) = liftA2 (+)
-  NegFinite 0 * _ = NegFinite 0
-  _ * NegFinite 0 = NegFinite 0
-  x * y = liftA2 (*) x y
+  (*) = liftA2 (*)
   abs = fmap abs
   signum = foldr (const . pure . signum) (-1)
   (-) = liftA2 (-)
 
-instance (Num a, Eq a) => Num (PositiveInfinite a) where
+instance Num a => Num (PositiveInfinite a) where
   fromInteger = pure . fromInteger
   (+) = liftA2 (+)
-  PosFinite 0 * _ = PosFinite 0
-  _ * PosFinite 0 = PosFinite 0
-  x * y = liftA2 (*) x y
+  (*) = liftA2 (*)
   abs = fmap abs
   signum = foldr (const . pure . signum) (-1)
   (-) = liftA2 (-)
 
-instance (Num a, Eq a) => Num (Infinite a) where
+type CoerceBinary a b = (a -> a -> a) -> (b -> b -> b)
+
+instance Num a => Num (Infinite a) where
   fromInteger = Finite . fromInteger
-  Positive + Negative = Finite 0
-  Negative + Positive = Finite 0
-  Finite x + Finite y = Finite (x+y)
-  Positive + _ = Positive
-  Negative + _ = Negative
-  _ + y = y
-  Positive * Negative = Negative
-  Negative * Positive = Negative
-  Negative * Negative = Positive
-  Positive * Positive = Positive
-  Finite 0 * _ = Finite 0
-  _ * Finite 0 = Finite 0
-  Finite x * Finite y = Finite (x * y)
-  Positive * _ = Positive
-  Negative * _ = Negative
-  _ * y = y
-  abs = fmap abs
+  (+) = (coerce :: CoerceBinary (Infinite (Sum a)) (Infinite a)) mappend
+  (*) = liftA2 (*)
   signum Positive   = 1
   signum Negative   = -1
   signum (Finite x) = Finite (signum x)
   negate Positive   = Negative
   negate Negative   = Positive
   negate (Finite x) = Finite (negate x)
+  abs Negative = Positive
+  abs x = fmap abs x
 
 -- Adapted from https://www.schoolofhaskell.com/user/snoyberg/random-code-snippets/storable-instance-of-maybe
 instance Storable a => Storable (NegativeInfinite a) where
