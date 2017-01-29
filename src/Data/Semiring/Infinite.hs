@@ -6,7 +6,7 @@
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Data.Infinite
+module Data.Semiring.Infinite
   ( HasPositiveInfinity(..)
   , HasNegativeInfinity(..)
   , NegativeInfinite(..)

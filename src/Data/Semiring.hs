@@ -68,7 +68,7 @@ import           Foreign.Storable      (Storable)
 
 import           Data.Function         (fix)
 
-import           Data.Infinite
+import           Data.Semiring.Infinite
 import           Data.Semiring.TH
 
 
@@ -182,7 +182,7 @@ instance Semiring a => Semiring (Infinite a) where
 instance (Eq a, Semiring a) => StarSemiring (PositiveInfinite a) where
   star (PosFinite x) | x == zero = one
   star _ = PositiveInfinity
-  
+
 instance Semiring () where
   one = ()
   zero = ()

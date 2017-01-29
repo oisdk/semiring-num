@@ -18,7 +18,7 @@ library
                      , Data.Semiring.Numeric
                      , Data.Semiring.Free
                      , Test.Semiring
-  other-modules:       Data.Infinite
+  other-modules:       Data.Semiring.Infinite
                      , Data.Semiring.TH
   build-depends:       base >= 4.9 && < 5
                      , containers >= 0.5
