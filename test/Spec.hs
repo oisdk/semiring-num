@@ -218,7 +218,7 @@ main = do
   smallCheck 10   (ternLawsOn Viterbi :: TernaryLaws Fraction)
 
   putStrLn "Log Double"
-  quickCheck (\(Approx (x :: Double)) -> x < 100 ==>  unLawsOn Log (Approx x))
+  quickCheck (unLawsOn   Log :: UnaryLaws   (Approx Double))
   quickCheck (binLawsOn  Log :: BinaryLaws  (Approx Double))
   quickCheck (ternLawsOn Log :: TernaryLaws (Approx Double))
 
