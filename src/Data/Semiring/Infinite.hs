@@ -186,11 +186,11 @@ instance Monoid a => Monoid (Infinite a) where
   {-# INLINE mempty #-}
   {-# INLINE mappend #-}
   mempty = pure mempty
-  Negative `mappend` Positive = pure mempty
-  Positive `mappend` Negative = pure mempty
+  Negative `mappend` Positive = Positive
+  Positive `mappend` Negative = Positive
+  Finite x `mappend` Finite y = pure (x `mappend` y)
   Negative `mappend` _ = Negative
   Positive `mappend` _ = Positive
-  Finite x `mappend` Finite y = pure (x `mappend` y)
   _ `mappend` y = y
 
 instance Num a => Num (NegativeInfinite a) where

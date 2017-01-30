@@ -45,6 +45,10 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   (<.>) = (coerce :: WrapBinary Bottleneck a) min
   zero = Bottleneck minBound
   one  = Bottleneck maxBound
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
 
 -- | Positive numbers only.
 --
@@ -64,6 +68,10 @@ instance (Integral a, Semiring a) => Semiring (Division a) where
   (<.>) = (coerce :: WrapBinary Division a) lcm
   zero = Division zero
   one = Division one
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
 
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
@@ -85,6 +93,10 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   (<.>) = (coerce :: WrapBinary Łukasiewicz a) (\x y -> max 0 (x + y - 1))
   zero = Łukasiewicz 0
   one  = Łukasiewicz 1
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
 
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
@@ -106,63 +118,29 @@ instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   (<.>) = (coerce :: WrapBinary Viterbi a) (<.>)
   zero = Viterbi zero
   one  = Viterbi one
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
 
 -- | Useful for optimizing multiplication, or working with large numbers.
 --
 -- @('<.>')   = ('+')
 --x '<+>' y = -('log' ('exp' (-x) + 'exp' (-y)))
---'zero'    = ∞ -- represented by 'Nothing'
+--'zero'    = ∞
 --'one'     = 0@
 newtype Log a = Log
-  { getLog :: Maybe a
-  } deriving (Eq, Read, Show, Generic, Generic1, Typeable, Functor
-             ,Foldable, Applicative, Monad)
+  { getLog :: a
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Typeable, Functor
+             ,Foldable)
 
-instance (Semiring a, Floating a) => Semiring (Log a) where
-  zero = Log Nothing
-  one = Log (Just zero)
-  Log (Just x) <.> Log (Just y) = Log (Just (x + y))
-  _ <.> _ = Log Nothing
-  Log Nothing <+> y = y
-  x <+> Log Nothing = x
-  Log (Just x) <+> Log (Just y)
-    = Log (Just (-(log (exp (-x) + exp (-y)))))
-
-instance Ord a => Ord (Log a) where
-  compare (Log Nothing) (Log Nothing)   = EQ
-  compare (Log Nothing) _               = LT
-  compare _ (Log Nothing)               = GT
-  compare (Log (Just x)) (Log (Just y)) = compare x y
-
-------------------------------------------------------------------------
--- Boring instances
-------------------------------------------------------------------------
-
-instance Applicative Bottleneck where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Bottleneck (a -> b) -> Bottleneck a -> Bottleneck b)) ($)
-
-instance Applicative Łukasiewicz where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Łukasiewicz (a -> b) -> Łukasiewicz a -> Łukasiewicz b)) ($)
-
-instance Applicative Division where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Division (a -> b) -> Division a -> Division b)) ($)
-
-instance Applicative Viterbi where
-  pure = coerce
-  (<*>) =
-    (coerce :: ((a -> b) -> a -> b)
-            -> (Viterbi (a -> b) -> Viterbi a -> Viterbi b)) ($)
-
-instance Monad Bottleneck where (>>=) = flip coerce
-instance Monad Division where (>>=) = flip coerce
-instance Monad Łukasiewicz where (>>=) = flip coerce
-instance Monad Viterbi where (>>=) = flip coerce
+instance (Floating a, HasPositiveInfinity a) => Semiring (Log a) where
+  zero = Log positiveInfinity
+  one = Log 0
+  (<.>) = (coerce :: WrapBinary Log a) (+)
+  Log x <+> Log y
+    = Log (-(log (exp (-x) + exp (-y))))
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}

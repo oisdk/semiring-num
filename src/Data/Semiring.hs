@@ -40,9 +40,6 @@ import           Data.Fixed            (Fixed, HasResolution)
 import           Data.Ratio            (Ratio)
 import           Numeric.Natural       (Natural)
 
-import           Data.Set              (Set)
-import qualified Data.Set              as Set
-
 import           Data.Int              (Int16, Int32, Int64, Int8)
 import           Data.Word             (Word16, Word32, Word64, Word8)
 import           Foreign.C.Types       (CChar, CClock, CDouble, CFloat, CInt,
@@ -66,7 +63,7 @@ import           GHC.Generics          (Generic, Generic1)
 import           Data.Typeable         (Typeable)
 import           Foreign.Storable      (Storable)
 
-import           Data.Function         (fix)
+
 
 import           Data.Semiring.Infinite
 import           Data.Semiring.TH
@@ -95,6 +92,11 @@ import           Data.Semiring.TH
 --
 -- == Annihilation
 -- @'zero' '<.>' a = a '<.>' 'zero' = 'zero'@
+--
+-- An ordered semiring follows the laws:
+-- @x '<=' y => x '<+>' z '<=' y '<+>' z@
+-- @x '<=' y => x '<+>' z '<=' y '<+>' z@
+-- @'zero' '<=' z '&&' x '<=' y => x '<.>' z '<=' y '<.>' z '&&' z '<.>' x '<=' z '<.>' y@
 class Semiring a where
   -- | The identity of '<+>'.
   zero :: a
@@ -113,9 +115,13 @@ class Semiring a where
   default (<.>) :: Num a => a -> a -> a
 
   zero = 0
+  {-# INLINE zero #-}
   one = 1
+  {-# INLINE one #-}
   (<+>) = (+)
+  {-# INLINE (<+>) #-}
   (<.>) = (*)
+  {-# INLINE (<.>) #-}
 
 -- | A <https://en.wikipedia.org/wiki/Semiring#Star_semirings Star semiring>
 -- adds one operation, 'star' to a 'Semiring', such that it follows the
@@ -146,38 +152,57 @@ class Semiring a => StarSemiring a where
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
+
+type CoerceBinary a b = (a -> a -> a) -> b -> b -> b
+
 instance Semiring Bool where
   one = True
   zero = False
   (<+>) = (||)
   (<.>) = (&&)
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance StarSemiring Bool where
   star _ = True
   plus = id
+  {-# INLINE star #-}
+  {-# INLINE plus #-}
 
 -- | Not lawful. Only for convenience.
 instance Semiring a => Semiring (NegativeInfinite a) where
   one = pure one
   zero = pure zero
-  (<+>) = liftA2 (<+>)
+  (<+>) = (coerce :: CoerceBinary (NegativeInfinite (Add a)) (NegativeInfinite a)) mappend
   (<.>) = liftA2 (<.>)
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 -- | Not lawful. Only for convenience.
 instance Semiring a => Semiring (PositiveInfinite a) where
   one = pure one
   zero = pure zero
-  (<+>) = liftA2 (<+>)
+  (<+>) = (coerce :: CoerceBinary (PositiveInfinite (Add a)) (PositiveInfinite a)) mappend
   (<.>) = liftA2 (<.>)
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 -- | Not lawful. Only for convenience.
 instance Semiring a => Semiring (Infinite a) where
   one = pure one
   zero = pure zero
-  (<+>) = (coerce :: (Infinite (Add a) -> Infinite (Add a) -> Infinite (Add a))
-                  ->  Infinite      a  -> Infinite      a  -> Infinite      a
-          ) mappend
+  (<+>) = (coerce :: CoerceBinary (Infinite (Add a)) (Infinite a)) mappend
   (<.>) = liftA2 (<.>)
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance (Eq a, Semiring a) => StarSemiring (PositiveInfinite a) where
   star (PosFinite x) | x == zero = one
@@ -188,24 +213,16 @@ instance Semiring () where
   zero = ()
   _ <+> _ = ()
   _ <.> _ = ()
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance StarSemiring () where
   star _ = ()
   plus _ = ()
-
-cartProd :: (Ord a, Monoid a) => Set a -> Set a -> Set a
-cartProd xs ys =
-  Set.foldl' (\a x ->
-                Set.foldl' (flip (Set.insert . mappend x)) a ys)
-  Set.empty xs
-
--- | The 'Set' 'Semiring' is 'Data.Set.union' for '<+>', and a Cartesian
--- product for '<.>'.
-instance (Ord a, Monoid a) => Semiring (Set a) where
-  (<.>) = cartProd
-  (<+>) = Set.union
-  zero = Set.empty
-  one = Set.singleton mempty
+  {-# INLINE star #-}
+  {-# INLINE plus #-}
 
 -- | A polynomial in /x/ can be defined as a list of its coefficients,
 -- where the /i/th element is the coefficient of /x^i/. This is the
@@ -243,37 +260,25 @@ newtype Mul a = Mul
              ,Enum, Typeable, Storable, Fractional, Real, RealFrac
              ,Functor, Foldable, Traversable, Semiring, StarSemiring)
 
-instance Applicative Add where
-  pure = coerce
-  (<*>) =
-    (coerce :: (    (a -> b) ->     a ->     b)
-            -> (Add (a -> b) -> Add a -> Add b)
-    ) ($)
-
-instance Applicative Mul where
-  pure = coerce
-  (<*>) =
-    (coerce :: (    (a -> b) ->     a ->     b)
-            -> (Mul (a -> b) -> Mul a -> Mul b)
-    ) ($)
-
-instance Monad Add where (>>=) = flip coerce
-
-instance Monad Mul where (>>=) = flip coerce
-
 instance Semiring a => Semigroup (Add a) where
   (<>) = (coerce :: WrapBinary Add a) (<+>)
+  {-# INLINE (<>) #-}
 
 instance Semiring a => Semigroup (Mul a) where
   (<>) = (coerce :: WrapBinary Mul a) (<.>)
+  {-# INLINE (<>) #-}
 
 instance Semiring a => Monoid (Add a) where
   mempty = Add zero
   mappend = (<>)
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
 
 instance Semiring a => Monoid (Mul a) where
   mempty = Mul one
   mappend = (<>)
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
 
 ------------------------------------------------------------------------
 -- Addition and multiplication folds
@@ -353,60 +358,59 @@ newtype Max a = Max
              ,Enum, Typeable, Storable, Fractional, Real, RealFrac
              ,Functor, Foldable, Traversable)
 
-instance Applicative Max where
-  pure = Max
-  (<*>) = (coerce :: (    (a -> b) ->     a ->     b)
-                  ->  Max (a -> b) -> Max a -> Max b
-          ) ($)
-
-instance Applicative Min where
-  pure = Min
-  (<*>) = (coerce :: (    (a -> b) ->     a ->     b)
-                  ->  Min (a -> b) -> Min a -> Min b
-          ) ($)
-
-instance Monad Max where Max x >>= f = f x
-instance Monad Min where Min x >>= f = f x
-
 instance Ord a => Semigroup (Max a) where
   (<>) = (coerce :: WrapBinary Max a) max
+  {-# INLINE (<>) #-}
 
 instance Ord a => Semigroup (Min a) where
   (<>) = (coerce :: WrapBinary Min a) min
+  {-# INLINE (<>) #-}
 
 -- | >>> (getMax . foldMap Max) [1..10]
 -- 10.0
 instance (Ord a, HasNegativeInfinity a) => Monoid (Max a) where
   mempty = Max negativeInfinity
   mappend = (<>)
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
 
 -- | >>> (getMin . foldMap Min) [1..10]
 -- 1.0
 instance (Ord a, HasPositiveInfinity a) => Monoid (Min a) where
   mempty = Min positiveInfinity
   mappend = (<>)
+  {-# INLINE mempty #-}
+  {-# INLINE mappend #-}
 
 instance (Semiring a, Ord a, HasNegativeInfinity a) => Semiring (Max a) where
   (<+>) = mappend
   zero = mempty
   (<.>) = (coerce :: WrapBinary Max a) (<+>)
   one = Max zero
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a) => Semiring (Min a) where
   (<+>) = mappend
   zero = mempty
   (<.>) = (coerce :: WrapBinary Min a) (<+>)
   one = Min zero
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a)
   => StarSemiring (Max a) where
     star (Max x) | x > zero = Max positiveInfinity
-                | otherwise = Max zero
+                 | otherwise = Max zero
 
 instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a)
   => StarSemiring (Min a) where
     star (Min x) | x < zero = Min negativeInfinity
-                | otherwise = Min zero
+                 | otherwise = Min zero
 
 ------------------------------------------------------------------------
 -- (->) instance
@@ -440,13 +444,16 @@ instance Monoid a => Semiring (Endo a) where
   Endo f <+> Endo g = Endo (f `mappend` g)
   one = mempty
   (<.>) = mappend
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance (Monoid a, Eq a) => StarSemiring (Endo a) where
-  star (Endo f) = Endo g where
-    g x | x /= y = y `mappend` g y
-        | y /= mempty = fix (mappend y)
-        | otherwise = mempty
-        where y = f x
+  star (Endo f) = Endo converge where
+    converge x = go x where
+      go inp = mappend x (if inp == next then inp else go next) where
+        next = mappend x (f inp)
 
 ------------------------------------------------------------------------
 -- Instances for Bool wrappers
@@ -457,20 +464,32 @@ instance Semiring Any where
   zero = Any False
   (<.>) = coerce (&&)
   one = Any True
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance StarSemiring Any where
   star _ = Any True
   plus = id
+  {-# INLINE star #-}
+  {-# INLINE plus #-}
 
 instance Semiring All where
   (<+>) = coerce (||)
   zero = All False
   (<.>) = coerce (&&)
   one = All True
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
 
 instance StarSemiring All where
   star _ = All True
   plus = id
+  {-# INLINE star #-}
+  {-# INLINE plus #-}
 
 ------------------------------------------------------------------------
 -- Boring instances

@@ -36,6 +36,7 @@ test-suite semiring-test
                      , doctest >= 0.11
                      , containers >= 0.5
                      , QuickCheck >= 2.8
+                     , nat-sized-numbers >= 0.1
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N

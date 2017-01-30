@@ -25,6 +25,7 @@ module Test.Semiring
   , starLaws
   , nearUnLaws
   , nearTernaryLaws
+  , ordLaws
   ) where
 
 import           Data.Semiring   (Semiring (..), StarSemiring (..))
@@ -107,7 +108,7 @@ mulDistribR x y z = if res then Right s else Left s where
   l = (x <+> y) <.> z
   r = x <.> z <+> y <.> z
   s = unlines
-    [ "<.> does " ++ (if res then "" else "not ") ++ "distribute left over <+>."
+    [ "<.> does " ++ (if res then "" else "not ") ++ "distribute right over <+>."
     , "    Law:"
     , "        (x <+> y) <.> z = x <.> z <+> y <.> z"
     , "    x = " ++ show x
@@ -172,7 +173,7 @@ nearTernaryLaws :: (Eq a, Semiring a, Show a)
 nearTernaryLaws x y z =
   fmap unlines (sequence [ plusAssoc x y z
                          , mulAssoc x y z
-                         , mulDistribR x y z])
+                         , mulDistribL x y z])
 
 binaryLaws :: (Eq a, Semiring a, Show a)
            => a -> a -> Either String String
@@ -217,3 +218,36 @@ plusLaw (x :: a) = if res then Right s else Left s where
 
 starLaws :: (Eq a, StarSemiring a, Show a) => a -> Either String String
 starLaws x = fmap unlines (sequence [starLaw x, plusLaw x])
+
+
+ordAddLaw :: (Ord a, Semiring a, Show a) => a -> a -> a -> Either String String
+ordAddLaw (x :: a) (y :: a) (z :: a) = if res then Right s else Left s where
+  cnd = x <= y
+  lhs = x <+> z <= y <+> z
+  rhs = z <+> x <= z <+> y
+  res = not cnd || lhs && rhs
+  s = unlines
+    [ "ordering law" ++ (if res then "" else " not") ++ " followed."
+    , "    Law:"
+    , "        x <= y => x <+> z <= y <+> z && z <+> x <= z <+> y"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    z = " ++ show z ]
+
+ordMulLaw :: (Ord a, Semiring a, Show a) => a -> a -> a -> Either String String
+ordMulLaw (x :: a) (y :: a) (z :: a) = if res then Right s else Left s where
+  cnd = x <= y && zero <= z
+  lhs = x <.> z <= y <.> z
+  rhs = z <.> x <= z <.> y
+  res = not cnd || lhs && rhs
+  s = unlines
+    [ "ordering law" ++ (if res then "" else " not") ++ " followed."
+    , "    Law:"
+    , "        x <= y => x <.> z <= y <.> z && z <.> x <= z <.> y"
+    , "    x = " ++ show x
+    , "    y = " ++ show y
+    , "    z = " ++ show z ]
+
+
+ordLaws :: (Ord a, Semiring a, Show a) => a -> a -> a -> Either String String
+ordLaws x y z = fmap unlines (sequence [ordAddLaw x y z, ordMulLaw x y z])
