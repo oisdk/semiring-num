@@ -26,20 +26,18 @@ cmbN n nm = do
         ntup = TupE (zipWith (AppE . AppE f) (map VarE xs) (map VarE ys))
     return $ FunD (mkName nm) [Clause args (NormalB ntup) []]
 
-starIns :: Int -> Q [Dec]
-starIns n =
-    fmap pure $
-    do names <- replicateM n (newName "a")
-       let c = ConT (mkName "StarSemiring")
-           ct = map (AppT c . VarT) names
-       InstanceD Nothing ct (AppT c $ foldl AppT (TupleT n) (map VarT names)) <$>
-           sequence [appN n "star", appN n "plus"]
+starIns :: Int -> Q Dec
+starIns n = do
+    names <- replicateM n (newName "a")
+    let c = ConT (mkName "StarSemiring")
+        ct = map (AppT c . VarT) names
+    InstanceD Nothing ct (AppT c $ foldl AppT (TupleT n) (map VarT names)) <$>
+        sequence [appN n "star", appN n "plus"]
 
-semiringIns :: Int -> Q [Dec]
-semiringIns n =
-    fmap pure $
-    do names <- replicateM n (newName "a")
-       let c = ConT (mkName "Semiring")
-           ct = map (AppT c . VarT) names
-       InstanceD Nothing ct (AppT c $ foldl AppT (TupleT n) (map VarT names)) <$>
-           sequence [cmbN n "<+>", cmbN n "<.>", repN n "zero", repN n "one"]
+semiringIns :: Int -> Q Dec
+semiringIns n = do
+    names <- replicateM n (newName "a")
+    let c = ConT (mkName "Semiring")
+        ct = map (AppT c . VarT) names
+    InstanceD Nothing ct (AppT c $ foldl AppT (TupleT n) (map VarT names)) <$>
+        sequence [cmbN n "<+>", cmbN n "<.>", repN n "zero", repN n "one"]
