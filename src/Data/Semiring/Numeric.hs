@@ -17,6 +17,8 @@ module Data.Semiring.Numeric
   , Łukasiewicz(..)
   , Viterbi(..)
   , Log(..)
+  , PosFrac(..)
+  , PosInt(..)
   ) where
 
 import           Data.Coerce
@@ -144,3 +146,54 @@ instance (Floating a, HasPositiveInfinity a) => Semiring (Log a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
+
+newtype PosFrac a = PosFrac
+  { getPosFrac :: a
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
+
+instance (Bounded a, Semiring a) => Bounded (PosFrac a) where
+  minBound = PosFrac zero
+  maxBound = PosFrac maxBound
+
+instance Semiring a => Semiring (PosFrac a) where
+  (<+>) = (coerce :: WrapBinary PosFrac a) (<+>)
+  (<.>) = (coerce :: WrapBinary PosFrac a) (<.>)
+  zero = PosFrac zero
+  one  = PosFrac one
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+
+instance (Ord a, Fractional a, Semiring a, HasPositiveInfinity a) =>
+         StarSemiring (PosFrac a) where
+    star (PosFrac n)
+      | n < 1 = PosFrac (1 / (1 - n))
+      | otherwise = PosFrac positiveInfinity
+
+newtype PosInt a = PosInt
+  { getPosInt :: a
+  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
+             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
+             ,Functor, Foldable, Traversable)
+
+instance (Bounded a, Semiring a) => Bounded (PosInt a) where
+  minBound = PosInt zero
+  maxBound = PosInt maxBound
+
+instance Semiring a => Semiring (PosInt a) where
+  (<+>) = (coerce :: WrapBinary PosInt a) (<+>)
+  (<.>) = (coerce :: WrapBinary PosInt a) (<.>)
+  zero = PosInt zero
+  one  = PosInt one
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# INLINE zero #-}
+  {-# INLINE one #-}
+
+instance (Eq a, Semiring a, HasPositiveInfinity a) =>
+         StarSemiring (PosInt a) where
+    star (PosInt n) | n == zero = PosInt one
+    star _ = PosInt positiveInfinity
