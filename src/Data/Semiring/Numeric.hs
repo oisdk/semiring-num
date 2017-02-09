@@ -52,6 +52,8 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
+instance (Bounded a, Ord a) => DetectableZero (Bottleneck a)
+
 -- | Positive numbers only.
 --
 -- @('<+>') = 'gcd'
@@ -62,7 +64,7 @@ newtype Division a = Division
   { getDivision :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
              ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable)
+             ,Functor, Foldable, Traversable,DetectableZero)
 
 -- | Only expects positive numbers
 instance (Integral a, Semiring a) => Semiring (Division a) where
@@ -100,6 +102,8 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
+instance (Ord a, Num a) => DetectableZero (Łukasiewicz a)
+
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
 -- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
@@ -113,7 +117,7 @@ newtype Viterbi a = Viterbi
   { getViterbi :: a
   } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
              ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable)
+             ,Functor, Foldable, Traversable,DetectableZero)
 
 instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   (<+>) = (coerce :: WrapBinary Viterbi a) max
@@ -147,6 +151,9 @@ instance (Floating a, HasPositiveInfinity a) => Semiring (Log a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
+instance (Floating a, HasPositiveInfinity a) => DetectableZero (Log a) where
+  isZero (Log x) = isPositiveInfinity x
+
 newtype PosFrac a = PosFrac
   { getPosFrac :: a
   } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
@@ -166,6 +173,8 @@ instance Semiring a => Semiring (PosFrac a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
+
+instance (Eq a, Semiring a) => DetectableZero (PosFrac a)
 
 instance (Ord a, Fractional a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosFrac a) where
@@ -192,6 +201,8 @@ instance Semiring a => Semiring (PosInt a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
+
+instance (Eq a, Semiring a) => DetectableZero (PosInt a)
 
 instance (Eq a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosInt a) where

@@ -41,3 +41,20 @@ semiringIns n = do
         ct = map (AppT c . VarT) names
     InstanceD Nothing ct (AppT c $ foldl AppT (TupleT n) (map VarT names)) <$>
         sequence [cmbN n "<+>", cmbN n "<.>", repN n "zero", repN n "one"]
+
+zeroIns :: Int -> Q Dec
+zeroIns n = do
+    names <- replicateM n (newName "a")
+    let c = ConT (mkName "DetectableZero")
+        ct = map (AppT c . VarT) names
+    InstanceD Nothing ct (AppT c $ foldl AppT (TupleT n) (map VarT names)) <$>
+      sequence [andAll n]
+
+andAll :: Int -> Q Dec
+andAll n = do
+  let f = VarE (mkName "&&")
+  let isZ = VarE (mkName "isZero")
+  xs <- replicateM n (newName "x")
+  let args = [TupP (map VarP xs)]
+      res = foldl1 (\a e -> AppE (AppE f a) e ) (map (AppE isZ . VarE) xs)
+  return $ FunD (mkName "isZero") [Clause args (NormalB res) []]

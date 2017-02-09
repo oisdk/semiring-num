@@ -23,12 +23,15 @@ module Test.Semiring
   , starLaw
   , plusLaw
   , starLaws
-  , nearUnLaws
   , nearTernaryLaws
   , ordLaws
+  , zeroLaw
+  , zeroIsZero
+  , zeroLaws
+  , nearUnaryLaws
   ) where
 
-import           Data.Semiring   (Semiring (..), StarSemiring (..))
+import           Data.Semiring   (Semiring (..), StarSemiring (..), DetectableZero(..))
 
 -- | Plus is associative.
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
@@ -165,15 +168,15 @@ annihilate (x :: a) = if res then Right s else Left s where
 unaryLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
 unaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilate x])
 
-nearUnLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
-nearUnLaws = plusId
+nearUnaryLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
+nearUnaryLaws x = fmap unlines (sequence [plusId x, annihilate x])
 
 nearTernaryLaws :: (Eq a, Semiring a, Show a)
             => a -> a -> a -> Either String String
 nearTernaryLaws x y z =
   fmap unlines (sequence [ plusAssoc x y z
                          , mulAssoc x y z
-                         , mulDistribL x y z])
+                         , mulDistribR x y z])
 
 binaryLaws :: (Eq a, Semiring a, Show a)
            => a -> a -> Either String String
@@ -251,3 +254,33 @@ ordMulLaw (x :: a) (y :: a) (z :: a) = if res then Right s else Left s where
 
 ordLaws :: (Ord a, Semiring a, Show a) => a -> a -> a -> Either String String
 ordLaws x y z = fmap unlines (sequence [ordAddLaw x y z, ordMulLaw x y z])
+
+
+zeroLaw :: (Eq a, DetectableZero a, Show a) => a -> Either String String
+zeroLaw (x :: a) = if res then Right s else Left s where
+  lhs_1 = x == zero
+  lhs_2 = zero == x
+  rhs = isZero x
+  res = lhs_1 == rhs && lhs_2 == rhs
+  s = unlines
+    [ "zero law" ++ (if res then "" else " not") ++ " followed."
+    , "    Law:"
+    , "        x == zero = zero == x = isZero x"
+    , "    x = " ++ show x
+    , "    x == zero = " ++ show lhs_1
+    , "    zero == x = " ++ show lhs_2
+    , "    isZero x  = " ++ show rhs ]
+
+zeroIsZero :: (DetectableZero a, Show a) => f a -> Either String String
+zeroIsZero (_ :: f a) = if res then Right s else Left s where
+  z = zero :: a
+  res = isZero z
+  s = unlines
+    [ "zero is zero law" ++ (if res then "" else " not") ++ " followed."
+    , "    Law:"
+    , "        isZero zero = True"
+    , "    zero = " ++ show z
+    , "    isZero zero = " ++ show res ]
+
+zeroLaws :: (DetectableZero a, Show a, Eq a) => a -> Either String String
+zeroLaws x = zeroLaw x *> zeroIsZero [x]

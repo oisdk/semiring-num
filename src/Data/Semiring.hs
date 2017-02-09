@@ -29,9 +29,9 @@ module Data.Semiring
   , mul
   , Max(..)
   , Min(..)
+  , DetectableZero(..)
   ) where
 
-import           Data.Functor.Const    (Const (..))
 import           Data.Functor.Identity (Identity (..))
 
 import           Data.Complex          (Complex)
@@ -146,6 +146,11 @@ class Semiring a =>
     star x = one <+> plus x
     plus x = x <.> star x
 
+class Semiring a => DetectableZero a where
+  isZero :: a -> Bool
+  default isZero :: Eq a => a -> Bool
+  isZero = (zero==)
+
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
@@ -167,51 +172,68 @@ instance StarSemiring Bool where
     {-# INLINE star #-}
     {-# INLINE plus #-}
 
+instance DetectableZero Bool
+
 -- | Not lawful. Only for convenience.
-instance Semiring a =>
+instance DetectableZero a =>
          Semiring (NegativeInfinite a) where
     one = pure one
     zero = pure zero
     (<+>) =
         (coerce :: CoerceBinary (NegativeInfinite (Add a)) (NegativeInfinite a))
             mappend
-    (<.>) = liftA2 (<.>)
+    x <.> y | any isZero x || any isZero y = zero
+            | otherwise = liftA2 (<.>) x y
     {-# INLINE zero #-}
     {-# INLINE one #-}
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
 
 -- | Not lawful. Only for convenience.
-instance Semiring a =>
+instance (DetectableZero a) =>
          Semiring (PositiveInfinite a) where
     one = pure one
     zero = pure zero
     (<+>) =
         (coerce :: CoerceBinary (PositiveInfinite (Add a)) (PositiveInfinite a))
             mappend
-    (<.>) = liftA2 (<.>)
+    x <.> y | any isZero x || any isZero y = zero
+            | otherwise = liftA2 (<.>) x y
     {-# INLINE zero #-}
     {-# INLINE one #-}
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
 
 -- | Not lawful. Only for convenience.
-instance Semiring a =>
+instance (DetectableZero a) =>
          Semiring (Infinite a) where
     one = pure one
     zero = pure zero
     (<+>) = (coerce :: CoerceBinary (Infinite (Add a)) (Infinite a)) mappend
-    (<.>) = liftA2 (<.>)
+    x <.> y | any isZero x || any isZero y = zero
+            | otherwise = liftA2 (<.>) x y
     {-# INLINE zero #-}
     {-# INLINE one #-}
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
 
-instance (Eq a, Semiring a) =>
+instance (DetectableZero a) =>
          StarSemiring (PositiveInfinite a) where
     star (PosFinite x)
-      | x == zero = one
+      | isZero x = one
     star _ = PositiveInfinity
+
+instance DetectableZero a =>
+         DetectableZero (NegativeInfinite a) where
+    isZero = any isZero
+
+instance DetectableZero a =>
+         DetectableZero (PositiveInfinite a) where
+    isZero = any isZero
+
+instance DetectableZero a =>
+         DetectableZero (Infinite a) where
+    isZero = any isZero
 
 instance Semiring () where
     one = ()
@@ -222,6 +244,8 @@ instance Semiring () where
     {-# INLINE one #-}
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
+
+instance DetectableZero ()
 
 instance StarSemiring () where
     star _ = ()
@@ -244,6 +268,9 @@ instance Semiring a =>
     (x:xs) <.> (y:ys) =
         (x <.> y) : (map (x <.>) ys <+> map (<.> y) xs <+> (xs <.> ys))
 
+instance Semiring a => DetectableZero [a] where
+  isZero = null
+
 ------------------------------------------------------------------------
 -- Addition and multiplication newtypes
 ------------------------------------------------------------------------
@@ -255,7 +282,7 @@ newtype Add a = Add
     { getAdd :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
                ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
-               ,Semiring,StarSemiring)
+               ,Semiring,StarSemiring,DetectableZero)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
@@ -263,7 +290,7 @@ newtype Mul a = Mul
     { getMul :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
                ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
-               ,Semiring,StarSemiring)
+               ,Semiring,StarSemiring,DetectableZero)
 
 instance Semiring a =>
          Semigroup (Add a) where
@@ -429,6 +456,12 @@ instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
       | x < zero = Min negativeInfinity
       | otherwise = Min zero
 
+instance (Semiring a, Ord a, HasPositiveInfinity a) => DetectableZero (Min a) where
+  isZero (Min x) = isPositiveInfinity x
+
+instance (Semiring a, Ord a, HasNegativeInfinity a) => DetectableZero (Max a) where
+  isZero (Max x) = isNegativeInfinity x
+
 ------------------------------------------------------------------------
 -- (->) instance
 ------------------------------------------------------------------------
@@ -482,6 +515,9 @@ instance (Monoid a, Eq a) =>
               where
                 next = mappend x (f inp)
 
+instance (Enum a, Bounded a, Eq a, Monoid a) => DetectableZero (Endo a) where
+  isZero (Endo f) = all (mempty==) (map f [minBound..maxBound])
+
 ------------------------------------------------------------------------
 -- Instances for Bool wrappers
 ------------------------------------------------------------------------
@@ -516,6 +552,9 @@ instance StarSemiring All where
     plus = id
     {-# INLINE star #-}
     {-# INLINE plus #-}
+
+instance DetectableZero Any
+instance DetectableZero All
 
 ------------------------------------------------------------------------
 -- Boring instances
@@ -582,7 +621,68 @@ deriving instance Semiring a => Semiring (Sum a)
 instance RealFloat a => Semiring (Complex a)
 instance HasResolution a => Semiring (Fixed a)
 deriving instance Semiring a => Semiring (Identity a)
-deriving instance Semiring a => Semiring (Const a b)
+
+instance DetectableZero Int
+instance DetectableZero Int8
+instance DetectableZero Int16
+instance DetectableZero Int32
+instance DetectableZero Int64
+instance DetectableZero Integer
+instance DetectableZero Word
+instance DetectableZero Word8
+instance DetectableZero Word16
+instance DetectableZero Word32
+instance DetectableZero Word64
+instance DetectableZero Float
+instance DetectableZero Double
+instance DetectableZero CUIntMax
+instance DetectableZero CIntMax
+instance DetectableZero CUIntPtr
+instance DetectableZero CIntPtr
+instance DetectableZero CSUSeconds
+instance DetectableZero CUSeconds
+instance DetectableZero CTime
+instance DetectableZero CClock
+instance DetectableZero CSigAtomic
+instance DetectableZero CWchar
+instance DetectableZero CSize
+instance DetectableZero CPtrdiff
+instance DetectableZero CDouble
+instance DetectableZero CFloat
+instance DetectableZero CULLong
+instance DetectableZero CLLong
+instance DetectableZero CULong
+instance DetectableZero CLong
+instance DetectableZero CUInt
+instance DetectableZero CInt
+instance DetectableZero CUShort
+instance DetectableZero CShort
+instance DetectableZero CUChar
+instance DetectableZero CSChar
+instance DetectableZero CChar
+instance DetectableZero IntPtr
+instance DetectableZero WordPtr
+instance DetectableZero Fd
+instance DetectableZero CRLim
+instance DetectableZero CTcflag
+instance DetectableZero CSpeed
+instance DetectableZero CCc
+instance DetectableZero CUid
+instance DetectableZero CNlink
+instance DetectableZero CGid
+instance DetectableZero CSsize
+instance DetectableZero CPid
+instance DetectableZero COff
+instance DetectableZero CMode
+instance DetectableZero CIno
+instance DetectableZero CDev
+instance DetectableZero Natural
+instance Integral a => DetectableZero (Ratio a)
+deriving instance DetectableZero a => DetectableZero (Product a)
+deriving instance DetectableZero a => DetectableZero (Sum a)
+instance RealFloat a => DetectableZero (Complex a)
+instance HasResolution a => DetectableZero (Fixed a)
+deriving instance DetectableZero a => DetectableZero (Identity a)
 
 ------------------------------------------------------------------------
 -- Very boring instances
@@ -590,3 +690,4 @@ deriving instance Semiring a => Semiring (Const a b)
 
 $(traverse semiringIns [2..9])
 $(traverse starIns [2..9])
+$(traverse zeroIns [2..9])

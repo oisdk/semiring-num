@@ -32,11 +32,17 @@ class HasPositiveInfinity a where
   positiveInfinity :: a
   default positiveInfinity :: RealFloat a => a
   positiveInfinity = 1/0
+  isPositiveInfinity :: a -> Bool
+  default isPositiveInfinity :: RealFloat a => a -> Bool
+  isPositiveInfinity x = isInfinite x && x > 0
 
 class HasNegativeInfinity a where
   negativeInfinity :: a
   default negativeInfinity :: RealFloat a => a
   negativeInfinity = negate (1/0)
+  isNegativeInfinity :: a -> Bool
+  default isNegativeInfinity :: RealFloat a => a -> Bool
+  isNegativeInfinity x = isInfinite x && x < 0
 
 instance HasPositiveInfinity Double
 instance HasNegativeInfinity Double
@@ -111,18 +117,26 @@ instance Bounded (Infinite a) where
 instance HasNegativeInfinity (NegativeInfinite a) where
   {-# INLINE negativeInfinity #-}
   negativeInfinity = NegativeInfinity
+  isNegativeInfinity NegativeInfinity = True
+  isNegativeInfinity _ = False
 
 instance HasPositiveInfinity (PositiveInfinite a) where
   {-# INLINE positiveInfinity #-}
   positiveInfinity = PositiveInfinity
+  isPositiveInfinity PositiveInfinity = True
+  isPositiveInfinity _ = False
 
 instance HasNegativeInfinity (Infinite a) where
   {-# INLINE negativeInfinity #-}
   negativeInfinity = Negative
+  isNegativeInfinity Negative = True
+  isNegativeInfinity _ = False
 
 instance HasPositiveInfinity (Infinite a) where
   {-# INLINE positiveInfinity #-}
   positiveInfinity = Positive
+  isPositiveInfinity Positive = True
+  isPositiveInfinity _ = False
 
 instance (Enum a, Bounded a, Eq a) => Enum (NegativeInfinite a) where
   succ = foldr (const . pure . succ) (pure minBound)
