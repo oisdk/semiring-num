@@ -91,9 +91,10 @@ import           Data.Semiring.TH
 -- @'zero' '<.>' a = a '<.>' 'zero' = 'zero'@
 --
 -- An ordered semiring follows the laws:
--- @x '<=' y => x '<+>' z '<=' y '<+>' z@
--- @x '<=' y => x '<+>' z '<=' y '<+>' z@
--- @'zero' '<=' z '&&' x '<=' y => x '<.>' z '<=' y '<.>' z '&&' z '<.>' x '<=' z '<.>' y@
+--
+-- @x '<=' y => x '<+>' z '<=' y '<+>' z
+--x '<=' y => x '<+>' z '<=' y '<+>' z
+--'zero' '<=' z '&&' x '<=' y => x '<.>' z '<=' y '<.>' z '&&' z '<.>' x '<=' z '<.>' y@
 class Semiring a  where
     -- | The identity of '<+>'.
     zero
@@ -358,7 +359,7 @@ mul = getMul . foldMap Mul
 -- min-plus semiring. It is a semiring where:
 --
 -- @'<+>'  = 'min'
---'zero' = ∞ -- represented by 'Nothing'
+--'zero' = ∞
 --'<.>'  = '<+>'
 --'one'  = 'zero'@
 --
@@ -378,7 +379,7 @@ newtype Min a = Min
 -- or max-plus semiring. It is a semiring where:
 --
 -- @'<+>'  = 'max'
---'zero' = -∞ -- represented by 'Nothing'
+--'zero' = -∞
 --'<.>'  = '<+>'
 --'one'  = 'zero'@
 --
