@@ -385,14 +385,14 @@ nearUnaryLaws
 nearUnaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilateR x])
 
 -- | A test for all of the ternary laws for near-'Semiring's ('plusAssoc',
--- 'mulAssoc', 'mulDistribL').
+-- 'mulAssoc', 'mulDistribR').
 nearTernaryLaws
     :: (Eq a, Semiring a, Show a)
     => a -> a -> a -> Either String String
 nearTernaryLaws x y z =
     fmap
         unlines
-        (sequence [plusAssoc x y z, mulAssoc x y z, mulDistribL x y z])
+        (sequence [plusAssoc x y z, mulAssoc x y z, mulDistribR x y z])
 
 -- | A test for all of the binary laws for 'Semiring's (just 'plusComm').
 binaryLaws

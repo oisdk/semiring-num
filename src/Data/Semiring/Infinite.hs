@@ -68,7 +68,7 @@ data Infinite a
   deriving (Eq, Ord, Read, Show, Generic, Generic1, Typeable, Functor
            ,Foldable, Traversable)
 
--- | Only a near-semiring.
+-- | Doesn't follow 'annihilateL' or 'mulDistribR'.
 instance DetectableZero a =>
          Semiring (NegativeInfinite a) where
     one = pure one

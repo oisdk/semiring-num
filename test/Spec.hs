@@ -157,11 +157,13 @@ main = do
   smallCheck 10   (ordLaws     :: TernaryLaws (PositiveInfinite Natural))
 
   putStrLn "NegInf Integer"
-  smallCheck 1000 (nearUnaryLaws   :: UnaryLaws   (NegativeInfinite Integer))
-  smallCheck 1000 (zeroLaws        :: UnaryLaws   (NegativeInfinite Integer))
-  smallCheck 100  (binaryLaws      :: BinaryLaws  (NegativeInfinite Integer))
-  smallCheck 10   (nearTernaryLaws :: TernaryLaws (NegativeInfinite Integer))
-  smallCheck 10   (ordLaws         :: TernaryLaws (NegativeInfinite Integer))
+  smallCheck 1000 (nearUnaryLaws :: UnaryLaws   (NegativeInfinite Integer))
+  smallCheck 1000 (zeroLaws      :: UnaryLaws   (NegativeInfinite Integer))
+  smallCheck 100  (binaryLaws    :: BinaryLaws  (NegativeInfinite Integer))
+  smallCheck 10   (plusAssoc     :: TernaryLaws (NegativeInfinite Integer))
+  smallCheck 10   (mulAssoc      :: TernaryLaws (NegativeInfinite Integer))
+  smallCheck 10   (mulDistribL   :: TernaryLaws (NegativeInfinite Integer))
+  smallCheck 10   (ordLaws       :: TernaryLaws (NegativeInfinite Integer))
 
   putStrLn "Inf Integer"
   smallCheck 1000 (unaryLaws   :: UnaryLaws   (Infinite Integer))
@@ -261,12 +263,9 @@ main = do
 
   putStrLn "Endo (Add Bool)"
   smallCheck 3 (nearUnaryLaws .        eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 3 (zeroLaws .         eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 3 (unOn mulId         eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 2 (binLawsOn          eFromFunc :: BinaryLaws  (Bool -> Bool))
-  smallCheck 2 (ternOn plusAssoc   eFromFunc :: TernaryLaws (Bool -> Bool))
-  smallCheck 2 (ternOn mulAssoc    eFromFunc :: TernaryLaws (Bool -> Bool))
-  smallCheck 2 (ternOn mulDistribR eFromFunc :: TernaryLaws (Bool -> Bool))
+  smallCheck 3 (zeroLaws .             eFromFunc :: UnaryLaws   (Bool -> Bool))
+  smallCheck 2 (binLawsOn              eFromFunc :: BinaryLaws  (Bool -> Bool))
+  smallCheck 2 (ternOn nearTernaryLaws eFromFunc :: TernaryLaws (Bool -> Bool))
 
   doctest [ "-isrc"
           , "src/" ]
