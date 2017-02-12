@@ -1,5 +1,5 @@
 name:                semiring-num
-version:             0.9.0.1
+version:             1.0.0.0
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring-num

@@ -31,7 +31,7 @@ import           Test.SmallCheck          hiding (Testable, (==>))
 import           Test.SmallCheck.Series   hiding (Positive)
 import qualified Test.SmallCheck.Series   as SC
 
-import Numeric.Natural
+import           Numeric.Natural
 
 ------------------------------------------------------------------------
 
