@@ -1,5 +1,5 @@
 name:                semiring-num
-version:             1.0.0.1
+version:             1.1.0.0
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring-num
@@ -21,7 +21,6 @@ library
                      , Test.Semiring
   other-modules:       Data.Semiring.TH
   build-depends:       base >= 4.9 && < 5
-                     , containers >= 0.5
                      , template-haskell >= 2.11
   default-language:    Haskell2010
   ghc-options:         -Wall

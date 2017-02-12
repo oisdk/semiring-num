@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -9,29 +10,39 @@
 module Main (main) where
 
 import           Control.Applicative
+
 import           Control.Arrow            (first)
 import           Data.Bool
-import           Data.Foldable
 import           Data.Function
+
+import           Data.Foldable
+import           Data.Monoid
+
 import           Data.IntMap.Strict       (IntMap)
 import qualified Data.IntMap.Strict       as IntMap
+
+import           Data.Map.Strict          (Map)
 import qualified Data.Map.Strict          as Map
-import           Data.Monoid
+
+
 import           Data.Semiring
 import           Data.Semiring.Free
 import           Data.Semiring.Infinite
 import           Data.Semiring.Numeric
+
 import           GHC.TypeLits
+import           Numeric.Natural
 import           Numeric.Sized.WordOfSize
+
 import           Test.DocTest
 import           Test.QuickCheck          hiding (Positive (..), generate,
                                            (.&.))
-import           Test.Semiring
 import           Test.SmallCheck          hiding (Testable, (==>))
 import           Test.SmallCheck.Series   hiding (Positive)
 import qualified Test.SmallCheck.Series   as SC
 
-import           Numeric.Natural
+import           Test.Semiring
+
 
 ------------------------------------------------------------------------
 
@@ -290,6 +301,21 @@ binLawsOn = binOn binaryLaws
 
 ternLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> TernaryLaws a
 ternLawsOn = ternOn ternaryLaws
+
+
+isAnagram :: Ord a => [a] -> [a] -> Bool
+isAnagram = go (Map.empty :: Map a Int) where
+  go !m (x:xs) (y:ys) =
+    go ( Map.alter (remZero . maybe (-1) pred) x
+       $ Map.alter (remZero . maybe 1    succ) y
+    m) xs ys
+  go !m [] [] = Map.null m
+  go _ _ _ = False
+  remZero 0 = Nothing
+  remZero n = Just n
+
+instance Ord a => Eq (Free a) where
+  (==) = isAnagram `on` getFree
 
 ------------------------------------------------------------------------
 -- Serial wrappers
