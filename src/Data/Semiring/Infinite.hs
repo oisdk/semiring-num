@@ -5,6 +5,8 @@
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | This module provides various "infinite" wrappers, which can provide
+-- a detectable infinity to an otherwise non-infinite type.
 module Data.Semiring.Infinite
   ( HasPositiveInfinity(..)
   , HasNegativeInfinity(..)
@@ -27,13 +29,16 @@ import           Data.Monoid
 
 import Data.Semiring
 
-
+-- | Adds negative infinity to a type. Useful for expressing detectable infinity
+-- in types like 'Integer', etc.
 data NegativeInfinite a
   = NegativeInfinity
   | NegFinite !a
   deriving (Eq, Ord, Read, Show, Generic, Generic1, Typeable, Functor
            ,Foldable, Traversable)
 
+-- | Adds positive infinity to a type. Useful for expressing detectable infinity
+-- in types like 'Integer', etc.
 data PositiveInfinite a
   = PosFinite !a
   | PositiveInfinity
@@ -54,6 +59,8 @@ instance Applicative PositiveInfinite where
   _ <*> _ = PositiveInfinity
   {-# INLINE (<*>) #-}
 
+-- | Adds positive and negative infinity to a type. Useful for expressing
+-- detectable infinity in types like 'Integer', etc.
 data Infinite a
   = Negative
   | Finite !a

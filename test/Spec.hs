@@ -260,7 +260,7 @@ main = do
 
 
   putStrLn "Endo (Add Bool)"
-  smallCheck 3 (unOn plusId        eFromFunc :: UnaryLaws   (Bool -> Bool))
+  smallCheck 3 (nearUnaryLaws .        eFromFunc :: UnaryLaws   (Bool -> Bool))
   smallCheck 3 (zeroLaws .         eFromFunc :: UnaryLaws   (Bool -> Bool))
   smallCheck 3 (unOn mulId         eFromFunc :: UnaryLaws   (Bool -> Bool))
   smallCheck 2 (binLawsOn          eFromFunc :: BinaryLaws  (Bool -> Bool))

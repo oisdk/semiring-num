@@ -16,17 +16,21 @@ Stability: experimental
 -}
 
 module Data.Semiring
-  ( Semiring(..)
+  ( -- * Semiring classes
+    Semiring(..)
   , StarSemiring(..)
+    -- * Helper classes
   , HasPositiveInfinity(..)
   , HasNegativeInfinity(..)
+  , DetectableZero(..)
+  -- * Monoidal wrappers
   , Add(..)
   , Mul(..)
   , add
   , mul
+  -- * Ordering wrappers
   , Max(..)
   , Min(..)
-  , DetectableZero(..)
   ) where
 
 import           Data.Functor.Identity (Identity (..))
@@ -142,7 +146,10 @@ class Semiring a =>
     star x = one <+> plus x
     plus x = x <.> star x
 
+-- | Useful for operations where zeroes may need to be discarded: for instance
+-- in sparse matrix calculations.
 class Semiring a => DetectableZero a where
+  -- | 'True' if x is 'zero'.
   isZero :: a -> Bool
   default isZero :: Eq a => a -> Bool
   isZero = (zero==)
@@ -151,18 +158,28 @@ class Semiring a => DetectableZero a where
 -- Infinites
 --------------------------------------------------------------------------------
 
+-- | A class for semirings with a concept of "infinity". It's important that
+-- this isn't regarded as the same as "bounded":
+-- @x '<+>' 'positiveInfinity'@ should probably equal 'positiveInfinity'.
 class HasPositiveInfinity a where
+  -- | A positive infinite value
   positiveInfinity :: a
   default positiveInfinity :: RealFloat a => a
   positiveInfinity = 1/0
+  -- | Test if a value is positive infinity.
   isPositiveInfinity :: a -> Bool
   default isPositiveInfinity :: RealFloat a => a -> Bool
   isPositiveInfinity x = isInfinite x && x > 0
 
+-- | A class for semirings with a concept of "negative infinity". It's important\
+-- that this isn't regarded as the same as "bounded":
+-- @x '<+>' 'negativeInfinity'@ should probably equal 'negativeInfinity'.
 class HasNegativeInfinity a where
+  -- | A negative infinite value
   negativeInfinity :: a
   default negativeInfinity :: RealFloat a => a
   negativeInfinity = negate (1/0)
+  -- | Test if a value is negative infinity.
   isNegativeInfinity :: a -> Bool
   default isNegativeInfinity :: RealFloat a => a -> Bool
   isNegativeInfinity x = isInfinite x && x < 0
@@ -218,7 +235,8 @@ instance StarSemiring () where
 
 -- | A polynomial in /x/ can be defined as a list of its coefficients,
 -- where the /i/th element is the coefficient of /x^i/. This is the
--- semiring for such a list. Adapted from <https://pdfs.semanticscholar.org/702d/348c32133997e992db362a19697d5607ab32.pdf here>.
+-- semiring for such a list. Adapted from
+-- <https://pdfs.semanticscholar.org/702d/348c32133997e992db362a19697d5607ab32.pdf here>.
 instance Semiring a =>
          Semiring [a] where
     one = [one]

@@ -133,7 +133,7 @@ instance (Ord a, Semiring a) => Semiring (Viterbi a) where
 --
 -- @('<.>')   = ('+')
 --x '<+>' y = -('log' ('exp' (-x) + 'exp' (-y)))
---'zero'    = ∞
+--'zero'    = 'positiveInfinity'
 --'one'     = 0@
 newtype Log a = Log
   { getLog :: a
@@ -154,6 +154,13 @@ instance (Floating a, HasPositiveInfinity a) => Semiring (Log a) where
 instance (Floating a, HasPositiveInfinity a) => DetectableZero (Log a) where
   isZero (Log x) = isPositiveInfinity x
 
+-- | Adds a star operation to fractional types.
+--
+-- @('<+>')  = ('<+>')
+--('<.>')  = ('<.>')
+--'zero'   = 'zero'
+--'one'    = 'one'
+--'star' x = if x < 1 then 1 / (1 - x) else 'positiveInfinity'@
 newtype PosFrac a = PosFrac
   { getPosFrac :: a
   } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
@@ -182,6 +189,14 @@ instance (Ord a, Fractional a, Semiring a, HasPositiveInfinity a) =>
       | n < 1 = PosFrac (1 / (1 - n))
       | otherwise = PosFrac positiveInfinity
 
+-- | Adds a star operation to integral types.
+--
+-- @('<+>')  = ('<+>')
+--('<.>')  = ('<.>')
+--'zero'   = 'zero'
+--'one'    = 'one'
+--'star' 0 = 1
+--'star' _ = 'positiveInfinity'@
 newtype PosInt a = PosInt
   { getPosInt :: a
   } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
