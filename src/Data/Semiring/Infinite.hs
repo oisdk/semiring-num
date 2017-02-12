@@ -1,4 +1,3 @@
-{-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE DeriveFoldable      #-}
 {-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE DeriveGeneric       #-}
@@ -14,8 +13,6 @@ module Data.Semiring.Infinite
   , Infinite(..)
   ) where
 
-import           Foreign.C.Types     (CDouble, CFloat)
-
 import           Control.Applicative (liftA2)
 import           Data.Typeable       (Typeable)
 import           GHC.Generics        (Generic, Generic1)
@@ -28,30 +25,8 @@ import           Foreign.Storable    (Storable, alignment, peek, peekByteOff,
 import           Data.Coerce
 import           Data.Monoid
 
-class HasPositiveInfinity a where
-  positiveInfinity :: a
-  default positiveInfinity :: RealFloat a => a
-  positiveInfinity = 1/0
-  isPositiveInfinity :: a -> Bool
-  default isPositiveInfinity :: RealFloat a => a -> Bool
-  isPositiveInfinity x = isInfinite x && x > 0
+import Data.Semiring
 
-class HasNegativeInfinity a where
-  negativeInfinity :: a
-  default negativeInfinity :: RealFloat a => a
-  negativeInfinity = negate (1/0)
-  isNegativeInfinity :: a -> Bool
-  default isNegativeInfinity :: RealFloat a => a -> Bool
-  isNegativeInfinity x = isInfinite x && x < 0
-
-instance HasPositiveInfinity Double
-instance HasNegativeInfinity Double
-instance HasPositiveInfinity Float
-instance HasNegativeInfinity Float
-instance HasPositiveInfinity CDouble
-instance HasNegativeInfinity CDouble
-instance HasPositiveInfinity CFloat
-instance HasNegativeInfinity CFloat
 
 data NegativeInfinite a
   = NegativeInfinity
@@ -85,6 +60,86 @@ data Infinite a
   | Positive
   deriving (Eq, Ord, Read, Show, Generic, Generic1, Typeable, Functor
            ,Foldable, Traversable)
+
+-- | Only a near-semiring.
+instance DetectableZero a =>
+         Semiring (NegativeInfinite a) where
+    one = pure one
+    zero = pure zero
+    (<+>) =
+        (coerce :: CoerceBinary (NegativeInfinite (Add a)) (NegativeInfinite a))
+            mappend
+    x <.> y | any isZero x = zero
+            | otherwise = liftA2 (<.>) x y
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+-- | Only lawful when used with positive numbers.
+instance DetectableZero a =>
+         Semiring (PositiveInfinite a) where
+    one = pure one
+    zero = pure zero
+    (<+>) =
+        (coerce :: CoerceBinary (PositiveInfinite (Add a)) (PositiveInfinite a))
+            mappend
+    x <.> y | any isZero x || any isZero y = zero
+            | otherwise = liftA2 (<.>) x y
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+-- | Not distributive.
+instance (DetectableZero a, Ord a) =>
+         Semiring (Infinite a) where
+    one = pure one
+    zero = pure zero
+    (<+>) = (coerce :: CoerceBinary (Infinite (Add a)) (Infinite a)) mappend
+    Finite x <.> Finite y = Finite (x <.> y)
+    Finite x <.> Negative = case compare x zero of
+      LT -> Positive
+      EQ -> zero
+      GT -> Negative
+    Finite x <.> Positive = case compare x zero of
+      LT -> Negative
+      EQ -> zero
+      GT -> Positive
+    Negative <.> Finite y = case compare y zero of
+      LT -> Positive
+      EQ -> zero
+      GT -> Negative
+    Positive <.> Finite y = case compare y zero of
+      LT -> Negative
+      EQ -> zero
+      GT -> Positive
+    Negative <.> Negative = Positive
+    Negative <.> Positive = Negative
+    Positive <.> Negative = Negative
+    Positive <.> Positive = Positive
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance (DetectableZero a) =>
+         StarSemiring (PositiveInfinite a) where
+    star (PosFinite x)
+      | isZero x = one
+    star _ = PositiveInfinity
+
+instance DetectableZero a =>
+         DetectableZero (NegativeInfinite a) where
+    isZero = any isZero
+
+instance DetectableZero a =>
+         DetectableZero (PositiveInfinite a) where
+    isZero = any isZero
+
+instance (DetectableZero a, Ord a) =>
+         DetectableZero (Infinite a) where
+    isZero = any isZero
 
 instance Applicative Infinite where
   pure = Finite

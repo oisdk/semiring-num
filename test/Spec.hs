@@ -19,6 +19,7 @@ import qualified Data.Map.Strict          as Map
 import           Data.Monoid
 import           Data.Semiring
 import           Data.Semiring.Free
+import           Data.Semiring.Infinite
 import           Data.Semiring.Numeric
 import           GHC.TypeLits
 import           Numeric.Sized.WordOfSize
@@ -30,267 +31,269 @@ import           Test.SmallCheck          hiding (Testable, (==>))
 import           Test.SmallCheck.Series   hiding (Positive)
 import qualified Test.SmallCheck.Series   as SC
 
+import Numeric.Natural
+
 ------------------------------------------------------------------------
 
 main :: IO ()
 main = do
-  putStrLn "Integer"
-  smallCheck 1000 (unaryLaws   :: UnaryLaws   Integer)
-  smallCheck 1000 (zeroLaws    :: UnaryLaws   Integer)
-  smallCheck 100  (binaryLaws  :: BinaryLaws  Integer)
-  smallCheck 10   (ternaryLaws :: TernaryLaws Integer)
-  smallCheck 10   (ordLaws     :: TernaryLaws Integer)
+  -- putStrLn "Integer"
+  -- smallCheck 1000 (unaryLaws   :: UnaryLaws   Integer)
+  -- smallCheck 1000 (zeroLaws    :: UnaryLaws   Integer)
+  -- smallCheck 100  (binaryLaws  :: BinaryLaws  Integer)
+  -- smallCheck 10   (ternaryLaws :: TernaryLaws Integer)
+  -- smallCheck 10   (ordLaws     :: TernaryLaws Integer)
 
-  putStrLn "(WordOfSize 2)"
-  smallCheck 16  (unaryLaws   :: UnaryLaws   (WordOfSize 2))
-  smallCheck 16  (zeroLaws    :: UnaryLaws   (WordOfSize 2))
-  smallCheck 16  (binaryLaws  :: BinaryLaws  (WordOfSize 2))
-  smallCheck 16  (ternaryLaws :: TernaryLaws (WordOfSize 2))
-  smallCheck 16  (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)))
+  -- putStrLn "(WordOfSize 2)"
+  -- smallCheck 16  (unaryLaws   :: UnaryLaws   (WordOfSize 2))
+  -- smallCheck 16  (zeroLaws    :: UnaryLaws   (WordOfSize 2))
+  -- smallCheck 16  (binaryLaws  :: BinaryLaws  (WordOfSize 2))
+  -- smallCheck 16  (ternaryLaws :: TernaryLaws (WordOfSize 2))
+  -- smallCheck 16  (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)))
 
-  putStrLn "(WordOfSize 2,WordOfSize 2)"
-  smallCheck 16 (unaryLaws   :: UnaryLaws   (WordOfSize 2,WordOfSize 2))
-  smallCheck 16 (zeroLaws    :: UnaryLaws   (WordOfSize 2,WordOfSize 2))
-  smallCheck 14 (binaryLaws  :: BinaryLaws  (WordOfSize 2,WordOfSize 2))
-  smallCheck 8  (ternaryLaws :: TernaryLaws (WordOfSize 2,WordOfSize 2))
-  smallCheck 16 (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)
-                                            ,PositiveInfinite (WordOfSize 2)))
+  -- putStrLn "(WordOfSize 2,WordOfSize 2)"
+  -- smallCheck 16 (unaryLaws   :: UnaryLaws   (WordOfSize 2,WordOfSize 2))
+  -- smallCheck 16 (zeroLaws    :: UnaryLaws   (WordOfSize 2,WordOfSize 2))
+  -- smallCheck 14 (binaryLaws  :: BinaryLaws  (WordOfSize 2,WordOfSize 2))
+  -- smallCheck 8  (ternaryLaws :: TernaryLaws (WordOfSize 2,WordOfSize 2))
+  -- smallCheck 16 (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)
+  --                                           ,PositiveInfinite (WordOfSize 2)))
 
-  putStrLn "(WordOfSize 2,WordOfSize 2,WordOfSize 2)"
-  smallCheck 10 (unaryLaws   :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 10 (zeroLaws    :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 5  (binaryLaws  :: BinaryLaws  (WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 2  (ternaryLaws :: TernaryLaws (WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 10 (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)
-                                            ,PositiveInfinite (WordOfSize 2)
-                                            ,PositiveInfinite (WordOfSize 2)))
+  -- putStrLn "(WordOfSize 2,WordOfSize 2,WordOfSize 2)"
+  -- smallCheck 10 (unaryLaws   :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 10 (zeroLaws    :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 5  (binaryLaws  :: BinaryLaws  (WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 2  (ternaryLaws :: TernaryLaws (WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 10 (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)
+  --                                           ,PositiveInfinite (WordOfSize 2)
+  --                                           ,PositiveInfinite (WordOfSize 2)))
 
-  putStrLn "(WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2)"
-  smallCheck 8 (unaryLaws   :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 8 (zeroLaws    :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 4 (binaryLaws  :: BinaryLaws  (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 1 (ternaryLaws :: TernaryLaws (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
-  smallCheck 16 (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)
-                                            ,PositiveInfinite (WordOfSize 2)
-                                            ,PositiveInfinite (WordOfSize 2)
-                                            ,PositiveInfinite (WordOfSize 2)))
+  -- putStrLn "(WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2)"
+  -- smallCheck 8 (unaryLaws   :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 8 (zeroLaws    :: UnaryLaws   (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 4 (binaryLaws  :: BinaryLaws  (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 1 (ternaryLaws :: TernaryLaws (WordOfSize 2,WordOfSize 2,WordOfSize 2,WordOfSize 2))
+  -- smallCheck 16 (starLaws    :: UnaryLaws   (PositiveInfinite (WordOfSize 2)
+  --                                           ,PositiveInfinite (WordOfSize 2)
+  --                                           ,PositiveInfinite (WordOfSize 2)
+  --                                           ,PositiveInfinite (WordOfSize 2)))
 
-  putStrLn "(Int,Int,Int,Int,Int)"
-  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int))
-  quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int))
-  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int))
-  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int))
-  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int))
+  -- putStrLn "(Int,Int,Int,Int,Int)"
+  -- quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int))
+  -- quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int))
+  -- quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int))
+  -- quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int))
+  -- quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int))
 
-  putStrLn "(Int,Int,Int,Int,Int,Int)"
-  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int))
-  quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int))
-  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int))
-  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int))
-  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int))
+  -- putStrLn "(Int,Int,Int,Int,Int,Int)"
+  -- quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int))
+  -- quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int))
+  -- quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int))
+  -- quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int))
+  -- quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int))
 
-  putStrLn "(Int,Int,Int,Int,Int,Int,Int)"
-  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int))
+  -- putStrLn "(Int,Int,Int,Int,Int,Int,Int)"
+  -- quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int))
 
-  putStrLn "(Int,Int,Int,Int,Int,Int,Int,Int)"
-  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int))
+  -- putStrLn "(Int,Int,Int,Int,Int,Int,Int,Int)"
+  -- quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int))
 
-  putStrLn "(Int,Int,Int,Int,Int,Int,Int,Int,Int)"
-  quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int,Int,Int))
-  quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int
-                                         ,PositiveInfinite Int))
+  -- putStrLn "(Int,Int,Int,Int,Int,Int,Int,Int,Int)"
+  -- quickCheck (unaryLaws   :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (zeroLaws    :: UnaryLaws   (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (binaryLaws  :: BinaryLaws  (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (ternaryLaws :: TernaryLaws (Int,Int,Int,Int,Int,Int,Int,Int,Int))
+  -- quickCheck (starLaws    :: UnaryLaws   (PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int
+  --                                        ,PositiveInfinite Int))
 
-  putStrLn "Int"
-  smallCheck 1000 (unaryLaws   :: UnaryLaws   Int)
-  smallCheck 1000 (zeroLaws    :: UnaryLaws   Int)
-  smallCheck 100  (binaryLaws  :: BinaryLaws  Int)
-  smallCheck 10   (ternaryLaws :: TernaryLaws Int)
+  -- putStrLn "Int"
+  -- smallCheck 1000 (unaryLaws   :: UnaryLaws   Int)
+  -- smallCheck 1000 (zeroLaws    :: UnaryLaws   Int)
+  -- smallCheck 100  (binaryLaws  :: BinaryLaws  Int)
+  -- smallCheck 10   (ternaryLaws :: TernaryLaws Int)
 
-  putStrLn "PosInf Integer"
-  smallCheck 1000 (nearUnaryLaws   :: UnaryLaws   (PositiveInfinite Integer))
-  smallCheck 100  (binaryLaws      :: BinaryLaws  (PositiveInfinite Integer))
-  -- smallCheck 10   (nearTernaryLaws :: TernaryLaws (PositiveInfinite Integer))
-  -- smallCheck 10   (ordLaws         :: TernaryLaws (PositiveInfinite Integer))
+  -- putStrLn "PosInf Natural"
+  -- smallCheck 1000 (unaryLaws   :: UnaryLaws   (PositiveInfinite Natural))
+  -- smallCheck 1000 (zeroLaws    :: UnaryLaws   (PositiveInfinite Natural))
+  -- smallCheck 100  (binaryLaws  :: BinaryLaws  (PositiveInfinite Natural))
+  -- smallCheck 10   (ternaryLaws :: TernaryLaws (PositiveInfinite Natural))
+  -- smallCheck 10   (ordLaws     :: TernaryLaws (PositiveInfinite Natural))
 
-  putStrLn "NegInf Integer"
-  smallCheck 1000 (nearUnaryLaws   :: UnaryLaws   (NegativeInfinite Integer))
-  smallCheck 100  (binaryLaws      :: BinaryLaws  (NegativeInfinite Integer))
+  -- putStrLn "NegInf Integer"
+  -- smallCheck 1000 (nearUnaryLaws   :: UnaryLaws   (NegativeInfinite Integer))
+  -- smallCheck 1000 (zeroLaws        :: UnaryLaws   (NegativeInfinite Integer))
+  -- smallCheck 100  (binaryLaws      :: BinaryLaws  (NegativeInfinite Integer))
   -- smallCheck 10   (nearTernaryLaws :: TernaryLaws (NegativeInfinite Integer))
   -- smallCheck 10   (ordLaws         :: TernaryLaws (NegativeInfinite Integer))
 
   putStrLn "Inf Integer"
-  smallCheck 1000 (nearUnaryLaws   :: UnaryLaws   (Infinite Integer))
-  smallCheck 100  (binaryLaws      :: BinaryLaws  (Infinite Integer))
-  -- smallCheck 10   (nearTernaryLaws :: TernaryLaws (Infinite Integer))
-  -- smallCheck 10   (ordLaws         :: TernaryLaws (Infinite Integer))
+  smallCheck 1000 (unaryLaws   :: UnaryLaws   (Infinite Integer))
+  smallCheck 1000 (zeroLaws    :: UnaryLaws   (Infinite Integer))
+  smallCheck 100  (binaryLaws  :: BinaryLaws  (Infinite Integer))
+  smallCheck 10   (plusAssoc   :: TernaryLaws (Infinite Integer))
+  smallCheck 10   (mulAssoc    :: TernaryLaws (Infinite Integer))
+  smallCheck 10   (ordLaws     :: TernaryLaws (Infinite Integer))
 
-  putStrLn "()"
-  smallCheck 1 (unaryLaws   :: UnaryLaws   ())
-  smallCheck 1 (zeroLaws    :: UnaryLaws   ())
-  smallCheck 1 (binaryLaws  :: BinaryLaws  ())
-  smallCheck 1 (ternaryLaws :: TernaryLaws ())
-  smallCheck 1 (starLaws    :: UnaryLaws   ())
+  -- putStrLn "()"
+  -- smallCheck 1 (unaryLaws   :: UnaryLaws   ())
+  -- smallCheck 1 (zeroLaws    :: UnaryLaws   ())
+  -- smallCheck 1 (binaryLaws  :: BinaryLaws  ())
+  -- smallCheck 1 (ternaryLaws :: TernaryLaws ())
+  -- smallCheck 1 (starLaws    :: UnaryLaws   ())
 
-  putStrLn "Bool"
-  smallCheck 2 (unaryLaws   :: UnaryLaws   Bool)
-  smallCheck 2 (zeroLaws    :: UnaryLaws   Bool)
-  smallCheck 4 (binaryLaws  :: BinaryLaws  Bool)
-  smallCheck 8 (ternaryLaws :: TernaryLaws Bool)
-  smallCheck 2 (starLaws    :: UnaryLaws   Bool)
+  -- putStrLn "Bool"
+  -- smallCheck 2 (unaryLaws   :: UnaryLaws   Bool)
+  -- smallCheck 2 (zeroLaws    :: UnaryLaws   Bool)
+  -- smallCheck 4 (binaryLaws  :: BinaryLaws  Bool)
+  -- smallCheck 8 (ternaryLaws :: TernaryLaws Bool)
+  -- smallCheck 2 (starLaws    :: UnaryLaws   Bool)
 
-  putStrLn "Any"
-  smallCheck 2 (unLawsOn   Any :: UnaryLaws   Bool)
-  smallCheck 2 (zeroLaws . Any :: UnaryLaws   Bool)
-  smallCheck 4 (binLawsOn  Any :: BinaryLaws  Bool)
-  smallCheck 8 (ternLawsOn Any :: TernaryLaws Bool)
+  -- putStrLn "Any"
+  -- smallCheck 2 (unLawsOn   Any :: UnaryLaws   Bool)
+  -- smallCheck 2 (zeroLaws . Any :: UnaryLaws   Bool)
+  -- smallCheck 4 (binLawsOn  Any :: BinaryLaws  Bool)
+  -- smallCheck 8 (ternLawsOn Any :: TernaryLaws Bool)
 
-  putStrLn "All"
-  smallCheck 2 (unLawsOn   All :: UnaryLaws   Bool)
-  smallCheck 2 (zeroLaws . All :: UnaryLaws   Bool)
-  smallCheck 4 (binLawsOn  All :: BinaryLaws  Bool)
-  smallCheck 8 (ternLawsOn All :: TernaryLaws Bool)
+  -- putStrLn "All"
+  -- smallCheck 2 (unLawsOn   All :: UnaryLaws   Bool)
+  -- smallCheck 2 (zeroLaws . All :: UnaryLaws   Bool)
+  -- smallCheck 4 (binLawsOn  All :: BinaryLaws  Bool)
+  -- smallCheck 8 (ternLawsOn All :: TernaryLaws Bool)
 
-  putStrLn "[WordOfSize 2]"
-  smallCheck 5 (unaryLaws   :: UnaryLaws   [WordOfSize 2])
-  smallCheck 5 (zeroLaws    :: UnaryLaws   [WordOfSize 2])
-  smallCheck 4 (binaryLaws  :: BinaryLaws  [WordOfSize 2])
-  smallCheck 3 (ternaryLaws :: TernaryLaws [WordOfSize 2])
+  -- putStrLn "[WordOfSize 2]"
+  -- smallCheck 5 (unaryLaws   :: UnaryLaws   [WordOfSize 2])
+  -- smallCheck 5 (zeroLaws    :: UnaryLaws   [WordOfSize 2])
+  -- smallCheck 4 (binaryLaws  :: BinaryLaws  [WordOfSize 2])
+  -- smallCheck 3 (ternaryLaws :: TernaryLaws [WordOfSize 2])
 
-  putStrLn "Min Integer"
-  smallCheck 1000 (unLawsOn   Min :: UnaryLaws   (PositiveInfinite Integer))
-  smallCheck 100  (binLawsOn  Min :: BinaryLaws  (PositiveInfinite Integer))
-  smallCheck 10   (ternLawsOn Min :: TernaryLaws (PositiveInfinite Integer))
-  smallCheck 1000 (starLaws . Min :: UnaryLaws   (Infinite    Integer))
+  -- putStrLn "Min Integer"
+  -- smallCheck 1000 (unLawsOn   Min :: UnaryLaws   (PositiveInfinite Integer))
+  -- smallCheck 100  (binLawsOn  Min :: BinaryLaws  (PositiveInfinite Integer))
+  -- smallCheck 10   (ternLawsOn Min :: TernaryLaws (PositiveInfinite Integer))
+  -- smallCheck 1000 (starLaws . Min :: UnaryLaws   (Infinite    Integer))
 
-  putStrLn "Max Integer"
-  smallCheck 1000 (unLawsOn   Max :: UnaryLaws   (NegativeInfinite Integer))
-  smallCheck 100  (binLawsOn  Max :: BinaryLaws  (NegativeInfinite Integer))
-  smallCheck 10   (ternLawsOn Max :: TernaryLaws (NegativeInfinite Integer))
-  smallCheck 1000 (starLaws . Max :: UnaryLaws   (Infinite    Integer))
+  -- putStrLn "Max Integer"
+  -- smallCheck 1000 (unLawsOn   Max :: UnaryLaws   (NegativeInfinite Integer))
+  -- smallCheck 100  (binLawsOn  Max :: BinaryLaws  (NegativeInfinite Integer))
+  -- smallCheck 10   (ternLawsOn Max :: TernaryLaws (NegativeInfinite Integer))
+  -- smallCheck 1000 (starLaws . Max :: UnaryLaws   (Infinite    Integer))
 
-  putStrLn "Free (WordOfSize 2)"
-  smallCheck 4 (unLawsOn   Free :: UnaryLaws   [[WordOfSize 2]])
-  smallCheck 3 (binLawsOn  Free :: BinaryLaws  [[WordOfSize 2]])
-  smallCheck 3 (ternLawsOn Free :: TernaryLaws [[WordOfSize 2]])
+  -- putStrLn "Free (WordOfSize 2)"
+  -- smallCheck 4 (unLawsOn   Free :: UnaryLaws   [[WordOfSize 2]])
+  -- smallCheck 3 (binLawsOn  Free :: BinaryLaws  [[WordOfSize 2]])
+  -- smallCheck 3 (ternLawsOn Free :: TernaryLaws [[WordOfSize 2]])
 
-  putStrLn "Bottleneck (WordOfSize 2)"
-  smallCheck 1000 (unLawsOn   Bottleneck :: UnaryLaws   (WordOfSize 2))
-  smallCheck 1000 (zeroLaws . Bottleneck :: UnaryLaws   (WordOfSize 2))
-  smallCheck 100  (binLawsOn  Bottleneck :: BinaryLaws  (WordOfSize 2))
-  smallCheck 10   (ternLawsOn Bottleneck :: TernaryLaws (WordOfSize 2))
+  -- putStrLn "Bottleneck (WordOfSize 2)"
+  -- smallCheck 1000 (unLawsOn   Bottleneck :: UnaryLaws   (WordOfSize 2))
+  -- smallCheck 1000 (zeroLaws . Bottleneck :: UnaryLaws   (WordOfSize 2))
+  -- smallCheck 100  (binLawsOn  Bottleneck :: BinaryLaws  (WordOfSize 2))
+  -- smallCheck 10   (ternLawsOn Bottleneck :: TernaryLaws (WordOfSize 2))
 
-  putStrLn "Division Integer"
-  smallCheck 1000 (unLawsOn   (Division . getPositive) :: UnaryLaws   (SC.Positive Integer))
-  smallCheck 1000 (zeroLaws .  Division . getPositive  :: UnaryLaws   (SC.Positive Integer))
-  smallCheck 100  (binLawsOn  (Division . getPositive) :: BinaryLaws  (SC.Positive Integer))
-  smallCheck 10   (ternLawsOn (Division . getPositive) :: TernaryLaws (SC.Positive Integer))
+  -- putStrLn "Division Integer"
+  -- smallCheck 1000 (unLawsOn   (Division . getPositive) :: UnaryLaws   (SC.Positive Integer))
+  -- smallCheck 1000 (zeroLaws .  Division . getPositive  :: UnaryLaws   (SC.Positive Integer))
+  -- smallCheck 100  (binLawsOn  (Division . getPositive) :: BinaryLaws  (SC.Positive Integer))
+  -- smallCheck 10   (ternLawsOn (Division . getPositive) :: TernaryLaws (SC.Positive Integer))
 
-  putStrLn "Łukasiewicz Double"
-  smallCheck 1000 (unLawsOn   Łukasiewicz :: UnaryLaws   Fraction)
-  smallCheck 1000 (zeroLaws . Łukasiewicz :: UnaryLaws   Fraction)
-  smallCheck 100  (binLawsOn  Łukasiewicz :: BinaryLaws  Fraction)
-  smallCheck 10   (ternLawsOn Łukasiewicz :: TernaryLaws Fraction)
+  -- putStrLn "Łukasiewicz Double"
+  -- smallCheck 1000 (unLawsOn   Łukasiewicz :: UnaryLaws   Fraction)
+  -- smallCheck 1000 (zeroLaws . Łukasiewicz :: UnaryLaws   Fraction)
+  -- smallCheck 100  (binLawsOn  Łukasiewicz :: BinaryLaws  Fraction)
+  -- smallCheck 10   (ternLawsOn Łukasiewicz :: TernaryLaws Fraction)
 
-  putStrLn "Viterbi Double"
-  smallCheck 1000 (unLawsOn   Viterbi :: UnaryLaws   Fraction)
-  smallCheck 1000 (zeroLaws . Viterbi :: UnaryLaws   Fraction)
-  smallCheck 100  (binLawsOn  Viterbi :: BinaryLaws  Fraction)
-  smallCheck 10   (ternLawsOn Viterbi :: TernaryLaws Fraction)
+  -- putStrLn "Viterbi Double"
+  -- smallCheck 1000 (unLawsOn   Viterbi :: UnaryLaws   Fraction)
+  -- smallCheck 1000 (zeroLaws . Viterbi :: UnaryLaws   Fraction)
+  -- smallCheck 100  (binLawsOn  Viterbi :: BinaryLaws  Fraction)
+  -- smallCheck 10   (ternLawsOn Viterbi :: TernaryLaws Fraction)
 
-  putStrLn "Log Double"
-  quickCheck (unLawsOn   Log :: UnaryLaws   (Approx Double))
-  quickCheck (zeroLaws . Log :: UnaryLaws   (Approx Double))
-  quickCheck (binLawsOn  Log :: BinaryLaws  (Approx Double))
-  quickCheck (ternLawsOn Log :: TernaryLaws (Approx Double))
+  -- putStrLn "Log Double"
+  -- quickCheck (unLawsOn   Log :: UnaryLaws   (Approx Double))
+  -- quickCheck (zeroLaws . Log :: UnaryLaws   (Approx Double))
+  -- quickCheck (binLawsOn  Log :: BinaryLaws  (Approx Double))
+  -- quickCheck (ternLawsOn Log :: TernaryLaws (Approx Double))
 
-  putStrLn "Bool -> Bool"
-  smallCheck 3 (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 2 (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
-  smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
-  quickCheck (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
-  quickCheck (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
-  quickCheck (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
+  -- putStrLn "Bool -> Bool"
+  -- smallCheck 3 (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
+  -- smallCheck 2 (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
+  -- smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
+  -- quickCheck (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
+  -- quickCheck (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
+  -- quickCheck (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
 
 
-  putStrLn "Endo (Add Bool)"
-  smallCheck 3 (unOn plusId        eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 3 (zeroLaws .         eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 3 (unOn mulId         eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 2 (binLawsOn          eFromFunc :: BinaryLaws  (Bool -> Bool))
-  smallCheck 2 (ternOn plusAssoc   eFromFunc :: TernaryLaws (Bool -> Bool))
-  smallCheck 2 (ternOn mulAssoc    eFromFunc :: TernaryLaws (Bool -> Bool))
-  smallCheck 2 (ternOn mulDistribR eFromFunc :: TernaryLaws (Bool -> Bool))
+  -- putStrLn "Endo (Add Bool)"
+  -- smallCheck 3 (unOn plusId        eFromFunc :: UnaryLaws   (Bool -> Bool))
+  -- smallCheck 3 (zeroLaws .         eFromFunc :: UnaryLaws   (Bool -> Bool))
+  -- smallCheck 3 (unOn mulId         eFromFunc :: UnaryLaws   (Bool -> Bool))
+  -- smallCheck 2 (binLawsOn          eFromFunc :: BinaryLaws  (Bool -> Bool))
+  -- smallCheck 2 (ternOn plusAssoc   eFromFunc :: TernaryLaws (Bool -> Bool))
+  -- smallCheck 2 (ternOn mulAssoc    eFromFunc :: TernaryLaws (Bool -> Bool))
+  -- smallCheck 2 (ternOn mulDistribR eFromFunc :: TernaryLaws (Bool -> Bool))
 
-  doctest [ "-isrc"
-          , "src/Data/Semiring.hs"
-          , "src/Data/Semiring/Numeric.hs"
-          , "src/Test/Semiring.hs"
-          , "src/Data/Semiring/Free.hs" ]
+  -- doctest [ "-isrc"
+  --         , "src/Data/Semiring.hs"
+  --         , "src/Data/Semiring/Numeric.hs"
+  --         , "src/Test/Semiring.hs"
+  --         , "src/Data/Semiring/Free.hs" ]
 
 ------------------------------------------------------------------------
 -- Test helpers
 
-type UnaryLaws   a =           a -> Either String String
-type BinaryLaws  a =      a -> a -> Either String String
-type TernaryLaws a = a -> a -> a -> Either String String
+-- unOn :: UnaryLaws b -> (a -> b) -> UnaryLaws a
+-- unOn = (.)
 
-unOn :: UnaryLaws b -> (a -> b) -> UnaryLaws a
-unOn = (.)
+-- binOn :: BinaryLaws b -> (a -> b) -> BinaryLaws a
+-- binOn = on
 
-binOn :: BinaryLaws b -> (a -> b) -> BinaryLaws a
-binOn = on
+-- ternOn :: TernaryLaws b -> (a -> b) -> TernaryLaws a
+-- ternOn t f x y z = t (f x) (f y) (f z)
 
-ternOn :: TernaryLaws b -> (a -> b) -> TernaryLaws a
-ternOn t f x y z = t (f x) (f y) (f z)
+-- unLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> UnaryLaws a
+-- unLawsOn = unOn unaryLaws
 
-unLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> UnaryLaws a
-unLawsOn = unOn unaryLaws
+-- binLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> BinaryLaws a
+-- binLawsOn = binOn binaryLaws
 
-binLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> BinaryLaws a
-binLawsOn = binOn binaryLaws
-
-ternLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> TernaryLaws a
-ternLawsOn = ternOn ternaryLaws
+-- ternLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> TernaryLaws a
+-- ternLawsOn = ternOn ternaryLaws
 
 ------------------------------------------------------------------------
 -- Serial wrappers
@@ -356,6 +359,9 @@ instance (Monad m, Serial m a) => Serial m (NegativeInfinite a) where
 
 instance (Monad m, Serial m a) => Serial m (Infinite a) where
   series = fmap (either (bool Positive Negative) Finite) series
+
+instance Monad m => Serial m Natural where
+  series = generate (`take` [0..])
 
 ------------------------------------------------------------------------
 -- Function Equality

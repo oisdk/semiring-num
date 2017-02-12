@@ -20,9 +20,6 @@ module Data.Semiring
   , StarSemiring(..)
   , HasPositiveInfinity(..)
   , HasNegativeInfinity(..)
-  , PositiveInfinite(..)
-  , NegativeInfinite(..)
-  , Infinite(..)
   , Add(..)
   , Mul(..)
   , add
@@ -55,14 +52,12 @@ import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
 
 import           Data.Semigroup        hiding (Max (..), Min (..))
 
-import           Control.Applicative   (liftA2)
 import           Data.Coerce           (coerce)
 import           GHC.Generics          (Generic, Generic1)
 
 import           Data.Typeable         (Typeable)
 import           Foreign.Storable      (Storable)
 
-import           Data.Semiring.Infinite
 import           Data.Semiring.TH
 
 
@@ -152,11 +147,38 @@ class Semiring a => DetectableZero a where
   default isZero :: Eq a => a -> Bool
   isZero = (zero==)
 
-------------------------------------------------------------------------
--- Instances
-------------------------------------------------------------------------
-type CoerceBinary a b = (a -> a -> a) -> b -> b -> b
+--------------------------------------------------------------------------------
+-- Infinites
+--------------------------------------------------------------------------------
 
+class HasPositiveInfinity a where
+  positiveInfinity :: a
+  default positiveInfinity :: RealFloat a => a
+  positiveInfinity = 1/0
+  isPositiveInfinity :: a -> Bool
+  default isPositiveInfinity :: RealFloat a => a -> Bool
+  isPositiveInfinity x = isInfinite x && x > 0
+
+class HasNegativeInfinity a where
+  negativeInfinity :: a
+  default negativeInfinity :: RealFloat a => a
+  negativeInfinity = negate (1/0)
+  isNegativeInfinity :: a -> Bool
+  default isNegativeInfinity :: RealFloat a => a -> Bool
+  isNegativeInfinity x = isInfinite x && x < 0
+
+instance HasPositiveInfinity Double
+instance HasNegativeInfinity Double
+instance HasPositiveInfinity Float
+instance HasNegativeInfinity Float
+instance HasPositiveInfinity CDouble
+instance HasNegativeInfinity CDouble
+instance HasPositiveInfinity CFloat
+instance HasNegativeInfinity CFloat
+
+--------------------------------------------------------------------------------
+-- Instances
+--------------------------------------------------------------------------------
 instance Semiring Bool where
     one = True
     zero = False
@@ -175,66 +197,6 @@ instance StarSemiring Bool where
 
 instance DetectableZero Bool
 
--- | Not lawful. Only for convenience.
-instance DetectableZero a =>
-         Semiring (NegativeInfinite a) where
-    one = pure one
-    zero = pure zero
-    (<+>) =
-        (coerce :: CoerceBinary (NegativeInfinite (Add a)) (NegativeInfinite a))
-            mappend
-    x <.> y | any isZero x || any isZero y = zero
-            | otherwise = liftA2 (<.>) x y
-    {-# INLINE zero #-}
-    {-# INLINE one #-}
-    {-# INLINE (<+>) #-}
-    {-# INLINE (<.>) #-}
-
--- | Not lawful. Only for convenience.
-instance (DetectableZero a) =>
-         Semiring (PositiveInfinite a) where
-    one = pure one
-    zero = pure zero
-    (<+>) =
-        (coerce :: CoerceBinary (PositiveInfinite (Add a)) (PositiveInfinite a))
-            mappend
-    x <.> y | any isZero x || any isZero y = zero
-            | otherwise = liftA2 (<.>) x y
-    {-# INLINE zero #-}
-    {-# INLINE one #-}
-    {-# INLINE (<+>) #-}
-    {-# INLINE (<.>) #-}
-
--- | Not lawful. Only for convenience.
-instance (DetectableZero a) =>
-         Semiring (Infinite a) where
-    one = pure one
-    zero = pure zero
-    (<+>) = (coerce :: CoerceBinary (Infinite (Add a)) (Infinite a)) mappend
-    x <.> y | any isZero x || any isZero y = zero
-            | otherwise = liftA2 (<.>) x y
-    {-# INLINE zero #-}
-    {-# INLINE one #-}
-    {-# INLINE (<+>) #-}
-    {-# INLINE (<.>) #-}
-
-instance (DetectableZero a) =>
-         StarSemiring (PositiveInfinite a) where
-    star (PosFinite x)
-      | isZero x = one
-    star _ = PositiveInfinity
-
-instance DetectableZero a =>
-         DetectableZero (NegativeInfinite a) where
-    isZero = any isZero
-
-instance DetectableZero a =>
-         DetectableZero (PositiveInfinite a) where
-    isZero = any isZero
-
-instance DetectableZero a =>
-         DetectableZero (Infinite a) where
-    isZero = any isZero
 
 instance Semiring () where
     one = ()
@@ -272,9 +234,9 @@ instance Semiring a =>
 instance Semiring a => DetectableZero [a] where
   isZero = null
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Addition and multiplication newtypes
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
 -- | Monoid under '<+>'. Analogous to 'Data.Monoid.Sum', but uses the
@@ -317,9 +279,9 @@ instance Semiring a =>
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Addition and multiplication folds
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
 -- on numbers, or 'or' on 'Bool's.
 --
@@ -352,9 +314,9 @@ mul
     => f a -> a
 mul = getMul . foldMap Mul
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Ord wrappers
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- | The "<https://ncatlab.org/nlab/show/tropical+semiring Tropical>" or
 -- min-plus semiring. It is a semiring where:
 --
@@ -463,9 +425,9 @@ instance (Semiring a, Ord a, HasPositiveInfinity a) => DetectableZero (Min a) wh
 instance (Semiring a, Ord a, HasNegativeInfinity a) => DetectableZero (Max a) where
   isZero (Max x) = isNegativeInfinity x
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- (->) instance
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- | The @(->)@ instance is analogous to the one for 'Monoid'.
 instance Semiring b =>
          Semiring (a -> b) where
@@ -479,9 +441,9 @@ instance StarSemiring b =>
     star f x = star (f x)
     plus f x = plus (f x)
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Endo instance
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- | This is /not/ a true semiring. In particular, it requires the
 -- underlying monoid to be commutative, and even then, it is only a near
 -- semiring. It is, however, extremely useful. For instance, this type:
@@ -519,9 +481,9 @@ instance (Monoid a, Eq a) =>
 instance (Enum a, Bounded a, Eq a, Monoid a) => DetectableZero (Endo a) where
   isZero (Endo f) = all (mempty==) (map f [minBound..maxBound])
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Instances for Bool wrappers
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 instance Semiring Any where
     (<+>) = coerce (||)
     zero = Any False
@@ -557,9 +519,9 @@ instance StarSemiring All where
 instance DetectableZero Any
 instance DetectableZero All
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Boring instances
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 instance Semiring Int
 instance Semiring Int8
@@ -685,9 +647,9 @@ instance RealFloat a => DetectableZero (Complex a)
 instance HasResolution a => DetectableZero (Fixed a)
 deriving instance DetectableZero a => DetectableZero (Identity a)
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Very boring instances
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 $(traverse semiringIns [2..9])
 $(traverse starIns [2..9])

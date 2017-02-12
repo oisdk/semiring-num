@@ -2,38 +2,116 @@
 
 {-|
 Module: Test.Semiring
-Description: Some QuickCheck properties for Semirings
+Description: Some functions for generating tests for semirings.
 License: MIT
 Maintainer: mail@doisinkidney.com
 Stability: experimental
--}
 
+This module provides functions which can be quickly converted into
+<https://hackage.haskell.org/package/smallcheck smallcheck> or
+<https://hackage.haskell.org/package/QuickCheck QuickCheck>-like properties.
+The functions are of the form:
+
+> a -> Either String String
+
+where the left case is failure of the test, and the right case is success.
+
+For smallcheck, this function can be used directly as a property:
+
+> smallCheck 10 (plusId :: UnaryLaws Integer)
+
+(the typealias is provided as well)
+
+For QuickCheck, you might want to provide an instance like this:
+
+> instance Testable (Either String String) where
+>   property = either (`counterexample` False) (const (property True))
+
+And then testing is as simple as:
+
+> quickCheck (plusAssoc :: TernaryLaws Integer)
+
+There are also functions provided to test multiple laws at once. Putting all of
+this together, writing a test for all the semiring laws for, say, 'Integer'
+looks like this:
+
+> quickCheck (unaryLaws   :: UnaryLaws   Integer)
+> quickCheck (binaryLaws  :: BinaryLaws  Integer)
+> quickCheck (ternaryLaws :: TernaryLaws Integer)
+-}
 module Test.Semiring
-  ( plusAssoc
-  , mulAssoc
-  , plusComm
-  , mulDistribL
-  , mulDistribR
-  , plusId
-  , mulId
-  , annihilate
-  , unaryLaws
-  , binaryLaws
-  , ternaryLaws
-  , starLaw
-  , plusLaw
-  , starLaws
-  , nearTernaryLaws
-  , ordLaws
-  , zeroLaw
-  , zeroIsZero
-  , zeroLaws
-  , nearUnaryLaws
-  ) where
+  (
+   -- * Type Aliases
+   UnaryLaws
+  ,BinaryLaws
+  ,TernaryLaws
+  ,
+   -- * Semiring Laws
+   -- ** Unary
+   plusId
+  ,mulId
+  ,annihilateL
+  ,annihilateR
+  ,unaryLaws
+  ,
+   -- ** Binary
+   plusComm
+  ,binaryLaws
+  ,
+   -- ** Ternary
+   plusAssoc
+  ,mulAssoc
+  ,mulDistribL
+  ,mulDistribR
+  ,ternaryLaws
+  ,
+   -- * Near-semiring laws
+   -- ** Unary
+   nearUnaryLaws
+  ,
+   -- ** Ternary
+   nearTernaryLaws
+  ,
+   -- * StarSemiring Laws
+   -- ** Unary
+   starLaw
+  ,plusLaw
+  ,starLaws
+  ,
+   -- * DetectableZero Laws
+   -- ** Unary
+   zeroLaw
+  ,zeroIsZero
+  ,zeroLaws
+  ,
+   -- * Ordering Laws
+   -- ** Ternary
+   ordMulLaw
+  ,ordAddLaw
+  ,ordLaws)
+  where
 
 import           Data.Semiring   (Semiring (..), StarSemiring (..), DetectableZero(..))
 
+-- | Typealias for unary laws. Can be used like so:
+--
+-- > smallCheck 10 (unaryLaws :: UnaryLaws Int)
+type UnaryLaws   a =           a -> Either String String
+
+-- | Typealias for binary laws. Can be used like so:
+--
+-- > smallCheck 8 (binaryLaws :: BinaryLaws Int)
+type BinaryLaws  a =      a -> a -> Either String String
+
+-- | Typealias for ternary laws. Can be used like so:
+--
+-- > smallCheck 6 (ternaryLaws :: TernaryLaws Int)
+type TernaryLaws a = a -> a -> a -> Either String String
+
+
 -- | Plus is associative.
+--
+-- @(x '<+>' y) '<+>' z = x '<+>' (y '<+>' z)@
 plusAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
 plusAssoc x y z = if res then Right s else Left s where
   res = lp == rp
@@ -54,6 +132,8 @@ plusAssoc x y z = if res then Right s else Left s where
     , "    x <+> (y <+> z) = " ++ show rp ]
 
 -- | Multiplication is associative.
+--
+-- @(x '<.>' y) '<.>' z = x '<.>' (y '<.>' z)@
 mulAssoc :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
 mulAssoc x y z = if res then Right s else Left s  where
   res = lp == rp
@@ -74,6 +154,8 @@ mulAssoc x y z = if res then Right s else Left s  where
     , "    x <.> (y <.> z) = " ++ show rp]
 
 -- | Plus is commutative.
+--
+-- @x '<+>' y = y '<+>' x@
 plusComm :: (Eq a, Semiring a, Show a) => a -> a -> Either String String
 plusComm x y = if res then Right s else Left s where
   res = l == r
@@ -89,6 +171,8 @@ plusComm x y = if res then Right s else Left s where
     , "    y <+> x = " ++ show r ]
 
 -- | Multiplication distributes left.
+--
+-- @x '<.>' (y '<+>' z) = x '<.>' y '<+>' x '<.>' z@
 mulDistribL :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
 mulDistribL x y z = if res then Right s else Left s where
   res = l == r
@@ -105,6 +189,8 @@ mulDistribL x y z = if res then Right s else Left s where
     , "    x <.> y <+> x <.> z  = " ++ show r ]
 
 -- | Multiplication distributes right.
+--
+-- @(x '<+>' y) '<.>' z = x '<.>' z '<+>' y '<.>' z@
 mulDistribR :: (Eq a, Semiring a, Show a) => a -> a -> a -> Either String String
 mulDistribR x y z = if res then Right s else Left s where
   res = l == r
@@ -121,6 +207,8 @@ mulDistribR x y z = if res then Right s else Left s where
     , "    x <.> z <+> y <.> z = " ++ show r ]
 
 -- | Additive identity.
+--
+-- @x '<+>' 'zero' = 'zero' '<+>' x = x@
 plusId :: (Eq a, Semiring a, Show a) => a -> Either String String
 plusId (x :: a) = if res then Right s else Left s where
   res = l == x && r ==x
@@ -136,6 +224,8 @@ plusId (x :: a) = if res then Right s else Left s where
     , "    zero <+> x = " ++ show r ]
 
 -- | Multiplicative identity.
+--
+-- @x '<.>' 'one' = 'one' '<.>' x = x@
 mulId :: (Eq a, Semiring a, Show a) => a -> Either String String
 mulId (x :: a) = if res then Right s else Left s where
   res = l == x && r == x
@@ -151,44 +241,64 @@ mulId (x :: a) = if res then Right s else Left s where
     , "    one <.> x = " ++ show r ]
 
 -- | Annihilation of '<.>' by 'zero'.
-annihilate :: (Eq a, Semiring a, Show a) => a -> Either String String
-annihilate (x :: a) = if res then Right s else Left s where
-  res = l == zero && r == zero
-  l = x <.> zero
+--
+-- @'zero' '<.>' x = 'zero'@
+annihilateR :: (Eq a, Semiring a, Show a) => a -> Either String String
+annihilateR (x :: a) = if res then Right s else Left s where
+  res = r == zero
   r = zero <.> x
   s = unlines
-    [ "zero does " ++ (if res then "" else "not ") ++ "annihilate with <.>."
+    [ "zero does " ++ (if res then "" else "not ") ++ "annihilate right with <.>."
     , "    Law:"
-    , "        x <.> zero = zero <.> x = zero"
+    , "        zero <.> x = zero"
     , "    x = " ++ show x
     , "    zero = " ++ show (zero :: a)
-    , "    x <.> zero = " ++ show l
     , "    zero <.> x = " ++ show r ]
 
+-- | Annihilation of '<.>' by 'zero'.
+--
+-- @x '<.>' 'zero' = 'zero'@
+annihilateL :: (Eq a, Semiring a, Show a) => a -> Either String String
+annihilateL (x :: a) = if res then Right s else Left s where
+  res = l == zero
+  l = x <.> zero
+  s = unlines
+    [ "zero does " ++ (if res then "" else "not ") ++ "annihilate left with <.>."
+    , "    Law:"
+    , "        x <.> zero = zero"
+    , "    x = " ++ show x
+    , "    zero = " ++ show (zero :: a)
+    , "    x <.> zero = " ++ show l ]
+
+-- | A test for all three unary laws for semirings ('plusId', 'mulId', and
+-- 'annihilate').
 unaryLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
-unaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilate x])
+unaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilateL x, annihilateR x])
 
 nearUnaryLaws :: (Eq a, Semiring a, Show a) => a -> Either String String
-nearUnaryLaws x = fmap unlines (sequence [plusId x, annihilate x])
+nearUnaryLaws x = fmap unlines (sequence [plusId x, mulId x, annihilateR x])
 
 nearTernaryLaws :: (Eq a, Semiring a, Show a)
             => a -> a -> a -> Either String String
 nearTernaryLaws x y z =
   fmap unlines (sequence [ plusAssoc x y z
                          , mulAssoc x y z
-                         , mulDistribR x y z])
+                         , mulDistribL x y z])
 
+-- | A test for all of the binary laws for semirings (just 'plusComm').
 binaryLaws :: (Eq a, Semiring a, Show a)
            => a -> a -> Either String String
 binaryLaws = plusComm
 
+-- | A test for all of the ternary laws for semirings ('plusAssoc', 'mulAssoc',
+-- 'mulDistribL', 'mulDistribR').
 ternaryLaws :: (Eq a, Semiring a, Show a)
             => a -> a -> a -> Either String String
 ternaryLaws x y z =
   fmap unlines (sequence [ plusAssoc x y z
                          , mulAssoc x y z
-                         , mulDistribL x y z
-                         , mulDistribR x y z])
+                         , mulDistribR x y z
+                         , mulDistribL x y z])
 
 starLaw :: (Eq a, StarSemiring a, Show a) => a -> Either String String
 starLaw (x :: a) = if res then Right s else Left s where

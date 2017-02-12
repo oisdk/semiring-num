@@ -17,9 +17,9 @@ library
   exposed-modules:     Data.Semiring
                      , Data.Semiring.Numeric
                      , Data.Semiring.Free
+                     , Data.Semiring.Infinite
                      , Test.Semiring
-  other-modules:       Data.Semiring.Infinite
-                     , Data.Semiring.TH
+  other-modules:       Data.Semiring.TH
   build-depends:       base >= 4.9 && < 5
                      , containers >= 0.5
                      , template-haskell >= 2.11
