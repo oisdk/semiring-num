@@ -348,7 +348,7 @@ mul = getMul . foldMap Mul
 --
 -- @∞ '<+>' x = x '<+>' ∞ = ∞@
 --
--- Taking ∞ to be 'maxBound' would break the above law. Using 'Nothing'
+-- Taking ∞ to be 'maxBound' would break the above law. Using 'positiveInfinity'
 -- to represent it follows the law.
 newtype Min a = Min
     { getMin :: a
@@ -368,8 +368,8 @@ newtype Min a = Min
 --
 -- @-∞ '<+>' x = x '<+>' -∞ = -∞@
 --
--- Taking -∞ to be 'minBound' would break the above law. Using 'Nothing'
--- to represent it follows the law.
+-- Taking -∞ to be 'minBound' would break the above law. Using
+-- 'negativeInfinity' to represent it follows the law.
 newtype Max a = Max
     { getMax :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
