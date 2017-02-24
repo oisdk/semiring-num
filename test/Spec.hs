@@ -116,113 +116,200 @@ type Tup9 a = (a,a,a,a,a,a,a,a,a)
 
 main :: IO ()
 main = do
-  putStrLn "Bool -> Bool"
-  smallCheck 3 (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 2 (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
-  smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
-  quickCheck (unLawsOn   fromFunc :: UnaryLaws   (Bool -> Bool))
-  quickCheck (binLawsOn  fromFunc :: BinaryLaws  (Bool -> Bool))
-  quickCheck (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
-
-
-  putStrLn "Endo (Add Bool)"
-  smallCheck 3 (nearUnaryLaws .        eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 3 (zeroLaws .             eFromFunc :: UnaryLaws   (Bool -> Bool))
-  smallCheck 2 (binLawsOn              eFromFunc :: BinaryLaws  (Bool -> Bool))
-  smallCheck 2 (ternOn nearTernaryLaws eFromFunc :: TernaryLaws (Bool -> Bool))
-
-  doctest [ "-isrc" , "src/" ]
-
-  defaultMain $ testGroup "Tests"
-    [ let p = Proxy :: Proxy Integer
-      in testGroup "Integer" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (PositiveInfinite Natural)
-      in testGroup "PosInf Natural" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy Int
-      in testGroup "Int" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (WordOfSize 2)
-      in testGroup "WordOfSize 2" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Tup2 (WordOfSize 2))
-      in testGroup "Tup2 (WordOfSize 2)" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Tup3 (WordOfSize 2))
-      in testGroup "Tup3 (WordOfSize 2)" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Tup4 Int)
-      in testGroup "Tup4 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
-    , let p = Proxy :: Proxy (Tup5 Int)
-      in testGroup "Tup5 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
-    , let p = Proxy :: Proxy (Tup6 Int)
-      in testGroup "Tup6 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
-    , let p = Proxy :: Proxy (Tup7 Int)
-      in testGroup "Tup7 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
-    , let p = Proxy :: Proxy (Tup8 Int)
-      in testGroup "Tup8 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
-    , let p = Proxy :: Proxy (Tup9 Int)
-      in testGroup "Tup9 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
-    , let p = Proxy :: Proxy (Tup2 (PositiveInfinite (WordOfSize 2)))
-      in testGroup "Tup2 (WordOfSize 2)" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy (Tup3 (PositiveInfinite (WordOfSize 2)))
-      in testGroup "Tup3 (WordOfSize 2)" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy (Tup4 (PositiveInfinite Int))
-      in testGroup "Tup4 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
-    , let p = Proxy :: Proxy (Tup5 (PositiveInfinite Int))
-      in testGroup "Tup5 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
-    , let p = Proxy :: Proxy (Tup6 (PositiveInfinite Int))
-      in testGroup "Tup6 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
-    , let p = Proxy :: Proxy (Tup7 (PositiveInfinite Int))
-      in testGroup "Tup7 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
-    , let p = Proxy :: Proxy (Tup8 (PositiveInfinite Int))
-      in testGroup "Tup8 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
-    , let p = Proxy :: Proxy (Tup9 (PositiveInfinite Int))
-      in testGroup "Tup9 Int" [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
-    , testGroup "Negative Infinite Integer"
-      [ SC.testProperty "plusId" (plusId :: UnaryLaws (NegativeInfinite Integer))
-      , SC.testProperty "mulId" (mulId :: UnaryLaws (NegativeInfinite Integer))
-      , SC.testProperty "annihilateR" (annihilateR :: UnaryLaws (NegativeInfinite Integer))
-      , zeroLawsSC (Proxy :: Proxy (NegativeInfinite Integer))
-      , SC.testProperty "plusComm" (plusComm :: BinaryLaws (NegativeInfinite Integer))
-      , ordLawsSC (Proxy :: Proxy (NegativeInfinite Integer))
-      , SC.testProperty "plusAssoc" (plusAssoc     :: TernaryLaws (NegativeInfinite Integer))
-      , SC.testProperty "mulAssoc" (mulAssoc      :: TernaryLaws (NegativeInfinite Integer))
-      , SC.testProperty "mulDistribL" (mulDistribL   :: TernaryLaws (NegativeInfinite Integer))]
-    , testGroup "Infinite Integer"
-      [ SC.testProperty "plusId" (plusId :: UnaryLaws (Infinite Integer))
-      , SC.testProperty "mulId" (mulId :: UnaryLaws (Infinite Integer))
-      , SC.testProperty "annihilateR" (annihilateR :: UnaryLaws (Infinite Integer))
-      , SC.testProperty "annihilateL" (annihilateL :: UnaryLaws (Infinite Integer))
-      , zeroLawsSC (Proxy :: Proxy (Infinite Integer))
-      , SC.testProperty "plusComm" (plusComm :: BinaryLaws (Infinite Integer))
-      , ordLawsSC (Proxy :: Proxy (Infinite Integer))
-      , SC.testProperty "plusAssoc" (plusAssoc     :: TernaryLaws (Infinite Integer))
-      , SC.testProperty "mulAssoc" (mulAssoc      :: TernaryLaws (Infinite Integer))]
-    , let p = Proxy :: Proxy ()
-      in testGroup "()" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy Bool
-      in testGroup "Bool" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy Any
-      in testGroup "Any" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy All
-      in testGroup "All" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy [WordOfSize 2]
-      in testGroup "[WordOfSize 2]" [semiringLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
-      in testGroup "Min PosInf Integer" [semiringLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Min (Infinite Integer))
-      in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy (Max (NegativeInfinite Integer))
-      in testGroup "Min NegInf Integer" [semiringLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Max (Infinite Integer))
-      in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p, starLawsSC p]
-    , let p = Proxy :: Proxy (Free (WordOfSize 2))
-      in testGroup "Free (WordOfSize 2)" [semiringLawsQC p]
-    , let p = Proxy :: Proxy (Division (SC.Positive Integer))
-      in testGroup "Division Integer" [semiringLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Łukasiewicz Fraction)
-      in testGroup "Łukasiewicz Fraction" [semiringLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Viterbi Fraction)
-      in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]
-    , let p = Proxy :: Proxy (Log (Approx Double))
-      in testGroup "Log (Approx Double)" [semiringLawsQC p, zeroLawsQC p]
-    ]
+    putStrLn "Bool -> Bool"
+    smallCheck 3 (unLawsOn fromFunc :: UnaryLaws (Bool -> Bool))
+    smallCheck 2 (binLawsOn fromFunc :: BinaryLaws (Bool -> Bool))
+    smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
+    quickCheck (unLawsOn fromFunc :: UnaryLaws (Bool -> Bool))
+    quickCheck (binLawsOn fromFunc :: BinaryLaws (Bool -> Bool))
+    quickCheck (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
+    putStrLn "Endo (Add Bool)"
+    smallCheck 3 (nearUnaryLaws . eFromFunc :: UnaryLaws (Bool -> Bool))
+    smallCheck 3 (zeroLaws . eFromFunc :: UnaryLaws (Bool -> Bool))
+    smallCheck 2 (binLawsOn eFromFunc :: BinaryLaws (Bool -> Bool))
+    smallCheck
+        2
+        (ternOn nearTernaryLaws eFromFunc :: TernaryLaws (Bool -> Bool))
+    doctest ["-isrc", "src/"]
+    defaultMain $
+        testGroup
+            "Tests"
+            [ let p = Proxy :: Proxy Integer
+              in testGroup
+                     "Integer"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (PositiveInfinite Natural)
+              in testGroup
+                     "PosInf Natural"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy Int
+              in testGroup "Int" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (WordOfSize 2)
+              in testGroup
+                     "WordOfSize 2"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Tup2 (WordOfSize 2))
+              in testGroup
+                     "Tup2 (WordOfSize 2)"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Tup3 (WordOfSize 2))
+              in testGroup
+                     "Tup3 (WordOfSize 2)"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Tup4 Int)
+              in testGroup
+                     "Tup4 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
+            , let p = Proxy :: Proxy (Tup5 Int)
+              in testGroup
+                     "Tup5 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
+            , let p = Proxy :: Proxy (Tup6 Int)
+              in testGroup
+                     "Tup6 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
+            , let p = Proxy :: Proxy (Tup7 Int)
+              in testGroup
+                     "Tup7 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
+            , let p = Proxy :: Proxy (Tup8 Int)
+              in testGroup
+                     "Tup8 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
+            , let p = Proxy :: Proxy (Tup9 Int)
+              in testGroup
+                     "Tup9 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p]
+            , let p = Proxy :: Proxy (Tup2 (PositiveInfinite (WordOfSize 2)))
+              in testGroup
+                     "Tup2 (WordOfSize 2)"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy (Tup3 (PositiveInfinite (WordOfSize 2)))
+              in testGroup
+                     "Tup3 (WordOfSize 2)"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy (Tup4 (PositiveInfinite Int))
+              in testGroup
+                     "Tup4 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
+            , let p = Proxy :: Proxy (Tup5 (PositiveInfinite Int))
+              in testGroup
+                     "Tup5 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
+            , let p = Proxy :: Proxy (Tup6 (PositiveInfinite Int))
+              in testGroup
+                     "Tup6 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
+            , let p = Proxy :: Proxy (Tup7 (PositiveInfinite Int))
+              in testGroup
+                     "Tup7 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
+            , let p = Proxy :: Proxy (Tup8 (PositiveInfinite Int))
+              in testGroup
+                     "Tup8 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
+            , let p = Proxy :: Proxy (Tup9 (PositiveInfinite Int))
+              in testGroup
+                     "Tup9 Int"
+                     [semiringLawsQC p, ordLawsQC p, zeroLawsQC p, starLawsQC p]
+            , testGroup
+                  "Negative Infinite Integer"
+                  [ SC.testProperty
+                        "plusId"
+                        (plusId :: UnaryLaws (NegativeInfinite Integer))
+                  , SC.testProperty
+                        "mulId"
+                        (mulId :: UnaryLaws (NegativeInfinite Integer))
+                  , SC.testProperty
+                        "annihilateR"
+                        (annihilateR :: UnaryLaws (NegativeInfinite Integer))
+                  , zeroLawsSC (Proxy :: Proxy (NegativeInfinite Integer))
+                  , SC.testProperty
+                        "plusComm"
+                        (plusComm :: BinaryLaws (NegativeInfinite Integer))
+                  , ordLawsSC (Proxy :: Proxy (NegativeInfinite Integer))
+                  , SC.testProperty
+                        "plusAssoc"
+                        (plusAssoc :: TernaryLaws (NegativeInfinite Integer))
+                  , SC.testProperty
+                        "mulAssoc"
+                        (mulAssoc :: TernaryLaws (NegativeInfinite Integer))
+                  , SC.testProperty
+                        "mulDistribL"
+                        (mulDistribL :: TernaryLaws (NegativeInfinite Integer))]
+            , testGroup
+                  "Infinite Integer"
+                  [ SC.testProperty
+                        "plusId"
+                        (plusId :: UnaryLaws (Infinite Integer))
+                  , SC.testProperty
+                        "mulId"
+                        (mulId :: UnaryLaws (Infinite Integer))
+                  , SC.testProperty
+                        "annihilateR"
+                        (annihilateR :: UnaryLaws (Infinite Integer))
+                  , SC.testProperty
+                        "annihilateL"
+                        (annihilateL :: UnaryLaws (Infinite Integer))
+                  , zeroLawsSC (Proxy :: Proxy (Infinite Integer))
+                  , SC.testProperty
+                        "plusComm"
+                        (plusComm :: BinaryLaws (Infinite Integer))
+                  , ordLawsSC (Proxy :: Proxy (Infinite Integer))
+                  , SC.testProperty
+                        "plusAssoc"
+                        (plusAssoc :: TernaryLaws (Infinite Integer))
+                  , SC.testProperty
+                        "mulAssoc"
+                        (mulAssoc :: TernaryLaws (Infinite Integer))]
+            , let p = Proxy :: Proxy ()
+              in testGroup
+                     "()"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy Bool
+              in testGroup
+                     "Bool"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy Any
+              in testGroup
+                     "Any"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy All
+              in testGroup
+                     "All"
+                     [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy [WordOfSize 2]
+              in testGroup "[WordOfSize 2]" [semiringLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
+              in testGroup
+                     "Min PosInf Integer"
+                     [semiringLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Min (Infinite Integer))
+              in testGroup
+                     "Min Inf Integer"
+                     [semiringLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy (Max (NegativeInfinite Integer))
+              in testGroup
+                     "Min NegInf Integer"
+                     [semiringLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Max (Infinite Integer))
+              in testGroup
+                     "Min Inf Integer"
+                     [semiringLawsSC p, zeroLawsSC p, starLawsSC p]
+            , let p = Proxy :: Proxy (Free (WordOfSize 2))
+              in testGroup "Free (WordOfSize 2)" [semiringLawsQC p]
+            , let p = Proxy :: Proxy (Division (SC.Positive Integer))
+              in testGroup "Division Integer" [semiringLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Łukasiewicz Fraction)
+              in testGroup
+                     "Łukasiewicz Fraction"
+                     [semiringLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Viterbi Fraction)
+              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Log (Approx Double))
+              in testGroup
+                     "Log (Approx Double)"
+                     [semiringLawsQC p, zeroLawsQC p]]
 
 
 -- Test helpers
