@@ -85,10 +85,10 @@ starLawsSC (_ :: f r) = testGroup "Star laws"
   [ SC.testProperty "starLaw" (starLaw :: r -> Either String String)
   , SC.testProperty "plusLaw" (plusLaw :: r -> Either String String)]
 
-ordLawsQC :: (Show r, Ord r, Semiring r, Arbitrary r) => f r -> TestTree
-ordLawsQC (_ :: f r) = testGroup "Ordering laws"
-  [ QC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
-  , QC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
+-- ordLawsQC :: (Show r, Ord r, Semiring r, Arbitrary r) => f r -> TestTree
+-- ordLawsQC (_ :: f r) = testGroup "Ordering laws"
+--   [ QC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
+--   , QC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
 
 zeroLawsQC :: (Show r, Ord r, DetectableZero r, Arbitrary r) => f r -> TestTree
 zeroLawsQC (_ :: f r) = testGroup "Zero laws"
