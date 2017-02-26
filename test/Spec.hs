@@ -39,7 +39,6 @@ import           Numeric.Sized.WordOfSize
 import           Test.DocTest
 import           Test.QuickCheck          hiding (Positive (..), generate,
                                            (.&.))
-import           Test.SmallCheck          hiding (Testable, (==>))
 import           Test.SmallCheck.Series   hiding (Positive)
 import qualified Test.SmallCheck.Series   as SC
 import           Test.Tasty
@@ -90,7 +89,7 @@ starLawsSC (_ :: f r) = testGroup "Star laws"
 --   [ QC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
 --   , QC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
 
-zeroLawsQC :: (Show r, Ord r, DetectableZero r, Arbitrary r) => f r -> TestTree
+zeroLawsQC :: (Show r, Eq r, DetectableZero r, Arbitrary r) => f r -> TestTree
 zeroLawsQC (_ :: f r) = testGroup "Zero laws"
   [ QC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
   , QC.testProperty "zeroIsZero" (once $ zeroIsZero (Proxy :: Proxy r))]
@@ -100,10 +99,10 @@ ordLawsSC (_ :: f r) = testGroup "Ordering laws"
   [ SC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
   , SC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
 
-zeroLawsSC :: (Show r, Ord r, DetectableZero r, Serial IO r) => f r -> TestTree
-zeroLawsSC (_ :: f r) = testGroup "Ordering laws"
-  [ SC.testProperty "mulLaw" (zeroLaw :: r -> Either String String)
-  , SC.testProperty "addLaw" (zeroIsZero (Proxy :: Proxy r))]
+zeroLawsSC :: (Show r, Eq r, DetectableZero r, Serial IO r) => f r -> TestTree
+zeroLawsSC (_ :: f r) = testGroup "Zero laws"
+  [ SC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
+  , SC.testProperty "zeroIsZero" (zeroIsZero (Proxy :: Proxy r))]
 
 type Tup2 a = (a,a)
 type Tup3 a = (a,a,a)
@@ -116,20 +115,6 @@ type Tup9 a = (a,a,a,a,a,a,a,a,a)
 
 main :: IO ()
 main = do
-    putStrLn "Bool -> Bool"
-    smallCheck 3 (unLawsOn fromFunc :: UnaryLaws (Bool -> Bool))
-    smallCheck 2 (binLawsOn fromFunc :: BinaryLaws (Bool -> Bool))
-    smallCheck 2 (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
-    quickCheck (unLawsOn fromFunc :: UnaryLaws (Bool -> Bool))
-    quickCheck (binLawsOn fromFunc :: BinaryLaws (Bool -> Bool))
-    quickCheck (ternLawsOn fromFunc :: TernaryLaws (Bool -> Bool))
-    putStrLn "Endo (Add Bool)"
-    smallCheck 3 (nearUnaryLaws . eFromFunc :: UnaryLaws (Bool -> Bool))
-    smallCheck 3 (zeroLaws . eFromFunc :: UnaryLaws (Bool -> Bool))
-    smallCheck 2 (binLawsOn eFromFunc :: BinaryLaws (Bool -> Bool))
-    smallCheck
-        2
-        (ternOn nearTernaryLaws eFromFunc :: TernaryLaws (Bool -> Bool))
     doctest ["-isrc", "src/"]
     defaultMain $
         testGroup
@@ -138,6 +123,32 @@ main = do
               in testGroup
                      "Integer"
                      [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+            , let p = Proxy :: Proxy (Func Bool Bool)
+              in testGroup "Bool -> Bool"
+                     [semiringLawsQC p]
+            , testGroup "Endo Bool"
+                  [ QC.testProperty
+                        "plusId"
+                        (plusId :: UnaryLaws (EndoFunc (Add Bool)))
+                  , QC.testProperty
+                        "mulId"
+                        (mulId :: UnaryLaws (EndoFunc (Add Bool)))
+                  , QC.testProperty
+                        "annihilateR"
+                        (annihilateR :: UnaryLaws (EndoFunc (Add Bool)))
+                  , zeroLawsQC (Proxy :: Proxy (EndoFunc (Add Bool)))
+                  , QC.testProperty
+                        "plusComm"
+                        (plusComm :: BinaryLaws (EndoFunc (Add Bool)))
+                  , QC.testProperty
+                        "plusAssoc"
+                        (plusAssoc :: TernaryLaws (EndoFunc (Add Bool)))
+                  , QC.testProperty
+                        "mulAssoc"
+                        (mulAssoc :: TernaryLaws (EndoFunc (Add Bool)))
+                  , QC.testProperty
+                        "mulDistribR"
+                        (mulDistribR :: TernaryLaws (EndoFunc (Add Bool)))]
             , let p = Proxy :: Proxy (PositiveInfinite Natural)
               in testGroup
                      "PosInf Natural"
@@ -314,24 +325,6 @@ main = do
 
 -- Test helpers
 
-unOn :: UnaryLaws b -> (a -> b) -> UnaryLaws a
-unOn = (.)
-
-binOn :: BinaryLaws b -> (a -> b) -> BinaryLaws a
-binOn = on
-
-ternOn :: TernaryLaws b -> (a -> b) -> TernaryLaws a
-ternOn t f x y z = t (f x) (f y) (f z)
-
-unLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> UnaryLaws a
-unLawsOn = unOn unaryLaws
-
-binLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> BinaryLaws a
-binLawsOn = binOn binaryLaws
-
-ternLawsOn :: (Eq b, Semiring b, Show b) => (a -> b) -> TernaryLaws a
-ternLawsOn = ternOn ternaryLaws
-
 isAnagram :: Ord a => [a] -> [a] -> Bool
 isAnagram = go (Map.empty :: Map a Int) where
   go !m (x:xs) (y:ys) =
@@ -462,6 +455,14 @@ instance (Enum a, Bounded a, Ord a) => Eq (EndoFunc a) where
 instance (Enum a, Bounded a, Ord a, Show a) => Show (EndoFunc a) where
   show (EndoFunc (Endo f)) = show (fromFunc f)
 
+instance (Bounded a, Enum a, Ord b, Arbitrary b, CoArbitrary a) =>
+         Arbitrary (Func a b) where
+    arbitrary = fmap fromFunc arbitrary
+
+instance (Arbitrary a, CoArbitrary a) =>
+         Arbitrary (EndoFunc (Add a)) where
+    arbitrary = fmap eFromFunc arbitrary
+
 fromList' :: Eq b => b -> [(Int,b)] -> Func a b
 fromList' cnst
   = Func cnst
@@ -482,13 +483,23 @@ fromFunc f = fromList cnst (zip xs ys) where
 eFromFunc :: (a -> a) -> EndoFunc (Add a)
 eFromFunc f = (EndoFunc . Endo) (Add . f . getAdd)
 
+data Pair a b = !a :*: !b
+
+fst' :: Pair a b -> a
+fst' (x :*: _) = x
+
+data Many a = (:#:) {-# UNPACK #-} !Int !a
+
+val :: Many a -> a
+val (_ :#: x) = x
+
 mostFrequent :: (Ord a, Foldable f) => f a -> Maybe a
-mostFrequent = fmap fst . fst . foldl' f (Nothing, Map.empty :: Map.Map a Int) where
-  f (b,m) e = (Just nb, Map.insert e c m) where
+mostFrequent = fmap val . fst' . foldl' f (Nothing :*: (Map.empty :: Map a Int)) where
+  f (b :*: m) e = Just nb :*: Map.insert e c m where
     c = maybe 1 succ (Map.lookup e m)
     nb = case b of
-      Just (a,d) | d >= c -> (a,d)
-      _          -> (e,c)
+      Just (d :#: a) | d >= c -> d :#: a
+      _          -> c :#: e
 
 apply :: Enum a => Func a b -> a -> b
 apply (Func c cs) x = IntMap.findWithDefault c (fromEnum x) cs
