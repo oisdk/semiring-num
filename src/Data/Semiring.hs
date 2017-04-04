@@ -57,10 +57,16 @@ import GHC.Generics (Generic, Generic1)
 import Data.Typeable (Typeable)
 import Foreign.Storable (Storable)
 import Data.Semiring.TH
+
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+
 import Data.Set (Set)
 import qualified Data.Set as Set
+
 import Numeric.Log hiding (sum)
 import qualified Numeric.Log
+
 import GHC.Base (build)
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
@@ -358,6 +364,26 @@ instance (Monoid a, Ord a) =>
     {-# INLINE (<.>) #-}
     {-# INLINE zero #-}
     {-# INLINE one #-}
+
+instance (Ord a, Monoid a, Semiring b) =>
+         Semiring (Map a b) where
+    one = Map.singleton mempty one
+    {-# INLINE one #-}
+    zero = Map.empty
+    {-# INLINE zero #-}
+    (<+>) = Map.unionWith (<+>)
+    {-# INLINE (<+>) #-}
+    xs <.> ys =
+        Map.fromListWith
+            (<+>)
+            [ (mappend k l, v <.> u)
+            | (k,v) <- Map.toList xs
+            , (l,u) <- Map.toList ys ]
+    {-# INLINE (<.>) #-}
+
+instance (Ord a, Monoid a, DetectableZero b) => DetectableZero (Map a b) where
+    isZero = all isZero
+    {-# INLINE isZero #-}
 
 instance (Monoid a, Ord a) =>
          DetectableZero (Set a) where
