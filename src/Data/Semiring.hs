@@ -365,7 +365,7 @@ instance (Monoid a, Ord a) =>
     {-# INLINE zero #-}
     {-# INLINE one #-}
 
-instance (Ord a, Monoid a, DetectableZero b) =>
+instance (Ord a, Monoid a, Semiring b) =>
          Semiring (Map a b) where
     one = Map.singleton mempty one
     {-# INLINE one #-}
@@ -376,16 +376,10 @@ instance (Ord a, Monoid a, DetectableZero b) =>
     xs <.> ys =
         Map.fromListWith
             (<+>)
-            [ (mappend k l, p)
+            [ (mappend k l, v <.> u)
             | (k,v) <- Map.toList xs
-            , (l,u) <- Map.toList ys
-            , let p = v <.> u
-            , not (isZero p) ]
+            , (l,u) <- Map.toList ys ]
     {-# INLINE (<.>) #-}
-
-instance (Ord a, Monoid a, DetectableZero b) => DetectableZero (Map a b) where
-    isZero = all isZero
-    {-# INLINE isZero #-}
 
 instance (Monoid a, Ord a) =>
          DetectableZero (Set a) where
