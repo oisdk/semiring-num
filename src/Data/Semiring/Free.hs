@@ -86,7 +86,6 @@ combScale p =
 
 instance Foldable Free where
     foldMap f (Free xs) = Map.foldMapWithKey (rep . foldMap f) xs
-    length (Free xs) = Map.foldl' (\a e -> a + fromIntegral e) 0 xs
 
 rep :: Monoid m => m -> Natural -> m
 rep x = go
