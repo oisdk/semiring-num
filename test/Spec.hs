@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -14,7 +13,6 @@ import           Control.Applicative
 
 import           Control.Arrow            (first)
 import           Data.Bool
-import           Data.Function
 import           Data.Proxy
 
 import           Data.Foldable
@@ -25,7 +23,6 @@ import qualified Data.IntMap.Strict       as IntMap
 
 import           Data.Map.Strict          (Map)
 import qualified Data.Map.Strict          as Map
-
 
 import           Data.Semiring
 import           Data.Semiring.Free
@@ -323,22 +320,6 @@ main = do
             --          [semiringLawsQC p, zeroLawsQC p]]
 
 
--- Test helpers
-
-isAnagram :: Ord a => [a] -> [a] -> Bool
-isAnagram = go (Map.empty :: Map a Int) where
-  go !m (x:xs) (y:ys) =
-    go ( Map.alter (remZero . maybe (-1) pred) x
-       $ Map.alter (remZero . maybe 1    succ) y
-    m) xs ys
-  go !m [] [] = Map.null m
-  go _ _ _ = False
-  remZero 0 = Nothing
-  remZero n = Just n
-
-instance Ord a => Eq (Free a) where
-  (==) = isAnagram `on` getFree
-
 ------------------------------------------------------------------------
 -- Serial wrappers
 
@@ -425,7 +406,7 @@ instance (Monad m, Serial m a) => Serial m (Min a) where
 instance (Monad m, Serial m a) => Serial m (Max a) where
   series = fmap Max series
 
-instance Arbitrary a => Arbitrary (Free a) where
+instance (Ord a, Arbitrary a) => Arbitrary (Free a) where
   arbitrary = fmap Free arbitrary
 
 instance Num a => Semiring (SC.Positive a) where

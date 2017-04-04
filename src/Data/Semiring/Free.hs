@@ -1,47 +1,101 @@
-{-# LANGUAGE DeriveFoldable             #-}
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE DeriveTraversable          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 -- | The Free semiring.
 module Data.Semiring.Free
-  ( Free(..)
-  , liftFree
-  , unFree
-  ) where
+  (Free(..)
+  ,liftFree
+  ,lowerFree
+  ,runFree)
+  where
 
-import           Control.Applicative (liftA2)
 import           Data.Coerce
 import           Data.Semiring
 
--- | The free semiring. Adapted from PureScript's version, available
--- <https://pursuit.purescript.org/packages/purescript-semirings/3.0.0/docs/Data.Semiring.Free here>.
--- Only a valid semiring if treated as a multiset, as in:
---
--- > Free [[1],[0]] = Free [[0],[1]]
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+
+import           Numeric.Natural
+
+-- | The free semiring
 newtype Free a = Free
-  { getFree :: [[a]]
-  } deriving (Show, Read, Functor, Foldable, Traversable, Monoid)
+  { getFree :: Map [a] Natural
+  } deriving (Show, Read, Eq, Ord)
 
-instance Semiring (Free a) where
-  Free xs <+> Free ys = Free (xs ++ ys)
-  Free xs <.> Free ys = Free (liftA2 (++) xs ys)
-  one = Free [[]]
-  zero = Free []
+instance Ord a =>
+         Semiring (Free a) where
+    Free xs <+> Free ys = Free (Map.unionWith (+) xs ys)
+    {-# INLINE (<+>) #-}
+    Free xs <.> Free ys =
+        Free
+            (Map.foldlWithKey'
+                 (\acc k v ->
+                       combScale v acc (Map.mapKeysMonotonic (k ++) ys))
+                 Map.empty
+                 xs)
+    {-# INLINE (<.>) #-}
+    one = Free (Map.singleton [] 1)
+    {-# INLINE one #-}
+    zero = Free Map.empty
+    {-# INLINE zero #-}
 
-instance Applicative Free where
-  pure = Free . pure . pure
-  Free fs <*> Free xs = Free (liftA2 (<*>) fs xs)
+instance Ord a => Num (Free a) where
+    fromInteger = Free . Map.singleton [] . fromInteger
+    {-# INLINE fromInteger #-}
+    (+) = (<+>)
+    {-# INLINE (+) #-}
+    (*) = (<.>)
+    {-# INLINE (*) #-}
+    abs = id
+    {-# INLINE abs #-}
+    signum (Free x) = if Map.null x then zero else one
+    {-# INLINE signum #-}
+    negate = id
+    {-# INLINE negate #-}
 
 -- | Run a 'Free'.
-liftFree :: Semiring s => (a -> s) -> Free a -> s
-liftFree f = unFree . fmap f
+runFree :: Semiring s => (a -> s) -> Free a -> s
+runFree f = getAdd .# Map.foldMapWithKey ((rep #. Add) . mul . map f) . getFree
+{-# INLINE runFree #-}
 
 -- | Run a 'Free', interpreting it in the underlying semiring.
-unFree :: Semiring s => Free s -> s
-unFree = getAdd .# foldMap (Add .# getMul .# foldMap Mul) . getFree
+lowerFree :: Semiring s => Free s -> s
+lowerFree = runFree id
+{-# INLINE lowerFree #-}
+
+liftFree :: a -> Free a
+liftFree = Free . flip Map.singleton one . pure
+
+infixr 9 #.
+(#.) :: Coercible a b => (b -> c) -> (a -> b) -> a -> c
+(#.) f _ = coerce f
+{-# INLINE (#.) #-}
 
 infixr 9 .#
-(.#) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c
+(.#) :: Coercible b c => (b -> c) -> (a  -> b) -> a -> c
 (.#) _ = coerce
+{-# INLINE (.#) #-}
 
+combScale
+    :: (Ord a, Semiring b)
+    => b -> Map a b -> Map a b -> Map a b
+combScale p =
+    Map.mergeWithKey
+         (\_ x y ->
+               Just $ x <+> (p <.> y))
+         id
+         (Map.map (p <.>))
+{-# INLINE combScale #-}
+
+instance Foldable Free where
+    foldMap f (Free xs) = Map.foldMapWithKey (rep . foldMap f) xs
+    length (Free xs) = Map.foldl' (\a e -> a + fromIntegral e) 0 xs
+
+rep :: Monoid m => m -> Natural -> m
+rep x = go
+  where
+    go 0 = mempty
+    go 1 = x
+    go n
+      | even n = r `mappend` r
+      | otherwise = x `mappend` r `mappend` r
+      where
+        r = go (n `div` 2)
+{-# INLINE rep #-}

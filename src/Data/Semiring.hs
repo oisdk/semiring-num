@@ -537,10 +537,12 @@ instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
 instance (Semiring a, Ord a, HasPositiveInfinity a) =>
          DetectableZero (Min a) where
     isZero (Min x) = isPositiveInfinity x
+    {-# INLINE isZero #-}
 
 instance (Semiring a, Ord a, HasNegativeInfinity a) =>
          DetectableZero (Max a) where
     isZero (Max x) = isNegativeInfinity x
+    {-# INLINE isZero #-}
 
 --------------------------------------------------------------------------------
 -- (->) instance
