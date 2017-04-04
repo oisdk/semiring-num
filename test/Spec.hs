@@ -316,11 +316,11 @@ main = do
                      "Łukasiewicz Fraction"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Viterbi Fraction)
-              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]
-            , let p = Proxy :: Proxy (Log (Approx Double))
-              in testGroup
-                     "Log (Approx Double)"
-                     [semiringLawsQC p, zeroLawsQC p]]
+              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]]
+            -- , let p = Proxy :: Proxy (Log (Approx Double))
+            --   in testGroup
+            --          "Log (Approx Double)"
+            --          [semiringLawsQC p, zeroLawsQC p]]
 
 
 -- Test helpers
@@ -446,11 +446,11 @@ instance (Serial m a, Monad m) => Serial m (Łukasiewicz a) where
 instance (Serial m a, Monad m) => Serial m (Viterbi a) where
   series = fmap Viterbi series
 
-instance (Serial m a, Monad m) => Serial m (Log a) where
-  series = fmap Log series
+-- instance (Serial m a, Monad m) => Serial m (Log a) where
+--   series = fmap Log series
 
-instance Arbitrary a => Arbitrary (Log a) where
-  arbitrary = fmap Log arbitrary
+-- instance Arbitrary a => Arbitrary (Log a) where
+--   arbitrary = fmap Log arbitrary
 
 ------------------------------------------------------------------------
 -- Function Equality

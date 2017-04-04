@@ -18,6 +18,8 @@ module Data.Semiring
    -- * Semiring classes
    Semiring(..)
   ,StarSemiring(..)
+  ,mulFoldable
+  ,addFoldable
   ,
    -- * Helper classes
    HasPositiveInfinity(..)
@@ -59,6 +61,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Numeric.Log hiding (sum)
 import qualified Numeric.Log
+import GHC.Base (build)
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -115,8 +118,7 @@ class Semiring a  where
     -- >>> add [True, undefined]
     -- True
     add
-        :: Foldable f
-        => f a -> a
+        :: [a] -> a
     add = getAdd . foldMap Add
     {-# INLINE add #-}
     -- | Takes the product of the elements of a 'Foldable'. Analogous to
@@ -131,10 +133,17 @@ class Semiring a  where
     -- >>> mul [False, undefined]
     -- False
     mul
-        :: Foldable f
-        => f a -> a
+        :: [a] -> a
     mul = getMul . foldMap Mul
     {-# INLINE mul #-}
+
+mulFoldable :: (Foldable f, Semiring a) => f a -> a
+mulFoldable xs = mul (build (\c n -> foldr c n xs))
+{-# INLINE mulFoldable #-}
+
+addFoldable :: (Foldable f, Semiring a) => f a -> a
+addFoldable xs = add (build (\c n -> foldr c n xs))
+{-# INLINE addFoldable #-}
 
 -- | A <https://en.wikipedia.org/wiki/Semiring#Star_semirings Star semiring>
 -- adds one operation, 'star' to a 'Semiring', such that it follows the
@@ -367,6 +376,10 @@ instance (Precise a, RealFloat a) => Semiring (Log a) where
     add = Numeric.Log.sum
     {-# INLINE add #-}
 
+instance (Precise a, RealFloat a) => DetectableZero (Log a) where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
 --------------------------------------------------------------------------------
 -- Addition and multiplication newtypes
 --------------------------------------------------------------------------------
@@ -377,14 +390,16 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Add a = Add
     { getAdd :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,Semiring,DetectableZero,StarSemiring)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
     { getMul :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,Semiring,DetectableZero,StarSemiring)
 
 instance Semiring a =>
          Semigroup (Add a) where
@@ -399,8 +414,8 @@ instance Semiring a =>
 instance Semiring a =>
          Monoid (Add a) where
     mempty = Add zero
-    mappend = (<>)
     {-# INLINE mempty #-}
+    mappend = (<>)
     {-# INLINE mappend #-}
     mconcat = (coerce :: ([a] -> a) -> [Add a] -> Add a) add
     {-# INLINE mconcat #-}
@@ -408,55 +423,11 @@ instance Semiring a =>
 instance Semiring a =>
          Monoid (Mul a) where
     mempty = Mul one
-    mappend = (<>)
     {-# INLINE mempty #-}
+    mappend = (<>)
     {-# INLINE mappend #-}
     mconcat = (coerce :: ([a] -> a) -> [Mul a] -> Mul a) mul
     {-# INLINE mconcat #-}
-
-instance Semiring a => Semiring (Add a) where
-    one = Add one
-    {-# INLINE one #-}
-    zero = Add zero
-    {-# INLINE zero #-}
-    (<+>) = (coerce :: WrapBinary Add a) (<+>)
-    {-# INLINE (<+>) #-}
-    (<.>) = (coerce :: WrapBinary Add a) (<.>)
-    {-# INLINE (<.>) #-}
-    add = foldMap id
-    {-# INLINE add #-}
-
-instance Semiring a => Semiring (Mul a) where
-    one = Mul one
-    {-# INLINE one #-}
-    zero = Mul zero
-    {-# INLINE zero #-}
-    (<+>) = (coerce :: WrapBinary Mul a) (<+>)
-    {-# INLINE (<+>) #-}
-    (<.>) = (coerce :: WrapBinary Mul a) (<.>)
-    {-# INLINE (<.>) #-}
-    mul = foldMap id
-    {-# INLINE mul #-}
-
-instance DetectableZero a => DetectableZero (Add a) where
-    isZero = (coerce :: (a -> Bool) -> Add a -> Bool) isZero
-    {-# INLINE isZero #-}
-
-instance DetectableZero a => DetectableZero (Mul a) where
-    isZero = (coerce :: (a -> Bool) -> Mul a -> Bool) isZero
-    {-# INLINE isZero #-}
-
-instance StarSemiring a => StarSemiring (Add a) where
-    star = (coerce :: (a -> a) -> Add a -> Add a) star
-    {-# INLINE star #-}
-    plus = (coerce :: (a -> a) -> Add a -> Add a) plus
-    {-# INLINE plus #-}
-
-instance StarSemiring a => StarSemiring (Mul a) where
-    star = (coerce :: (a -> a) -> Mul a -> Mul a) star
-    {-# INLINE star #-}
-    plus = (coerce :: (a -> a) -> Mul a -> Mul a) plus
-    {-# INLINE plus #-}
 
 --------------------------------------------------------------------------------
 -- Ord wrappers
@@ -680,6 +651,7 @@ instance DetectableZero All where
 --------------------------------------------------------------------------------
 -- Boring instances
 --------------------------------------------------------------------------------
+
 instance Semiring Int where
     one = 1
     zero = 0
