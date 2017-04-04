@@ -117,7 +117,7 @@ main = do
         testGroup
             "Tests"
             [ let p = Proxy :: Proxy (Map String Int)
-              in testGroup "Map" [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Map" [semiringLawsQC p]
             , let p = Proxy :: Proxy Integer
               in testGroup
                      "Integer"
