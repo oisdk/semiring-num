@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 {-|
@@ -16,7 +17,6 @@ module Data.Semiring.Numeric
   , Division(..)
   , Łukasiewicz(..)
   , Viterbi(..)
-  , Log(..)
   , PosFrac(..)
   , PosInt(..)
   ) where
@@ -52,7 +52,8 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
-instance (Bounded a, Ord a) => DetectableZero (Bottleneck a)
+instance (Bounded a, Ord a) => DetectableZero (Bottleneck a) where
+  isZero = (zero==)
 
 -- | Positive numbers only.
 --
@@ -102,7 +103,8 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
-instance (Ord a, Num a) => DetectableZero (Łukasiewicz a)
+instance (Ord a, Num a) => DetectableZero (Łukasiewicz a) where
+  isZero = (zero==)
 
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
@@ -128,31 +130,6 @@ instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
-
--- | Useful for optimizing multiplication, or working with large numbers.
---
--- @('<.>')   = ('+')
---x '<+>' y = -('log' ('exp' (-x) + 'exp' (-y)))
---'zero'    = 'positiveInfinity'
---'one'     = 0@
-newtype Log a = Log
-  { getLog :: a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Typeable, Functor
-             ,Foldable)
-
-instance (Floating a, HasPositiveInfinity a) => Semiring (Log a) where
-  zero = Log positiveInfinity
-  one = Log 0
-  (<.>) = (coerce :: WrapBinary Log a) (+)
-  Log x <+> Log y
-    = Log (-(log (exp (-x) + exp (-y))))
-  {-# INLINE (<+>) #-}
-  {-# INLINE (<.>) #-}
-  {-# INLINE zero #-}
-  {-# INLINE one #-}
-
-instance (Floating a, HasPositiveInfinity a) => DetectableZero (Log a) where
-  isZero (Log x) = isPositiveInfinity x
 
 -- | Adds a star operation to fractional types.
 --
@@ -181,7 +158,8 @@ instance Semiring a => Semiring (PosFrac a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
-instance (Eq a, Semiring a) => DetectableZero (PosFrac a)
+instance (Eq a, Semiring a) => DetectableZero (PosFrac a) where
+  isZero = (zero==)
 
 instance (Ord a, Fractional a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosFrac a) where
@@ -217,9 +195,10 @@ instance Semiring a => Semiring (PosInt a) where
   {-# INLINE zero #-}
   {-# INLINE one #-}
 
-instance (Eq a, Semiring a) => DetectableZero (PosInt a)
+instance (Eq a, Semiring a) => DetectableZero (PosInt a) where
+  isZero = (zero==)
 
 instance (Eq a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosInt a) where
     star (PosInt n) | n == zero = PosInt one
-    star _ = PosInt positiveInfinity
+    star _          = PosInt positiveInfinity

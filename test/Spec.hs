@@ -392,8 +392,14 @@ instance (Monad m, KnownNat n) => Serial m (WordOfSize n) where
 instance KnownNat n => Arbitrary (WordOfSize n) where
   arbitrary = arbitraryBoundedEnum
 
-instance KnownNat n => Semiring (WordOfSize n)
-instance KnownNat n => DetectableZero (WordOfSize n)
+instance KnownNat n => Semiring (WordOfSize n) where
+  one = 1
+  zero = 0
+  (<+>) = (+)
+  (<.>) = (*)
+
+instance KnownNat n => DetectableZero (WordOfSize n) where
+  isZero = (zero==)
 
 instance (Monad m, Serial m a) => Serial m (PositiveInfinite a) where
   series = fmap (maybe PositiveInfinity PosFinite) series
@@ -422,8 +428,14 @@ instance (Monad m, Serial m a) => Serial m (Max a) where
 instance Arbitrary a => Arbitrary (Free a) where
   arbitrary = fmap Free arbitrary
 
-instance Num a => Semiring (SC.Positive a)
-instance (Eq a, Num a) => DetectableZero (SC.Positive a)
+instance Num a => Semiring (SC.Positive a) where
+  zero = 0
+  one = 1
+  (<+>) = (+)
+  (<.>) = (*)
+
+instance (Eq a, Num a) => DetectableZero (SC.Positive a) where
+  isZero = (zero==)
 
 instance (Serial m a, Monad m) => Serial m (Division a) where
   series = fmap Division series

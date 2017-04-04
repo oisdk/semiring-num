@@ -22,6 +22,8 @@ library
   other-modules:       Data.Semiring.TH
   build-depends:       base >= 4.9 && < 5
                      , template-haskell >= 2.11
+                     , containers >= 0.5
+                     , log-domain >= 0.10
   default-language:    Haskell2010
   ghc-options:         -Wall
 

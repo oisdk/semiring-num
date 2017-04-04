@@ -1,11 +1,10 @@
-{-# LANGUAGE DefaultSignatures          #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE DeriveFoldable             #-}
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE DeriveTraversable          #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 {-|
 Module: Data.Semiring
@@ -14,56 +13,52 @@ License: MIT
 Maintainer: mail@doisinkidney.com
 Stability: experimental
 -}
-
 module Data.Semiring
-  ( -- * Semiring classes
-    Semiring(..)
-  , StarSemiring(..)
-    -- * Helper classes
-  , HasPositiveInfinity(..)
-  , HasNegativeInfinity(..)
-  , DetectableZero(..)
-  -- * Monoidal wrappers
-  , Add(..)
-  , Mul(..)
-  , add
-  , mul
-  -- * Ordering wrappers
-  , Max(..)
-  , Min(..)
-  ) where
+  (
+   -- * Semiring classes
+   Semiring(..)
+  ,StarSemiring(..)
+  ,
+   -- * Helper classes
+   HasPositiveInfinity(..)
+  ,HasNegativeInfinity(..)
+  ,DetectableZero(..)
+  ,
+   -- * Monoidal wrappers
+   Add(..)
+  ,Mul(..)
+  ,
+   -- * Ordering wrappers
+   Max(..)
+  ,Min(..))
+  where
 
-import           Data.Functor.Identity (Identity (..))
-
-import           Data.Complex          (Complex)
-import           Data.Fixed            (Fixed, HasResolution)
-import           Data.Ratio            (Ratio)
-import           Numeric.Natural       (Natural)
-
-import           Data.Int              (Int16, Int32, Int64, Int8)
-import           Data.Word             (Word16, Word32, Word64, Word8)
-import           Foreign.C.Types       (CChar, CClock, CDouble, CFloat, CInt,
-                                        CIntMax, CIntPtr, CLLong, CLong,
-                                        CPtrdiff, CSChar, CSUSeconds, CShort,
-                                        CSigAtomic, CSize, CTime, CUChar, CUInt,
-                                        CUIntMax, CUIntPtr, CULLong, CULong,
-                                        CUSeconds, CUShort, CWchar)
-
-import           Foreign.Ptr           (IntPtr, WordPtr)
-import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
-                                        COff, CPid, CRLim, CSpeed, CSsize,
-                                        CTcflag, CUid, Fd)
-
-import           Data.Semigroup        hiding (Max (..), Min (..))
-
-import           Data.Coerce           (coerce)
-import           GHC.Generics          (Generic, Generic1)
-
-import           Data.Typeable         (Typeable)
-import           Foreign.Storable      (Storable)
-
-import           Data.Semiring.TH
-
+import Data.Functor.Identity (Identity(..))
+import Data.Complex (Complex)
+import Data.Fixed (Fixed, HasResolution)
+import Data.Ratio (Ratio)
+import Numeric.Natural (Natural)
+import Data.Int (Int16, Int32, Int64, Int8)
+import Data.Word (Word16, Word32, Word64, Word8)
+import Foreign.C.Types
+       (CChar, CClock, CDouble, CFloat, CInt, CIntMax, CIntPtr, CLLong,
+        CLong, CPtrdiff, CSChar, CSUSeconds, CShort, CSigAtomic, CSize,
+        CTime, CUChar, CUInt, CUIntMax, CUIntPtr, CULLong, CULong,
+        CUSeconds, CUShort, CWchar)
+import Foreign.Ptr (IntPtr, WordPtr)
+import System.Posix.Types
+       (CCc, CDev, CGid, CIno, CMode, CNlink, COff, CPid, CRLim, CSpeed,
+        CSsize, CTcflag, CUid, Fd)
+import Data.Semigroup hiding (Max(..), Min(..))
+import Data.Coerce (coerce)
+import GHC.Generics (Generic, Generic1)
+import Data.Typeable (Typeable)
+import Foreign.Storable (Storable)
+import Data.Semiring.TH
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Numeric.Log hiding (sum)
+import qualified Numeric.Log
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -95,6 +90,7 @@ import           Data.Semiring.TH
 --x '<=' y => x '<+>' z '<=' y '<+>' z
 --'zero' '<=' z '&&' x '<=' y => x '<.>' z '<=' y '<.>' z '&&' z '<.>' x '<=' z '<.>' y@
 class Semiring a  where
+    {-# MINIMAL zero , one , (<.>) , (<+>) #-}
     -- | The identity of '<+>'.
     zero
         :: a
@@ -107,18 +103,38 @@ class Semiring a  where
     -- | An associative, commutative binary operation.
     infixl 6 <+>
     (<+>) :: a -> a -> a
-    default zero :: Num a => a
-    default one :: Num a => a
-    default (<+>) :: Num a => a -> a -> a
-    default (<.>) :: Num a => a -> a -> a
-    zero = 0
-    {-# INLINE zero #-}
-    one = 1
-    {-# INLINE one #-}
-    (<+>) = (+)
-    {-# INLINE (<+>) #-}
-    (<.>) = (*)
-    {-# INLINE (<.>) #-}
+    -- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
+    -- on numbers, or 'or' on 'Bool's.
+    --
+    -- >>> add [1..5]
+    -- 15
+    -- >>> add [False, False]
+    -- False
+    -- >>> add [False, True]
+    -- True
+    -- >>> add [True, undefined]
+    -- True
+    add
+        :: Foldable f
+        => f a -> a
+    add = getAdd . foldMap Add
+    {-# INLINE add #-}
+    -- | Takes the product of the elements of a 'Foldable'. Analogous to
+    -- 'product' on numbers, or 'and' on 'Bool's.
+    --
+    -- >>> mul [1..5]
+    -- 120
+    -- >>> mul [True, True]
+    -- True
+    -- >>> mul [True, False]
+    -- False
+    -- >>> mul [False, undefined]
+    -- False
+    mul
+        :: Foldable f
+        => f a -> a
+    mul = getMul . foldMap Mul
+    {-# INLINE mul #-}
 
 -- | A <https://en.wikipedia.org/wiki/Semiring#Star_semirings Star semiring>
 -- adds one operation, 'star' to a 'Semiring', such that it follows the
@@ -144,54 +160,120 @@ class Semiring a =>
     star :: a -> a
     plus :: a -> a
     star x = one <+> plus x
+    {-# INLINE star #-}
     plus x = x <.> star x
+    {-# INLINE plus #-}
 
 -- | Useful for operations where zeroes may need to be discarded: for instance
 -- in sparse matrix calculations.
-class Semiring a => DetectableZero a where
-  -- | 'True' if x is 'zero'.
-  isZero :: a -> Bool
-  default isZero :: Eq a => a -> Bool
-  isZero = (zero==)
+class Semiring a =>
+      DetectableZero a  where
+    -- | 'True' if x is 'zero'.
+    isZero
+        :: a -> Bool
+
+isZeroEq
+    :: (Semiring a, Eq a)
+    => a -> Bool
+isZeroEq = (zero ==)
+{-# INLINE isZeroEq #-}
 
 --------------------------------------------------------------------------------
 -- Infinites
 --------------------------------------------------------------------------------
-
 -- | A class for semirings with a concept of "infinity". It's important that
 -- this isn't regarded as the same as "bounded":
 -- @x '<+>' 'positiveInfinity'@ should probably equal 'positiveInfinity'.
-class HasPositiveInfinity a where
-  -- | A positive infinite value
-  positiveInfinity :: a
-  default positiveInfinity :: RealFloat a => a
-  positiveInfinity = 1/0
-  -- | Test if a value is positive infinity.
-  isPositiveInfinity :: a -> Bool
-  default isPositiveInfinity :: RealFloat a => a -> Bool
-  isPositiveInfinity x = isInfinite x && x > 0
+class HasPositiveInfinity a  where
+    -- | A positive infinite value
+    positiveInfinity
+        :: a
+    -- | Test if a value is positive infinity.
+    isPositiveInfinity
+        :: a -> Bool
+
+defaultPositiveInfinity
+    :: RealFloat a
+    => a
+defaultPositiveInfinity = 1 / 0
+{-# INLINE defaultPositiveInfinity #-}
+
+defaultIsPositiveInfinity
+    :: RealFloat a
+    => a -> Bool
+defaultIsPositiveInfinity x = isInfinite x && x > 0
+{-# INLINE defaultIsPositiveInfinity #-}
 
 -- | A class for semirings with a concept of "negative infinity". It's important\
 -- that this isn't regarded as the same as "bounded":
 -- @x '<+>' 'negativeInfinity'@ should probably equal 'negativeInfinity'.
-class HasNegativeInfinity a where
-  -- | A negative infinite value
-  negativeInfinity :: a
-  default negativeInfinity :: RealFloat a => a
-  negativeInfinity = negate (1/0)
-  -- | Test if a value is negative infinity.
-  isNegativeInfinity :: a -> Bool
-  default isNegativeInfinity :: RealFloat a => a -> Bool
-  isNegativeInfinity x = isInfinite x && x < 0
+class HasNegativeInfinity a  where
+    -- | A negative infinite value
+    negativeInfinity
+        :: a
+    -- | Test if a value is negative infinity.
+    isNegativeInfinity
+        :: a -> Bool
 
-instance HasPositiveInfinity Double
-instance HasNegativeInfinity Double
-instance HasPositiveInfinity Float
-instance HasNegativeInfinity Float
-instance HasPositiveInfinity CDouble
-instance HasNegativeInfinity CDouble
-instance HasPositiveInfinity CFloat
-instance HasNegativeInfinity CFloat
+defaultIsNegativeInfinity
+    :: RealFloat a
+    => a -> Bool
+defaultIsNegativeInfinity x = isInfinite x && x < 0
+{-# INLINE defaultIsNegativeInfinity #-}
+
+defaultNegativeInfinity
+    :: RealFloat a
+    => a
+defaultNegativeInfinity = negate (1 / 0)
+{-# INLINE defaultNegativeInfinity #-}
+
+instance HasPositiveInfinity Double where
+    positiveInfinity = defaultPositiveInfinity
+    isPositiveInfinity = defaultIsPositiveInfinity
+    {-# INLINE positiveInfinity #-}
+    {-# INLINE isPositiveInfinity #-}
+
+instance HasNegativeInfinity Double where
+    negativeInfinity = defaultNegativeInfinity
+    isNegativeInfinity = defaultIsNegativeInfinity
+    {-# INLINE negativeInfinity #-}
+    {-# INLINE isNegativeInfinity #-}
+
+instance HasPositiveInfinity Float where
+    positiveInfinity = defaultPositiveInfinity
+    isPositiveInfinity = defaultIsPositiveInfinity
+    {-# INLINE positiveInfinity #-}
+    {-# INLINE isPositiveInfinity #-}
+
+instance HasNegativeInfinity Float where
+    negativeInfinity = defaultNegativeInfinity
+    isNegativeInfinity = defaultIsNegativeInfinity
+    {-# INLINE negativeInfinity #-}
+    {-# INLINE isNegativeInfinity #-}
+
+instance HasPositiveInfinity CDouble where
+    positiveInfinity = defaultPositiveInfinity
+    isPositiveInfinity = defaultIsPositiveInfinity
+    {-# INLINE positiveInfinity #-}
+    {-# INLINE isPositiveInfinity #-}
+
+instance HasNegativeInfinity CDouble where
+    negativeInfinity = defaultNegativeInfinity
+    isNegativeInfinity = defaultIsNegativeInfinity
+    {-# INLINE negativeInfinity #-}
+    {-# INLINE isNegativeInfinity #-}
+
+instance HasPositiveInfinity CFloat where
+    positiveInfinity = defaultPositiveInfinity
+    isPositiveInfinity = defaultIsPositiveInfinity
+    {-# INLINE positiveInfinity #-}
+    {-# INLINE isPositiveInfinity #-}
+
+instance HasNegativeInfinity CFloat where
+    negativeInfinity = defaultNegativeInfinity
+    isNegativeInfinity = defaultIsNegativeInfinity
+    {-# INLINE negativeInfinity #-}
+    {-# INLINE isNegativeInfinity #-}
 
 --------------------------------------------------------------------------------
 -- Instances
@@ -212,8 +294,9 @@ instance StarSemiring Bool where
     {-# INLINE star #-}
     {-# INLINE plus #-}
 
-instance DetectableZero Bool
-
+instance DetectableZero Bool where
+    isZero = not
+    {-# INLINE isZero #-}
 
 instance Semiring () where
     one = ()
@@ -225,7 +308,9 @@ instance Semiring () where
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
 
-instance DetectableZero ()
+instance DetectableZero () where
+    isZero _ = True
+    {-# INLINE isZero #-}
 
 instance StarSemiring () where
     star _ = ()
@@ -249,8 +334,38 @@ instance Semiring a =>
     (x:xs) <.> (y:ys) =
         (x <.> y) : (map (x <.>) ys <+> map (<.> y) xs <+> (xs <.> ys))
 
-instance Semiring a => DetectableZero [a] where
-  isZero = null
+instance Semiring a =>
+         DetectableZero [a] where
+    isZero = null
+    {-# INLINE isZero #-}
+
+instance (Monoid a, Ord a) =>
+         Semiring (Set a) where
+    (<+>) = Set.union
+    zero = Set.empty
+    one = Set.singleton mempty
+    xs <.> ys = foldMap (flip Set.map ys . mappend) xs
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+
+instance (Monoid a, Ord a) =>
+         DetectableZero (Set a) where
+    isZero = Set.null
+    {-# INLINE isZero #-}
+
+instance (Precise a, RealFloat a) => Semiring (Log a) where
+    (<.>) = (*)
+    {-# INLINE (<.>) #-}
+    (<+>) = (+)
+    {-# INLINE (<+>) #-}
+    one = Exp 0
+    {-# INLINE one #-}
+    zero = Exp (-(1/0))
+    {-# INLINE zero #-}
+    add = Numeric.Log.sum
+    {-# INLINE add #-}
 
 --------------------------------------------------------------------------------
 -- Addition and multiplication newtypes
@@ -262,16 +377,14 @@ type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 newtype Add a = Add
     { getAdd :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
-               ,Semiring,StarSemiring,DetectableZero)
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
     { getMul :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
-               ,Semiring,StarSemiring,DetectableZero)
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
 
 instance Semiring a =>
          Semigroup (Add a) where
@@ -289,6 +402,8 @@ instance Semiring a =>
     mappend = (<>)
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
+    mconcat = (coerce :: ([a] -> a) -> [Add a] -> Add a) add
+    {-# INLINE mconcat #-}
 
 instance Semiring a =>
          Monoid (Mul a) where
@@ -296,41 +411,52 @@ instance Semiring a =>
     mappend = (<>)
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
+    mconcat = (coerce :: ([a] -> a) -> [Mul a] -> Mul a) mul
+    {-# INLINE mconcat #-}
 
---------------------------------------------------------------------------------
--- Addition and multiplication folds
---------------------------------------------------------------------------------
--- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
--- on numbers, or 'or' on 'Bool's.
---
--- >>> add [1..5]
--- 15
--- >>> add [False, False]
--- False
--- >>> add [False, True]
--- True
--- >>> add [True, undefined]
--- True
-add
-    :: (Foldable f, Semiring a)
-    => f a -> a
-add = getAdd . foldMap Add
+instance Semiring a => Semiring (Add a) where
+    one = Add one
+    {-# INLINE one #-}
+    zero = Add zero
+    {-# INLINE zero #-}
+    (<+>) = (coerce :: WrapBinary Add a) (<+>)
+    {-# INLINE (<+>) #-}
+    (<.>) = (coerce :: WrapBinary Add a) (<.>)
+    {-# INLINE (<.>) #-}
+    add = foldMap id
+    {-# INLINE add #-}
 
--- | Takes the product of the elements of a 'Foldable'. Analogous to
--- 'product' on numbers, or 'and' on 'Bool's.
---
--- >>> mul [1..5]
--- 120
--- >>> mul [True, True]
--- True
--- >>> mul [True, False]
--- False
--- >>> mul [False, undefined]
--- False
-mul
-    :: (Foldable f, Semiring a)
-    => f a -> a
-mul = getMul . foldMap Mul
+instance Semiring a => Semiring (Mul a) where
+    one = Mul one
+    {-# INLINE one #-}
+    zero = Mul zero
+    {-# INLINE zero #-}
+    (<+>) = (coerce :: WrapBinary Mul a) (<+>)
+    {-# INLINE (<+>) #-}
+    (<.>) = (coerce :: WrapBinary Mul a) (<.>)
+    {-# INLINE (<.>) #-}
+    mul = foldMap id
+    {-# INLINE mul #-}
+
+instance DetectableZero a => DetectableZero (Add a) where
+    isZero = (coerce :: (a -> Bool) -> Add a -> Bool) isZero
+    {-# INLINE isZero #-}
+
+instance DetectableZero a => DetectableZero (Mul a) where
+    isZero = (coerce :: (a -> Bool) -> Mul a -> Bool) isZero
+    {-# INLINE isZero #-}
+
+instance StarSemiring a => StarSemiring (Add a) where
+    star = (coerce :: (a -> a) -> Add a -> Add a) star
+    {-# INLINE star #-}
+    plus = (coerce :: (a -> a) -> Add a -> Add a) plus
+    {-# INLINE plus #-}
+
+instance StarSemiring a => StarSemiring (Mul a) where
+    star = (coerce :: (a -> a) -> Mul a -> Mul a) star
+    {-# INLINE star #-}
+    plus = (coerce :: (a -> a) -> Mul a -> Mul a) plus
+    {-# INLINE plus #-}
 
 --------------------------------------------------------------------------------
 -- Ord wrappers
@@ -437,11 +563,13 @@ instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
       | x < zero = Min negativeInfinity
       | otherwise = Min zero
 
-instance (Semiring a, Ord a, HasPositiveInfinity a) => DetectableZero (Min a) where
-  isZero (Min x) = isPositiveInfinity x
+instance (Semiring a, Ord a, HasPositiveInfinity a) =>
+         DetectableZero (Min a) where
+    isZero (Min x) = isPositiveInfinity x
 
-instance (Semiring a, Ord a, HasNegativeInfinity a) => DetectableZero (Max a) where
-  isZero (Max x) = isNegativeInfinity x
+instance (Semiring a, Ord a, HasNegativeInfinity a) =>
+         DetectableZero (Max a) where
+    isZero (Max x) = isNegativeInfinity x
 
 --------------------------------------------------------------------------------
 -- (->) instance
@@ -450,14 +578,20 @@ instance (Semiring a, Ord a, HasNegativeInfinity a) => DetectableZero (Max a) wh
 instance Semiring b =>
          Semiring (a -> b) where
     zero = const zero
+    {-# INLINE zero #-}
     one = const one
+    {-# INLINE one #-}
     (f <+> g) x = f x <+> g x
+    {-# INLINE (<+>) #-}
     (f <.> g) x = f x <.> g x
+    {-# INLINE (<.>) #-}
 
 instance StarSemiring b =>
          StarSemiring (a -> b) where
-    star f x = star (f x)
-    plus f x = plus (f x)
+    star = (.) star
+    {-# INLINE star #-}
+    plus = (.) plus
+    {-# INLINE plus #-}
 
 --------------------------------------------------------------------------------
 -- Endo instance
@@ -496,8 +630,9 @@ instance (Monoid a, Eq a) =>
               where
                 next = mappend x (f inp)
 
-instance (Enum a, Bounded a, Eq a, Monoid a) => DetectableZero (Endo a) where
-  isZero (Endo f) = all (mempty==) (map f [minBound..maxBound])
+instance (Enum a, Bounded a, Eq a, Monoid a) =>
+         DetectableZero (Endo a) where
+    isZero (Endo f) = all (mempty ==) (map f [minBound .. maxBound])
 
 --------------------------------------------------------------------------------
 -- Instances for Bool wrappers
@@ -534,141 +669,876 @@ instance StarSemiring All where
     {-# INLINE star #-}
     {-# INLINE plus #-}
 
-instance DetectableZero Any
-instance DetectableZero All
+instance DetectableZero Any where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero All where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
 
 --------------------------------------------------------------------------------
 -- Boring instances
 --------------------------------------------------------------------------------
+instance Semiring Int where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
 
-instance Semiring Int
-instance Semiring Int8
-instance Semiring Int16
-instance Semiring Int32
-instance Semiring Int64
-instance Semiring Integer
-instance Semiring Word
-instance Semiring Word8
-instance Semiring Word16
-instance Semiring Word32
-instance Semiring Word64
-instance Semiring Float
-instance Semiring Double
-instance Semiring CUIntMax
-instance Semiring CIntMax
-instance Semiring CUIntPtr
-instance Semiring CIntPtr
-instance Semiring CSUSeconds
-instance Semiring CUSeconds
-instance Semiring CTime
-instance Semiring CClock
-instance Semiring CSigAtomic
-instance Semiring CWchar
-instance Semiring CSize
-instance Semiring CPtrdiff
-instance Semiring CDouble
-instance Semiring CFloat
-instance Semiring CULLong
-instance Semiring CLLong
-instance Semiring CULong
-instance Semiring CLong
-instance Semiring CUInt
-instance Semiring CInt
-instance Semiring CUShort
-instance Semiring CShort
-instance Semiring CUChar
-instance Semiring CSChar
-instance Semiring CChar
-instance Semiring IntPtr
-instance Semiring WordPtr
-instance Semiring Fd
-instance Semiring CRLim
-instance Semiring CTcflag
-instance Semiring CSpeed
-instance Semiring CCc
-instance Semiring CUid
-instance Semiring CNlink
-instance Semiring CGid
-instance Semiring CSsize
-instance Semiring CPid
-instance Semiring COff
-instance Semiring CMode
-instance Semiring CIno
-instance Semiring CDev
-instance Semiring Natural
-instance Integral a => Semiring (Ratio a)
-deriving instance Semiring a => Semiring (Product a)
-deriving instance Semiring a => Semiring (Sum a)
-instance RealFloat a => Semiring (Complex a)
-instance HasResolution a => Semiring (Fixed a)
-deriving instance Semiring a => Semiring (Identity a)
+instance Semiring Int8 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
 
-instance DetectableZero Int
-instance DetectableZero Int8
-instance DetectableZero Int16
-instance DetectableZero Int32
-instance DetectableZero Int64
-instance DetectableZero Integer
-instance DetectableZero Word
-instance DetectableZero Word8
-instance DetectableZero Word16
-instance DetectableZero Word32
-instance DetectableZero Word64
-instance DetectableZero Float
-instance DetectableZero Double
-instance DetectableZero CUIntMax
-instance DetectableZero CIntMax
-instance DetectableZero CUIntPtr
-instance DetectableZero CIntPtr
-instance DetectableZero CSUSeconds
-instance DetectableZero CUSeconds
-instance DetectableZero CTime
-instance DetectableZero CClock
-instance DetectableZero CSigAtomic
-instance DetectableZero CWchar
-instance DetectableZero CSize
-instance DetectableZero CPtrdiff
-instance DetectableZero CDouble
-instance DetectableZero CFloat
-instance DetectableZero CULLong
-instance DetectableZero CLLong
-instance DetectableZero CULong
-instance DetectableZero CLong
-instance DetectableZero CUInt
-instance DetectableZero CInt
-instance DetectableZero CUShort
-instance DetectableZero CShort
-instance DetectableZero CUChar
-instance DetectableZero CSChar
-instance DetectableZero CChar
-instance DetectableZero IntPtr
-instance DetectableZero WordPtr
-instance DetectableZero Fd
-instance DetectableZero CRLim
-instance DetectableZero CTcflag
-instance DetectableZero CSpeed
-instance DetectableZero CCc
-instance DetectableZero CUid
-instance DetectableZero CNlink
-instance DetectableZero CGid
-instance DetectableZero CSsize
-instance DetectableZero CPid
-instance DetectableZero COff
-instance DetectableZero CMode
-instance DetectableZero CIno
-instance DetectableZero CDev
-instance DetectableZero Natural
-instance Integral a => DetectableZero (Ratio a)
+instance Semiring Int16 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Int32 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Int64 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Integer where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Word where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Word8 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Word16 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Word32 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Word64 where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Float where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Double where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUIntMax where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CIntMax where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUIntPtr where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CIntPtr where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CSUSeconds where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUSeconds where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CTime where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CClock where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CSigAtomic where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CWchar where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CSize where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CPtrdiff where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CDouble where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CFloat where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CULLong where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CLLong where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CULong where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CLong where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUInt where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CInt where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUShort where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CShort where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUChar where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CSChar where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CChar where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring IntPtr where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring WordPtr where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Fd where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CRLim where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CTcflag where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CSpeed where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CCc where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CUid where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CNlink where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CGid where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CSsize where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CPid where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring COff where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CMode where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CIno where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring CDev where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Natural where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Integral a =>
+         Semiring (Ratio a) where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring a => Semiring (Product a) where
+    one = Product one
+    {-# INLINE one #-}
+    zero = Product zero
+    {-# INLINE zero #-}
+    (<+>) = (coerce :: WrapBinary Product a) (<+>)
+    {-# INLINE (<+>) #-}
+    (<.>) = (coerce :: WrapBinary Product a) (<.>)
+    {-# INLINE (<.>) #-}
+
+instance Semiring a => Semiring (Sum a) where
+    one = Sum one
+    {-# INLINE one #-}
+    zero = Sum zero
+    {-# INLINE zero #-}
+    (<+>) = (coerce :: WrapBinary Sum a) (<+>)
+    {-# INLINE (<+>) #-}
+    (<.>) = (coerce :: WrapBinary Sum a) (<.>)
+    {-# INLINE (<.>) #-}
+
+instance RealFloat a =>
+         Semiring (Complex a) where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance HasResolution a =>
+         Semiring (Fixed a) where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring a => Semiring (Identity a) where
+    one = Identity one
+    {-# INLINE one #-}
+    zero = Identity zero
+    {-# INLINE zero #-}
+    (<+>) = (coerce :: WrapBinary Identity a) (<+>)
+    {-# INLINE (<+>) #-}
+    (<.>) = (coerce :: WrapBinary Identity a) (<.>)
+    {-# INLINE (<.>) #-}
+
+instance DetectableZero Int where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Int8 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Int16 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Int32 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Int64 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Integer where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Word where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Word8 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Word16 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Word32 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Word64 where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Float where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Double where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUIntMax where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CIntMax where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUIntPtr where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CIntPtr where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CSUSeconds where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUSeconds where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CTime where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CClock where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CSigAtomic where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CWchar where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CSize where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CPtrdiff where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CDouble where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CFloat where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CULLong where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CLLong where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CULong where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CLong where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUInt where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CInt where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUShort where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CShort where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUChar where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CSChar where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CChar where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero IntPtr where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero WordPtr where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Fd where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CRLim where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CTcflag where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CSpeed where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CCc where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CUid where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CNlink where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CGid where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CSsize where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CPid where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero COff where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CMode where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CIno where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero CDev where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Natural where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance Integral a =>
+         DetectableZero (Ratio a) where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
 deriving instance DetectableZero a => DetectableZero (Product a)
+
 deriving instance DetectableZero a => DetectableZero (Sum a)
-instance RealFloat a => DetectableZero (Complex a)
-instance HasResolution a => DetectableZero (Fixed a)
+
+instance RealFloat a =>
+         DetectableZero (Complex a) where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance HasResolution a =>
+         DetectableZero (Fixed a) where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
 deriving instance DetectableZero a => DetectableZero (Identity a)
 
 --------------------------------------------------------------------------------
 -- Very boring instances
 --------------------------------------------------------------------------------
+$(traverse semiringIns [2 .. 9])
 
-$(traverse semiringIns [2..9])
-$(traverse starIns [2..9])
-$(traverse zeroIns [2..9])
+$(traverse starIns [2 .. 9])
+
+$(traverse zeroIns [2 .. 9])
