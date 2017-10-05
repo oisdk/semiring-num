@@ -4,7 +4,7 @@ import Control.Monad
 import Language.Haskell.TH
 
 typeNames :: Int -> Q [Name]
-typeNames = traverse newName . map pure . flip take ['a'..]
+typeNames = traverse (pure . mkName) . map pure . flip take ['a'..]
 
 varNames :: Int -> Q [Name]
 varNames n =

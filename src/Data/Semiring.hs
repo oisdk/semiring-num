@@ -1533,8 +1533,8 @@ deriving instance DetectableZero a => DetectableZero (Identity a)
 --------------------------------------------------------------------------------
 -- Very boring instances
 --------------------------------------------------------------------------------
-$(traverse semiringIns [2 .. 9])
+$(traverse semiringIns [2 .. 15])
 
-$(traverse starIns [2 .. 9])
+$(traverse starIns [2 .. 15])
 
-$(traverse zeroIns [2 .. 9])
+$(traverse zeroIns [2 .. 15])
