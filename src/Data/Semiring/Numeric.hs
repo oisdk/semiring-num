@@ -22,11 +22,17 @@ module Data.Semiring.Numeric
   ) where
 
 import           Data.Coerce
-import           Data.Semiring
-import           GHC.Generics
+import           Text.Read
+import           Control.Monad
 
+import           Data.Semiring
+
+import           GHC.Generics     (Generic,Generic1)
 import           Data.Typeable    (Typeable)
 import           Foreign.Storable (Storable)
+import           Data.Functor.Classes
+
+
 
 type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
@@ -55,6 +61,18 @@ instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
 instance (Bounded a, Ord a) => DetectableZero (Bottleneck a) where
   isZero = (zero==)
 
+instance Eq1 Bottleneck where
+    liftEq = coerce
+
+instance Ord1 Bottleneck where
+    liftCompare = coerce
+
+instance Show1 Bottleneck where
+    liftShowsPrec = showsNewtype "Bottleneck" "getBottleneck"
+
+instance Read1 Bottleneck where
+    liftReadsPrec = readsNewtype "Bottleneck" "getBottleneck"
+
 -- | Positive numbers only.
 --
 -- @('<+>') = 'gcd'
@@ -77,6 +95,18 @@ instance (Integral a, Semiring a) => Semiring (Division a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
+
+instance Eq1 Division where
+    liftEq = coerce
+
+instance Ord1 Division where
+    liftCompare = coerce
+
+instance Show1 Division where
+    liftShowsPrec = showsNewtype "Division" "getDivision"
+
+instance Read1 Division where
+    liftReadsPrec = readsNewtype "Division" "getDivision"
 
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
@@ -106,6 +136,18 @@ instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
 instance (Ord a, Num a) => DetectableZero (Łukasiewicz a) where
   isZero = (zero==)
 
+instance Eq1 Łukasiewicz where
+    liftEq = coerce
+
+instance Ord1 Łukasiewicz where
+    liftCompare = coerce
+
+instance Show1 Łukasiewicz where
+    liftShowsPrec = showsNewtype "Łukasiewicz" "getŁukasiewicz"
+
+instance Read1 Łukasiewicz where
+    liftReadsPrec = readsNewtype "Łukasiewicz" "getŁukasiewicz"
+
 -- | <https://en.wikipedia.org/wiki/Semiring#cite_ref-droste_14-0 Wikipedia>
 -- has some information on this. Also
 -- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.304.6152&rep=rep1&type=pdf this>
@@ -130,6 +172,18 @@ instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
+
+instance Eq1 Viterbi where
+    liftEq = coerce
+
+instance Ord1 Viterbi where
+    liftCompare = coerce
+
+instance Show1 Viterbi where
+    liftShowsPrec = showsNewtype "Viterbi" "getViterbi"
+
+instance Read1 Viterbi where
+    liftReadsPrec = readsNewtype "Viterbi" "getViterbi"
 
 -- | Adds a star operation to fractional types.
 --
@@ -167,6 +221,18 @@ instance (Ord a, Fractional a, Semiring a, HasPositiveInfinity a) =>
       | n < 1 = PosFrac (1 / (1 - n))
       | otherwise = PosFrac positiveInfinity
 
+instance Eq1 PosFrac where
+    liftEq = coerce
+
+instance Ord1 PosFrac where
+    liftCompare = coerce
+
+instance Show1 PosFrac where
+    liftShowsPrec = showsNewtype "PosFrac" "getPosFrac"
+
+instance Read1 PosFrac where
+    liftReadsPrec = readsNewtype "PosFrac" "getPosFrac"
+
 -- | Adds a star operation to integral types.
 --
 -- @('<+>')  = ('<+>')
@@ -202,3 +268,37 @@ instance (Eq a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosInt a) where
     star (PosInt n) | n == zero = PosInt one
     star _          = PosInt positiveInfinity
+
+instance Eq1 PosInt where
+    liftEq = coerce
+
+instance Ord1 PosInt where
+    liftCompare = coerce
+
+instance Show1 PosInt where
+    liftShowsPrec = showsNewtype "PosInt" "getPosInt"
+
+instance Read1 PosInt where
+    liftReadsPrec = readsNewtype "PosInt" "getPosInt"
+
+showsNewtype :: Coercible b a => String -> String -> (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> b -> ShowS
+showsNewtype cons acc = s
+  where
+    s sp _ n x =
+        showParen (n > 10) $
+        showString cons .
+        showString " {" .
+        showString acc . showString " =" . sp 0 (coerce x) . showChar '}'
+
+readsNewtype :: Coercible a b => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
+readsNewtype cons acc = r where
+    r rp _ = readPrec_to_S $ prec 10 $ do
+        Ident c <- lexP
+        guard (c == cons)
+        Punc "{" <- lexP
+        Ident a <- lexP
+        guard (a == acc)
+        Punc "=" <- lexP
+        x <- prec 0 $ readS_to_Prec rp
+        Punc "}" <- lexP
+        pure (coerce x)
