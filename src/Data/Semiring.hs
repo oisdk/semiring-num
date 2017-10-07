@@ -537,6 +537,7 @@ instance Semiring a =>
 -- Quad (Quad 1 0 0 0) (Quad 0 1 0 0) (Quad 0 0 1 0) (Quad 0 0 0 1)
 --
 -- 'ZipList's are another type which works with this newtype:
+--
 -- >>> :{
 -- let xs = (Matrix . ZipList . map ZipList) [[1,2],[3,4]]
 --     ys = (Matrix . ZipList . map ZipList) [[5,6],[7,8]]
