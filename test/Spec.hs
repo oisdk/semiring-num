@@ -1,10 +1,14 @@
 {-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Main (main) where
@@ -39,11 +43,12 @@ import           Test.QuickCheck          hiding (Positive (..), generate,
 import           Test.SmallCheck.Series   hiding (Positive)
 import qualified Test.SmallCheck.Series   as SC
 import           Test.Tasty
-import qualified Test.Tasty.SmallCheck    as SC
 import qualified Test.Tasty.QuickCheck    as QC
+import qualified Test.Tasty.SmallCheck    as SC
 
 import           Test.Semiring
 
+import           Data.Functor.Classes
 
 ------------------------------------------------------------------------
 
@@ -117,7 +122,9 @@ main = do
         testGroup
             "Tests"
             [ let p = Proxy :: Proxy (Map String Int)
-              in testGroup "Map" [semiringLawsQC p]
+              in testGroup "Map" [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
+            , let p = Proxy :: Proxy (Matrix Quad Integer)
+              in testGroup "Matrix" [semiringLawsQC p]
             , let p = Proxy :: Proxy Integer
               in testGroup
                      "Integer"
@@ -307,7 +314,7 @@ main = do
                      "Max Inf Integer"
                      [starLawsSC p]
             , let p = Proxy :: Proxy (Free (WordOfSize 2))
-              in testGroup "Free (WordOfSize 2)" [semiringLawsQC p]
+              in testGroup "Free (WordOfSize 2)" [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
             , let p = Proxy :: Proxy (Division (SC.Positive Integer))
               in testGroup "Division Integer" [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Łukasiewicz Fraction)
@@ -494,7 +501,7 @@ mostFrequent = fmap val . fst' . foldl' f (Nothing :*: (Map.empty :: Map a Int))
     c = maybe 1 succ (Map.lookup e m)
     nb = case b of
       Just (d :#: a) | d >= c -> d :#: a
-      _          -> c :#: e
+      _              -> c :#: e
 
 apply :: Enum a => Func a b -> a -> b
 apply (Func c cs) x = IntMap.findWithDefault c (fromEnum x) cs
@@ -510,7 +517,27 @@ instance (Enum a, Bounded a, Ord b, Semiring b) => Semiring (Func a b) where
   f <+> g = fromFunc (apply f <+> apply g)
   f <.> g = fromFunc (apply f <.> apply g)
 
+data Quad a = Quad a a a a deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
+instance Applicative Quad where
+    pure x = Quad x x x x
+    Quad fw fx fy fz <*> Quad xw xx xy xz = Quad (fw xw) (fx xx) (fy xy) (fz xz)
+
+instance Eq1 Quad where
+    liftEq eq x y = mulFoldable (liftA2 eq x y)
+
+instance Ord1 Quad where
+    liftCompare cmp x y = fold (liftA2 cmp x y)
+
+instance Show1 Quad where
+    liftShowsPrec sp _ n (Quad w x y z) =
+        showParen (n > 10) $
+        showString "Quad " .
+        sp 10 w . sp 10 x . sp 10 y . sp 10 z
+
+instance Arbitrary a => Arbitrary (Quad a) where
+    arbitrary = Quad <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    shrink = traverse shrink
 
 ------------------------------------------------------------------------
 -- QuickCheck wrappers
@@ -527,48 +554,6 @@ instance Arbitrary a => Arbitrary (Infinite a) where
 instance Testable (Either String String) where
   property = either (`counterexample` False) (const (property True))
 
-instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
-         ,Arbitrary f)
-  => Arbitrary (a,b,c,d,e,f) where
-    arbitrary = (,,,,,) <$> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-
-instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
-         ,Arbitrary f, Arbitrary g)
-  => Arbitrary (a,b,c,d,e,f,g) where
-    arbitrary = (,,,,,,) <$> arbitrary
-                         <*> arbitrary
-                         <*> arbitrary
-                         <*> arbitrary
-                         <*> arbitrary
-                         <*> arbitrary
-                         <*> arbitrary
-
-instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
-         ,Arbitrary f, Arbitrary g, Arbitrary h)
-  => Arbitrary (a,b,c,d,e,f,g,h) where
-    arbitrary = (,,,,,,,) <$> arbitrary
-                          <*> arbitrary
-                          <*> arbitrary
-                          <*> arbitrary
-                          <*> arbitrary
-                          <*> arbitrary
-                          <*> arbitrary
-                          <*> arbitrary
-
-instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
-         ,Arbitrary f, Arbitrary g, Arbitrary h, Arbitrary i)
-  => Arbitrary (a,b,c,d,e,f,g,h,i) where
-    arbitrary = (,,,,,,,,) <$> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
+instance Arbitrary (f (f a)) => Arbitrary (Matrix f a) where
+    arbitrary = fmap Matrix arbitrary
+    shrink (Matrix xs) = fmap Matrix (shrink xs)

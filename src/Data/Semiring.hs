@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -32,7 +33,10 @@ module Data.Semiring
   ,
    -- * Ordering wrappers
    Max(..)
-  ,Min(..))
+  ,Min(..)
+  ,
+   -- * Matrix wrapper
+   Matrix(..))
   where
 
 import Data.Functor.Identity (Identity(..))
@@ -52,11 +56,13 @@ import System.Posix.Types
        (CCc, CDev, CGid, CIno, CMode, CNlink, COff, CPid, CRLim, CSpeed,
         CSsize, CTcflag, CUid, Fd)
 import Data.Semigroup hiding (Max(..), Min(..))
-import Data.Coerce (coerce)
+import Data.Coerce
 import GHC.Generics (Generic, Generic1)
 import Data.Typeable (Typeable)
 import Foreign.Storable (Storable)
 import Data.Semiring.TH
+import Data.Functor.Classes
+import Text.Read
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -67,7 +73,12 @@ import qualified Data.Set as Set
 import Numeric.Log hiding (sum)
 import qualified Numeric.Log
 
-import GHC.Base (build)
+import Control.Monad
+import Control.Applicative
+import Data.Foldable
+
+-- $setup
+-- >>> import Data.Function
 
 -- | A <https://en.wikipedia.org/wiki/Semiring Semiring> is like the
 -- the combination of two 'Data.Monoid.Monoid's. The first
@@ -144,12 +155,13 @@ class Semiring a  where
     {-# INLINE mul #-}
 
 mulFoldable :: (Foldable f, Semiring a) => f a -> a
-mulFoldable xs = mul (build (\c n -> foldr c n xs))
+mulFoldable = mul . toList
 {-# INLINE mulFoldable #-}
 
 addFoldable :: (Foldable f, Semiring a) => f a -> a
-addFoldable xs = add (build (\c n -> foldr c n xs))
+addFoldable = add . toList
 {-# INLINE addFoldable #-}
+
 
 -- | A <https://en.wikipedia.org/wiki/Semiring#Star_semirings Star semiring>
 -- adds one operation, 'star' to a 'Semiring', such that it follows the
@@ -415,6 +427,40 @@ newtype Add a = Add
                ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
                ,Semiring,DetectableZero,StarSemiring)
 
+instance Eq1 Add where
+    liftEq = coerce
+
+instance Ord1 Add where
+    liftCompare = coerce
+
+showsNewtype :: Coercible b a => String -> String -> (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> b -> ShowS
+showsNewtype cons acc = s
+  where
+    s sp _ n x =
+        showParen (n > 10) $
+        showString cons .
+        showString " {" .
+        showString acc . showString " =" . sp 0 (coerce x) . showChar '}'
+
+readsNewtype :: Coercible a b => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
+readsNewtype cons acc = r where
+    r rp _ = readPrec_to_S $ prec 10 $ do
+        Ident c <- lexP
+        guard (c == cons)
+        Punc "{" <- lexP
+        Ident a <- lexP
+        guard (a == acc)
+        Punc "=" <- lexP
+        x <- prec 0 $ readS_to_Prec rp
+        Punc "}" <- lexP
+        pure (coerce x)
+
+instance Show1 Add where
+    liftShowsPrec = showsNewtype "Add" "getAdd"
+
+instance Read1 Add where
+    liftReadsPrec = readsNewtype "Add" "getAdd"
+
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
 newtype Mul a = Mul
@@ -422,6 +468,18 @@ newtype Mul a = Mul
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
                ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
                ,Semiring,DetectableZero,StarSemiring)
+
+instance Eq1 Mul where
+    liftEq = coerce
+
+instance Ord1 Mul where
+    liftCompare = coerce
+
+instance Show1 Mul where
+    liftShowsPrec = showsNewtype "Mul" "getMul"
+
+instance Read1 Mul where
+    liftReadsPrec = readsNewtype "Mul" "getMul"
 
 instance Semiring a =>
          Semigroup (Add a) where
@@ -450,6 +508,128 @@ instance Semiring a =>
     {-# INLINE mappend #-}
     mconcat = (coerce :: ([a] -> a) -> [Mul a] -> Mul a) mul
     {-# INLINE mconcat #-}
+
+--------------------------------------------------------------------------------
+-- Traversable newtype
+--------------------------------------------------------------------------------
+-- | A suitable definition of a square matrix for certain types which are both
+-- 'Applicative' and 'Traversable'. For instance, given a type like so:
+--
+-- >>> :{
+-- data Quad a = Quad a a a a deriving Show
+-- instance Functor Quad where
+--     fmap f (Quad w x y z) = Quad (f w) (f x) (f y) (f z)
+-- instance Applicative Quad where
+--     pure x = Quad x x x x
+--     Quad fw fx fy fz <*> Quad xw xx xy xz =
+--         Quad (fw xw) (fx xx) (fy xy) (fz xz)
+-- instance Foldable Quad where
+--     foldr f b (Quad w x y z) = f w (f x (f y (f z b)))
+-- instance Traversable Quad where
+--     traverse f (Quad w x y z) = Quad <$> f w <*> f x <*> f y <*> f z
+-- :}
+--
+-- The newtype performs as you would expect:
+--
+-- >>> getMatrix one :: Quad (Quad Integer)
+-- Quad (Quad 1 0 0 0) (Quad 0 1 0 0) (Quad 0 0 1 0) (Quad 0 0 0 1)
+--
+-- 'ZipList's are another type which works with this newtype:
+-- >>> :{
+-- let xs = (Matrix . ZipList . map ZipList) [[1,2],[3,4]]
+--     ys = (Matrix . ZipList . map ZipList) [[5,6],[7,8]]
+-- in (map getZipList . getZipList . getMatrix) (xs <.> ys)
+-- :}
+-- [[19,22],[43,50]]
+newtype Matrix f a = Matrix
+    { getMatrix :: f (f a)
+    } deriving (Generic,Generic1,Typeable,Functor,Foldable,Traversable)
+
+instance Applicative f =>
+         Applicative (Matrix f) where
+    pure = Matrix #. pure . pure
+    (<*>) =
+        (coerce :: (f (f (a -> b)) -> f (f a) -> f (f b)) -> Matrix f (a -> b) -> Matrix f a -> Matrix f b)
+            (liftA2 (<*>))
+
+instance (Traversable f, Applicative f, Semiring a) =>
+         Semiring (Matrix f a) where
+    Matrix xs <.> Matrix ys =
+        Matrix (fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) c) xs)
+      where
+        c = sequenceA ys
+    (<+>) = liftA2 (<+>)
+    zero = pure zero
+    one = case zero of
+      Matrix xs -> Matrix (imap (\i -> imap (\j x -> if i == j then one else x)) xs)
+
+newtype State a = State (Int -> (a, Int)) deriving Functor
+
+instance Applicative State where
+    pure x = State (\i -> (x, i))
+    State fs <*> State xs = State (\i -> case fs i of
+                                      (f, i') -> case xs i' of
+                                        (x,i'') -> (f x, i''))
+
+evalState :: State a -> Int -> a
+evalState (State r) i = case r i of
+  (x,_) -> x
+
+imap :: Traversable t => (Int -> a -> b) -> t a -> t b
+imap f xs = evalState (traverse (\x -> State (\i -> (f i x, i + 1))) xs) 0
+
+infixr 9 #.
+(#.) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c
+(#.) _ = coerce
+
+instance Show1 f =>
+         Show1 (Matrix f) where
+    liftShowsPrec (sp :: Int -> a -> ShowS) sl =
+        showsNewtype "Matrix" "getMatrix" liftedTwiceSP liftedTwiceSL
+      where
+        liftedOnceSP :: Int -> f a -> ShowS
+        liftedOnceSP = liftShowsPrec sp sl
+        liftedOnceSL :: [f a] -> ShowS
+        liftedOnceSL = liftShowList sp sl
+        liftedTwiceSP :: Int -> f (f a) -> ShowS
+        liftedTwiceSP = liftShowsPrec liftedOnceSP liftedOnceSL
+        liftedTwiceSL :: [f (f a)] -> ShowS
+        liftedTwiceSL = liftShowList liftedOnceSP liftedOnceSL
+
+instance Read1 f =>
+         Read1 (Matrix f) where
+    liftReadsPrec (rp :: Int -> ReadS a) rl =
+        readsNewtype "Matrix" "getMatrix" liftedTwiceRP liftedTwiceRL
+      where
+        liftedOnceRP :: Int -> ReadS (f a)
+        liftedOnceRP = liftReadsPrec rp rl
+        liftedOnceRL :: ReadS [f a]
+        liftedOnceRL = liftReadList rp rl
+        liftedTwiceRP :: Int -> ReadS (f (f a))
+        liftedTwiceRP = liftReadsPrec liftedOnceRP liftedOnceRL
+        liftedTwiceRL :: ReadS [f (f a)]
+        liftedTwiceRL = liftReadList liftedOnceRP liftedOnceRL
+
+instance Eq1 f =>
+         Eq1 (Matrix f) where
+    liftEq (eq :: a -> b -> Bool) =
+        coerce (liftEq (liftEq eq) :: f (f a) -> f (f b) -> Bool)
+
+instance Ord1 f => Ord1 (Matrix f) where
+    liftCompare (cmp :: a -> b -> Ordering) =
+        coerce (liftCompare (liftCompare cmp) :: f (f a) -> f (f b) -> Ordering)
+
+instance (Show1 f, Show a) => Show (Matrix f a) where
+    showsPrec = showsPrec1
+
+instance (Read1 f, Read a) => Read (Matrix f a) where
+    readsPrec = readsPrec1
+
+instance (Eq1 f, Eq a) => Eq (Matrix f a) where
+    (==) = eq1
+
+instance (Ord1 f, Ord a) => Ord (Matrix f a) where
+    compare = compare1
 
 --------------------------------------------------------------------------------
 -- Ord wrappers
@@ -493,6 +673,30 @@ newtype Max a = Max
     { getMax :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
                ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
+
+instance Eq1 Max where
+    liftEq = coerce
+
+instance Ord1 Max where
+    liftCompare = coerce
+
+instance Show1 Max where
+    liftShowsPrec = showsNewtype "Max" "getMax"
+
+instance Read1 Max where
+    liftReadsPrec = readsNewtype "Max" "getMax"
+
+instance Eq1 Min where
+    liftEq = coerce
+
+instance Ord1 Min where
+    liftCompare = coerce
+
+instance Show1 Min where
+    liftShowsPrec = showsNewtype "Min" "getMin"
+
+instance Read1 Min where
+    liftReadsPrec = readsNewtype "Min" "getMin"
 
 instance Ord a =>
          Semigroup (Max a) where
