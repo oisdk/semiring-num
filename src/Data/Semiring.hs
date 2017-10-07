@@ -154,10 +154,12 @@ class Semiring a  where
     mul = getMul . foldMap Mul
     {-# INLINE mul #-}
 
+-- | The product of the contents of a 'Foldable'.
 mulFoldable :: (Foldable f, Semiring a) => f a -> a
 mulFoldable = mul . toList
 {-# INLINE mulFoldable #-}
 
+-- | The sum of the contents of a 'Foldable'.
 addFoldable :: (Foldable f, Semiring a) => f a -> a
 addFoldable = add . toList
 {-# INLINE addFoldable #-}
