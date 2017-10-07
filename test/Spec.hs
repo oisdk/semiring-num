@@ -123,7 +123,7 @@ main = do
             "Tests"
             [ let p = Proxy :: Proxy (Map String Int)
               in testGroup "Map" [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
-            , let p = Proxy :: Proxy (Matrix Quad Integer)
+            , let p = Proxy :: Proxy (Matrix Quad Quad Integer)
               in testGroup "Matrix" [semiringLawsQC p]
             , let p = Proxy :: Proxy Integer
               in testGroup
@@ -554,6 +554,6 @@ instance Arbitrary a => Arbitrary (Infinite a) where
 instance Testable (Either String String) where
   property = either (`counterexample` False) (const (property True))
 
-instance Arbitrary (f (f a)) => Arbitrary (Matrix f a) where
+instance Arbitrary (f (g a)) => Arbitrary (Matrix f g a) where
     arbitrary = fmap Matrix arbitrary
     shrink (Matrix xs) = fmap Matrix (shrink xs)

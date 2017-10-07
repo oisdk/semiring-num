@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
@@ -36,7 +37,9 @@ module Data.Semiring
   ,Min(..)
   ,
    -- * Matrix wrapper
-   Matrix(..))
+   Matrix(..)
+  ,transpose
+  ,mulMatrix)
   where
 
 import Data.Functor.Identity (Identity(..))
@@ -544,23 +547,20 @@ instance Semiring a =>
 -- in (map getZipList . getZipList . getMatrix) (xs <.> ys)
 -- :}
 -- [[19,22],[43,50]]
-newtype Matrix f a = Matrix
-    { getMatrix :: f (f a)
+newtype Matrix f g a = Matrix
+    { getMatrix :: f (g a)
     } deriving (Generic,Generic1,Typeable,Functor,Foldable,Traversable)
 
-instance Applicative f =>
-         Applicative (Matrix f) where
+instance (Applicative f, Applicative g) =>
+         Applicative (Matrix f g) where
     pure = Matrix #. pure . pure
     (<*>) =
-        (coerce :: (f (f (a -> b)) -> f (f a) -> f (f b)) -> Matrix f (a -> b) -> Matrix f a -> Matrix f b)
+        (coerce :: (f (g (a -> b)) -> f (g a) -> f (g b)) -> Matrix f g (a -> b) -> Matrix f g a -> Matrix f g b)
             (liftA2 (<*>))
 
-instance (Traversable f, Applicative f, Semiring a) =>
-         Semiring (Matrix f a) where
-    Matrix xs <.> Matrix ys =
-        Matrix (fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) c) xs)
-      where
-        c = sequenceA ys
+instance (Traversable f, Applicative f, Semiring a, f ~ g) =>
+         Semiring (Matrix f g a) where
+    (<.>) = mulMatrix
     (<+>) = liftA2 (<+>)
     zero = pure zero
     one = case zero of
@@ -574,6 +574,20 @@ instance Applicative State where
                                       (f, i') -> case xs i' of
                                         (x,i'') -> (f x, i''))
 
+-- | Transpose the matrix.
+transpose :: (Applicative g, Traversable f) => Matrix f g a -> Matrix g f a
+transpose (Matrix xs) = Matrix (sequenceA xs)
+
+-- | Multiply two matrices.
+mulMatrix
+    :: (Applicative f, Traversable g, Applicative g, Semiring a)
+    => Matrix f g a -> Matrix g f a -> Matrix f f a
+mulMatrix (Matrix xs) (Matrix ys) =
+    Matrix
+        (fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) c) xs)
+  where
+    c = sequenceA ys
+
 evalState :: State a -> Int -> a
 evalState (State r) i = case r i of
   (x,_) -> x
@@ -585,53 +599,53 @@ infixr 9 #.
 (#.) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c
 (#.) _ = coerce
 
-instance Show1 f =>
-         Show1 (Matrix f) where
+instance (Show1 f, Show1 g) =>
+         Show1 (Matrix f g) where
     liftShowsPrec (sp :: Int -> a -> ShowS) sl =
         showsNewtype "Matrix" "getMatrix" liftedTwiceSP liftedTwiceSL
       where
-        liftedOnceSP :: Int -> f a -> ShowS
+        liftedOnceSP :: Int -> g a -> ShowS
         liftedOnceSP = liftShowsPrec sp sl
-        liftedOnceSL :: [f a] -> ShowS
+        liftedOnceSL :: [g a] -> ShowS
         liftedOnceSL = liftShowList sp sl
-        liftedTwiceSP :: Int -> f (f a) -> ShowS
+        liftedTwiceSP :: Int -> f (g a) -> ShowS
         liftedTwiceSP = liftShowsPrec liftedOnceSP liftedOnceSL
-        liftedTwiceSL :: [f (f a)] -> ShowS
+        liftedTwiceSL :: [f (g a)] -> ShowS
         liftedTwiceSL = liftShowList liftedOnceSP liftedOnceSL
 
-instance Read1 f =>
-         Read1 (Matrix f) where
+instance (Read1 f, Read1 g) =>
+         Read1 (Matrix f g) where
     liftReadsPrec (rp :: Int -> ReadS a) rl =
         readsNewtype "Matrix" "getMatrix" liftedTwiceRP liftedTwiceRL
       where
-        liftedOnceRP :: Int -> ReadS (f a)
+        liftedOnceRP :: Int -> ReadS (g a)
         liftedOnceRP = liftReadsPrec rp rl
-        liftedOnceRL :: ReadS [f a]
+        liftedOnceRL :: ReadS [g a]
         liftedOnceRL = liftReadList rp rl
-        liftedTwiceRP :: Int -> ReadS (f (f a))
+        liftedTwiceRP :: Int -> ReadS (f (g a))
         liftedTwiceRP = liftReadsPrec liftedOnceRP liftedOnceRL
-        liftedTwiceRL :: ReadS [f (f a)]
+        liftedTwiceRL :: ReadS [f (g a)]
         liftedTwiceRL = liftReadList liftedOnceRP liftedOnceRL
 
-instance Eq1 f =>
-         Eq1 (Matrix f) where
+instance (Eq1 f, Eq1 g) =>
+         Eq1 (Matrix f g) where
     liftEq (eq :: a -> b -> Bool) =
-        coerce (liftEq (liftEq eq) :: f (f a) -> f (f b) -> Bool)
+        coerce (liftEq (liftEq eq) :: f (g a) -> f (g b) -> Bool)
 
-instance Ord1 f => Ord1 (Matrix f) where
+instance (Ord1 f, Ord1 g) => Ord1 (Matrix f g) where
     liftCompare (cmp :: a -> b -> Ordering) =
-        coerce (liftCompare (liftCompare cmp) :: f (f a) -> f (f b) -> Ordering)
+        coerce (liftCompare (liftCompare cmp) :: f (g a) -> f (g b) -> Ordering)
 
-instance (Show1 f, Show a) => Show (Matrix f a) where
+instance (Show1 f, Show1 g, Show a) => Show (Matrix f g a) where
     showsPrec = showsPrec1
 
-instance (Read1 f, Read a) => Read (Matrix f a) where
+instance (Read1 f, Read1 g, Read a) => Read (Matrix f g a) where
     readsPrec = readsPrec1
 
-instance (Eq1 f, Eq a) => Eq (Matrix f a) where
+instance (Eq1 f, Eq1 g, Eq a) => Eq (Matrix f g a) where
     (==) = eq1
 
-instance (Ord1 f, Ord a) => Ord (Matrix f a) where
+instance (Ord1 f, Ord1 g, Ord a) => Ord (Matrix f g a) where
     compare = compare1
 
 --------------------------------------------------------------------------------
