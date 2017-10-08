@@ -473,7 +473,15 @@ instance (Precise a, RealFloat a) => DetectableZero (Log a) where
 -- Newtype utilities
 --------------------------------------------------------------------------------
 
-showsNewtype :: Coercible b a => String -> String -> (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> b -> ShowS
+showsNewtype
+    :: Coercible b a
+    => String
+    -> String
+    -> (Int -> a -> ShowS)
+    -> ([a] -> ShowS)
+    -> Int
+    -> b
+    -> ShowS
 showsNewtype cons acc = s
   where
     s sp _ n x =
@@ -482,7 +490,9 @@ showsNewtype cons acc = s
         showString " {" .
         showString acc . showString " =" . sp 0 (coerce x) . showChar '}'
 
-readsNewtype :: Coercible a b => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
+readsNewtype
+    :: Coercible a b
+    => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
 readsNewtype cons acc = r where
     r rp _ = readPrec_to_S $ prec 10 $ do
         Ident c <- lexP

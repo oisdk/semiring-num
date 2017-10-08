@@ -210,9 +210,7 @@ main = do
                      "Tup2 (WordOfSize 2)"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Tup3 (WordOfSize 2))
-              in testGroup
-                     "Tup3 (WordOfSize 2)"
-                     [semiringLawsSC p, zeroLawsSC p]
+              in testGroup "Tup3 (WordOfSize 2)" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup4 Int)
               in testGroup "Tup4 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup5 Int)
@@ -307,18 +305,18 @@ main = do
               in testGroup
                      "All"
                      [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
-            , let p = Proxy :: Proxy [WordOfSize 2]
+            , let p = Proxy :: Proxy [Integer]
               in testGroup
-                     "[WordOfSize 2]"
-                     [ semiringLawsSC p
-                     , semiringLawsQC p
-                     , starLawsSC (Proxy :: Proxy (LimitSize 10000 (PositiveInfinite Integer)))
-                     , starLawsQC (Proxy :: Proxy (LimitSize 10000 (PositiveInfinite Integer)))
+                     "[Integer]"
+                     [ semiringLawsQC p
+                     , starLawsQC
+                           (Proxy :: Proxy (LimitSize 100 (PositiveInfinite Integer)))
                      , QC.testProperty
                            "reference implementation of <.>"
                            (\xs ys ->
                                  Polynomial (xs <.> ys) ===
-                                 Polynomial (refListMul xs (ys :: [WordOfSize 2])))]
+                                 Polynomial
+                                     (refListMul xs (ys :: [WordOfSize 2])))]
             , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
               in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Min (Infinite Integer))
@@ -340,11 +338,7 @@ main = do
                      "Łukasiewicz Fraction"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Viterbi Fraction)
-              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]]-- , let p = Proxy :: Proxy (Log (Approx Double))
-                                                                               --   in testGroup
-                                                                               --          "Log (Approx Double)"
-                                                                               --          [semiringLawsQC p, zeroLawsQC p]]
-
+              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]]
 
 ------------------------------------------------------------------------
 -- Serial wrappers
