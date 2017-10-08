@@ -160,7 +160,7 @@ mulAssoc x y z =
     rp = x <.> r
     s =
         unlines
-            [ "<+> is " ++
+            [ "<.> is " ++
               (if res
                    then ""
                    else "not ") ++
@@ -309,7 +309,7 @@ mulId (x :: a) =
               (if res
                    then ""
                    else " not") ++
-              " the identity of <+>."
+              " the identity of <.>."
             , "    Law:"
             , "        x <.> one = one <.> x = x"
             , "    x = " ++ show x

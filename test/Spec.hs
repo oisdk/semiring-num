@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE KindSignatures             #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Main (main) where
@@ -16,6 +17,7 @@ module Main (main) where
 import           Control.Applicative
 
 import           Control.Arrow            (first)
+import           Data.Function
 import           Data.Bool
 import           Data.Proxy
 
@@ -115,6 +117,44 @@ type Tup7 a = (a,a,a,a,a,a,a)
 type Tup8 a = (a,a,a,a,a,a,a,a)
 type Tup9 a = (a,a,a,a,a,a,a,a,a)
 
+refListMul
+    :: Semiring a
+    => [a] -> [a] -> [a]
+refListMul [] _ = []
+refListMul _ [] = []
+refListMul (x:xs) (y:ys) =
+    (x <.> y) :
+    (map (x <.>) ys <+> map (<.> y) xs <+> (zero : refListMul xs ys))
+
+newtype Polynomial a =
+    Polynomial [a]
+    deriving (Show,Arbitrary,Semiring,DetectableZero)
+
+instance (Monad m, Serial m a) => Serial m (Polynomial a) where
+    series = fmap Polynomial series
+
+instance (DetectableZero a, Eq a) => Eq (Polynomial a) where
+    Polynomial xs' == Polynomial ys' = go xs' ys' where
+      go [] ys = isZero ys
+      go xs [] = isZero xs
+      go (x:xs) (y:ys) = x == y && go xs ys
+
+newtype LimitSize (n :: Nat) a =
+    LimitSize [a]
+    deriving (Arbitrary,Semiring,DetectableZero,StarSemiring)
+
+takeFirst :: KnownNat n => LimitSize n a -> [a]
+takeFirst (LimitSize xs :: LimitSize n a) = take (fromInteger (natVal (Proxy :: Proxy n))) xs
+
+instance (Monad m, Serial m a) => Serial m (LimitSize n a) where
+    series = fmap LimitSize series
+
+instance (Eq a, KnownNat n) => Eq (LimitSize n a) where
+    (==) = (==) `on` takeFirst
+
+instance (Show a, KnownNat n) => Show (LimitSize n a) where
+    showsPrec n = showsPrec n . takeFirst
+
 main :: IO ()
 main = do
     doctest ["-isrc", "src/"]
@@ -122,7 +162,9 @@ main = do
         testGroup
             "Tests"
             [ let p = Proxy :: Proxy (Map String Int)
-              in testGroup "Map" [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
+              in testGroup
+                     "Map"
+                     [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
             , let p = Proxy :: Proxy (Matrix Quad Quad Integer)
               in testGroup "Matrix" [semiringLawsQC p]
             , let p = Proxy :: Proxy Integer
@@ -130,9 +172,9 @@ main = do
                      "Integer"
                      [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Func Bool Bool)
-              in testGroup "Bool -> Bool"
-                     [semiringLawsQC p]
-            , testGroup "Endo Bool"
+              in testGroup "Bool -> Bool" [semiringLawsQC p]
+            , testGroup
+                  "Endo Bool"
                   [ QC.testProperty
                         "plusId"
                         (plusId :: UnaryLaws (EndoFunc (Add Bool)))
@@ -162,9 +204,7 @@ main = do
             , let p = Proxy :: Proxy Int
               in testGroup "Int" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (WordOfSize 2)
-              in testGroup
-                     "WordOfSize 2"
-                     [semiringLawsSC p, zeroLawsSC p]
+              in testGroup "WordOfSize 2" [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Tup2 (WordOfSize 2))
               in testGroup
                      "Tup2 (WordOfSize 2)"
@@ -174,61 +214,33 @@ main = do
                      "Tup3 (WordOfSize 2)"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Tup4 Int)
-              in testGroup
-                     "Tup4 Int"
-                     [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Tup4 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup5 Int)
-              in testGroup
-                     "Tup5 Int"
-                     [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Tup5 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup6 Int)
-              in testGroup
-                     "Tup6 Int"
-                     [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Tup6 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup7 Int)
-              in testGroup
-                     "Tup7 Int"
-                     [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Tup7 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup8 Int)
-              in testGroup
-                     "Tup8 Int"
-                     [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Tup8 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup9 Int)
-              in testGroup
-                     "Tup9 Int"
-                     [semiringLawsQC p, zeroLawsQC p]
+              in testGroup "Tup9 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup2 (PositiveInfinite (WordOfSize 2)))
-              in testGroup
-                     "Tup2 (WordOfSize 2)"
-                     [starLawsSC p]
+              in testGroup "Tup2 (WordOfSize 2)" [starLawsSC p]
             , let p = Proxy :: Proxy (Tup3 (PositiveInfinite (WordOfSize 2)))
-              in testGroup
-                     "Tup3 (WordOfSize 2)"
-                     [starLawsSC p]
+              in testGroup "Tup3 (WordOfSize 2)" [starLawsSC p]
             , let p = Proxy :: Proxy (Tup4 (PositiveInfinite Int))
-              in testGroup
-                     "Tup4 Int"
-                     [starLawsQC p]
+              in testGroup "Tup4 Int" [starLawsQC p]
             , let p = Proxy :: Proxy (Tup5 (PositiveInfinite Int))
-              in testGroup
-                     "Tup5 Int"
-                     [starLawsQC p]
+              in testGroup "Tup5 Int" [starLawsQC p]
             , let p = Proxy :: Proxy (Tup6 (PositiveInfinite Int))
-              in testGroup
-                     "Tup6 Int"
-                     [starLawsQC p]
+              in testGroup "Tup6 Int" [starLawsQC p]
             , let p = Proxy :: Proxy (Tup7 (PositiveInfinite Int))
-              in testGroup
-                     "Tup7 Int"
-                     [starLawsQC p]
+              in testGroup "Tup7 Int" [starLawsQC p]
             , let p = Proxy :: Proxy (Tup8 (PositiveInfinite Int))
-              in testGroup
-                     "Tup8 Int"
-                     [starLawsQC p]
+              in testGroup "Tup8 Int" [starLawsQC p]
             , let p = Proxy :: Proxy (Tup9 (PositiveInfinite Int))
-              in testGroup
-                     "Tup9 Int"
-                     [starLawsQC p]
+              in testGroup "Tup9 Int" [starLawsQC p]
             , testGroup
                   "Negative Infinite Integer"
                   [ SC.testProperty
@@ -296,25 +308,31 @@ main = do
                      "All"
                      [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, starLawsSC p]
             , let p = Proxy :: Proxy [WordOfSize 2]
-              in testGroup "[WordOfSize 2]" [semiringLawsSC p, zeroLawsSC p]
+              in testGroup
+                     "[WordOfSize 2]"
+                     [ semiringLawsSC p
+                     , semiringLawsQC p
+                     , starLawsSC (Proxy :: Proxy (LimitSize 10000 (PositiveInfinite Integer)))
+                     , starLawsQC (Proxy :: Proxy (LimitSize 10000 (PositiveInfinite Integer)))
+                     , QC.testProperty
+                           "reference implementation of <.>"
+                           (\xs ys ->
+                                 Polynomial (xs <.> ys) ===
+                                 Polynomial (refListMul xs (ys :: [WordOfSize 2])))]
             , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
-              in testGroup
-                     "Min Inf Integer"
-                     [semiringLawsSC p, zeroLawsSC p]
+              in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Min (Infinite Integer))
-              in testGroup
-                     "Min Inf Integer"
-                     [starLawsSC p]
+              in testGroup "Min Inf Integer" [starLawsSC p]
             , let p = Proxy :: Proxy (Max (NegativeInfinite Integer))
               in testGroup
                      "Max NegInf Integer"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Max (Infinite Integer))
-              in testGroup
-                     "Max Inf Integer"
-                     [starLawsSC p]
+              in testGroup "Max Inf Integer" [starLawsSC p]
             , let p = Proxy :: Proxy (Free (WordOfSize 2))
-              in testGroup "Free (WordOfSize 2)" [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
+              in testGroup
+                     "Free (WordOfSize 2)"
+                     [localOption (QC.QuickCheckMaxSize 10) $ semiringLawsQC p]
             , let p = Proxy :: Proxy (Division (SC.Positive Integer))
               in testGroup "Division Integer" [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Łukasiewicz Fraction)
@@ -322,11 +340,10 @@ main = do
                      "Łukasiewicz Fraction"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Viterbi Fraction)
-              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]]
-            -- , let p = Proxy :: Proxy (Log (Approx Double))
-            --   in testGroup
-            --          "Log (Approx Double)"
-            --          [semiringLawsQC p, zeroLawsQC p]]
+              in testGroup "Viterbi Fraction" [semiringLawsSC p, zeroLawsSC p]]-- , let p = Proxy :: Proxy (Log (Approx Double))
+                                                                               --   in testGroup
+                                                                               --          "Log (Approx Double)"
+                                                                               --          [semiringLawsQC p, zeroLawsQC p]]
 
 
 ------------------------------------------------------------------------

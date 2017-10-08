@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 
 {-|
 Module: Data.Semiring
@@ -58,11 +59,16 @@ import Foreign.Ptr (IntPtr, WordPtr)
 import System.Posix.Types
        (CCc, CDev, CGid, CIno, CMode, CNlink, COff, CPid, CRLim, CSpeed,
         CSsize, CTcflag, CUid, Fd)
+import Data.Scientific(Scientific)
+import Data.Time.Clock(DiffTime,NominalDiffTime)
+
 import Data.Semigroup hiding (Max(..), Min(..))
+
 import Data.Coerce
 import GHC.Generics (Generic, Generic1)
 import Data.Typeable (Typeable)
 import Foreign.Storable (Storable)
+
 import Data.Semiring.TH
 import Data.Functor.Classes
 import Text.Read
@@ -73,12 +79,17 @@ import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.HashSet as HashSet
+import Data.Hashable
+
 import Numeric.Log hiding (sum)
 import qualified Numeric.Log
 
 import Control.Monad
 import Control.Applicative
 import Data.Foldable
+import Data.Traversable
 
 -- $setup
 -- >>> import Data.Function
@@ -363,12 +374,21 @@ instance Semiring a =>
     (x:xs) <+> (y:ys) = (x <+> y) : (xs <+> ys)
     [] <.> _ = []
     _ <.> [] = []
-    (x:xs) <.> (y:ys) =
-        (x <.> y) : (map (x <.>) ys <+> map (<.> y) xs <+> (xs <.> ys))
+    (x:xs) <.> (y:ys) = (x <.> y) : add' xs ys
+      where
+        add' xs' [] = map (<.> y) xs'
+        add' [] ys' = map (x <.>) ys'
+        add' xs' ys' =
+            map (x <.>) ys' <+> map (<.> y) xs' <+> (zero : (xs' <.> ys'))
 
-instance Semiring a =>
+instance StarSemiring a => StarSemiring [a] where
+    star [] = one
+    star (x:xs) = r where
+      r = [star x] <.> (one : (xs <.> r))
+
+instance DetectableZero a =>
          DetectableZero [a] where
-    isZero = null
+    isZero = all isZero
     {-# INLINE isZero #-}
 
 instance (Monoid a, Ord a) =>
@@ -377,6 +397,16 @@ instance (Monoid a, Ord a) =>
     zero = Set.empty
     one = Set.singleton mempty
     xs <.> ys = foldMap (flip Set.map ys . mappend) xs
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+
+instance (Monoid a, Hashable a, Eq a) => Semiring (HashSet.HashSet a) where
+    (<+>) = HashSet.union
+    zero = HashSet.empty
+    one = HashSet.singleton mempty
+    xs <.> ys = foldMap (flip HashSet.map ys . mappend) xs
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
     {-# INLINE zero #-}
@@ -398,10 +428,30 @@ instance (Ord a, Monoid a, Semiring b) =>
             , (l,u) <- Map.toList ys ]
     {-# INLINE (<.>) #-}
 
+instance (Hashable a, Monoid a, Semiring b, Eq a) =>
+         Semiring (HashMap.HashMap a b) where
+    one = HashMap.singleton mempty one
+    {-# INLINE one #-}
+    zero = HashMap.empty
+    {-# INLINE zero #-}
+    (<+>) = HashMap.unionWith (<+>)
+    {-# INLINE (<+>) #-}
+    xs <.> ys =
+        HashMap.fromListWith
+            (<+>)
+            [ (mappend k l, v <.> u)
+            | (k,v) <- HashMap.toList xs
+            , (l,u) <- HashMap.toList ys ]
+    {-# INLINE (<.>) #-}
+
 instance (Monoid a, Ord a) =>
          DetectableZero (Set a) where
     isZero = Set.null
     {-# INLINE isZero #-}
+
+instance (Monoid a, Hashable a, Eq a) =>
+         DetectableZero (HashSet.HashSet a) where
+    isZero = HashSet.null
 
 instance (Precise a, RealFloat a) => Semiring (Log a) where
     (<.>) = (*)
@@ -420,23 +470,8 @@ instance (Precise a, RealFloat a) => DetectableZero (Log a) where
     {-# INLINE isZero #-}
 
 --------------------------------------------------------------------------------
--- Addition and multiplication newtypes
+-- Newtype utilities
 --------------------------------------------------------------------------------
-type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
-
--- | Monoid under '<+>'. Analogous to 'Data.Monoid.Sum', but uses the
--- 'Semiring' constraint, rather than 'Num'.
-newtype Add a = Add
-    { getAdd :: a
-    } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
-               ,Semiring,DetectableZero,StarSemiring)
-
-instance Eq1 Add where
-    liftEq = coerce
-
-instance Ord1 Add where
-    liftCompare = coerce
 
 showsNewtype :: Coercible b a => String -> String -> (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> b -> ShowS
 showsNewtype cons acc = s
@@ -460,11 +495,34 @@ readsNewtype cons acc = r where
         Punc "}" <- lexP
         pure (coerce x)
 
+--------------------------------------------------------------------------------
+-- Addition and multiplication newtypes
+--------------------------------------------------------------------------------
+type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
+
+-- | Monoid under '<+>'. Analogous to 'Data.Monoid.Sum', but uses the
+-- 'Semiring' constraint, rather than 'Num'.
+newtype Add a = Add
+    { getAdd :: a
+    } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,Semiring,DetectableZero,StarSemiring)
+
+instance Eq1 Add where
+    liftEq = coerce
+    {-# INLINE liftEq #-}
+
+instance Ord1 Add where
+    liftCompare = coerce
+    {-# INLINE liftCompare #-}
+
 instance Show1 Add where
     liftShowsPrec = showsNewtype "Add" "getAdd"
+    {-# INLINE liftShowsPrec #-}
 
 instance Read1 Add where
     liftReadsPrec = readsNewtype "Add" "getAdd"
+    {-# INLINE liftReadsPrec #-}
 
 -- | Monoid under '<.>'. Analogous to 'Data.Monoid.Product', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
@@ -476,15 +534,19 @@ newtype Mul a = Mul
 
 instance Eq1 Mul where
     liftEq = coerce
+    {-# INLINE liftEq #-}
 
 instance Ord1 Mul where
     liftCompare = coerce
+    {-# INLINE liftCompare #-}
 
 instance Show1 Mul where
     liftShowsPrec = showsNewtype "Mul" "getMul"
+    {-# INLINE liftShowsPrec #-}
 
 instance Read1 Mul where
     liftReadsPrec = readsNewtype "Mul" "getMul"
+    {-# INLINE liftReadsPrec #-}
 
 instance Semiring a =>
          Semigroup (Add a) where
@@ -563,16 +625,17 @@ instance (Traversable f, Applicative f, Semiring a, f ~ g) =>
     (<.>) = mulMatrix
     (<+>) = liftA2 (<+>)
     zero = pure zero
-    one = case zero of
-      Matrix xs -> Matrix (imap (\i -> imap (\j x -> if i == j then one else x)) xs)
+    one =
+        (coerce :: (f (g a) -> f (g a)) -> Matrix f g a -> Matrix f g a)
+            (imap (\i -> imap (\j z -> if i == j then o else z))) zero
+      where
+        imap f = snd . mapAccumL (\ !i x -> (i + 1, f i x)) (0 :: Int)
+        o :: a
+        o = one
 
-newtype State a = State (Int -> (a, Int)) deriving Functor
-
-instance Applicative State where
-    pure x = State (\i -> (x, i))
-    State fs <*> State xs = State (\i -> case fs i of
-                                      (f, i') -> case xs i' of
-                                        (x,i'') -> (f x, i''))
+instance (Traversable f, Applicative f, DetectableZero a, f ~ g) =>
+         DetectableZero (Matrix f g a) where
+    isZero = all isZero
 
 -- | Transpose the matrix.
 transpose :: (Applicative g, Traversable f) => Matrix f g a -> Matrix g f a
@@ -587,13 +650,6 @@ mulMatrix (Matrix xs) (Matrix ys) =
         (fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) c) xs)
   where
     c = sequenceA ys
-
-evalState :: State a -> Int -> a
-evalState (State r) i = case r i of
-  (x,_) -> x
-
-imap :: Traversable t => (Int -> a -> b) -> t a -> t b
-imap f xs = evalState (traverse (\x -> State (\i -> (f i x, i + 1))) xs) 0
 
 infixr 9 #.
 (#.) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c
@@ -1018,6 +1074,36 @@ instance Semiring Float where
     {-# INLINE (<.>) #-}
 
 instance Semiring Double where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring Scientific where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring DiffTime where
+    one = 1
+    zero = 0
+    (<+>) = (+)
+    (<.>) = (*)
+    {-# INLINE zero #-}
+    {-# INLINE one #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+
+instance Semiring NominalDiffTime where
     one = 1
     zero = 0
     (<+>) = (+)
@@ -1559,6 +1645,18 @@ instance DetectableZero Float where
     {-# INLINE isZero #-}
 
 instance DetectableZero Double where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero Scientific where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero DiffTime where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance DetectableZero NominalDiffTime where
     isZero = isZeroEq
     {-# INLINE isZero #-}
 
