@@ -141,7 +141,7 @@ class Semiring a  where
     -- | An associative, commutative binary operation.
     infixl 6 <+>
     (<+>) :: a -> a -> a
-    -- | Takes the sum of the elements of a 'Foldable'. Analogous to 'sum'
+    -- | Takes the sum of the elements of a list. Analogous to 'sum'
     -- on numbers, or 'or' on 'Bool's.
     --
     -- >>> add [1..5]
@@ -156,7 +156,7 @@ class Semiring a  where
         :: [a] -> a
     add = getAdd . foldMap Add
     {-# INLINE add #-}
-    -- | Takes the product of the elements of a 'Foldable'. Analogous to
+    -- | Takes the product of the elements of a list. Analogous to
     -- 'product' on numbers, or 'and' on 'Bool's.
     --
     -- >>> mul [1..5]
