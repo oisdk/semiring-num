@@ -83,6 +83,10 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.HashSet as HashSet
 import Data.Hashable
 
+import qualified Data.Vector as Vector
+import qualified Data.Vector.Storable as StorableVector
+import qualified Data.Vector.Unboxed as UnboxedVector
+
 import Numeric.Log hiding (sum)
 import qualified Numeric.Log
 
@@ -390,6 +394,182 @@ instance DetectableZero a =>
          DetectableZero [a] where
     isZero = all isZero
     {-# INLINE isZero #-}
+
+type BinaryContainer c a = c a -> c a -> c a
+
+instance Semiring a =>
+         Semiring (Vector.Vector a) where
+    one = Vector.singleton one
+    zero = Vector.empty
+    xs <+> ys =
+        case compare (Vector.length xs) (Vector.length ys) of
+            EQ -> Vector.zipWith (<+>) xs ys
+            LT -> Vector.unsafeAccumulate (<+>) ys (Vector.indexed xs)
+            GT -> Vector.unsafeAccumulate (<+>) xs (Vector.indexed ys)
+    signal <.> kernel
+      | Vector.null signal = Vector.empty
+      | Vector.null kernel = Vector.empty
+      | otherwise = Vector.generate (slen + klen - 1) f
+      where
+        f n =
+            foldl'
+                (\a k ->
+                      a <+>
+                      Vector.unsafeIndex signal k <.>
+                      Vector.unsafeIndex kernel (n - k))
+                zero
+                [kmin .. kmax]
+          where
+            kmin = max 0 (n - (klen - 1))
+            kmax = min n (slen - 1)
+        slen = Vector.length signal
+        klen = Vector.length kernel
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Double #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Float #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Double #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Float #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word64 #-}
+
+instance DetectableZero a => DetectableZero (Vector.Vector a) where
+    isZero = Vector.all isZero
+
+instance (UnboxedVector.Unbox a, Semiring a) =>
+         Semiring (UnboxedVector.Vector a) where
+    one = UnboxedVector.singleton one
+    zero = UnboxedVector.empty
+    xs <+> ys =
+        case compare (UnboxedVector.length xs) (UnboxedVector.length ys) of
+            EQ -> UnboxedVector.zipWith (<+>) xs ys
+            LT -> UnboxedVector.unsafeAccumulate (<+>) ys (UnboxedVector.indexed xs)
+            GT -> UnboxedVector.unsafeAccumulate (<+>) xs (UnboxedVector.indexed ys)
+    signal <.> kernel
+      | UnboxedVector.null signal = UnboxedVector.empty
+      | UnboxedVector.null kernel = UnboxedVector.empty
+      | otherwise = UnboxedVector.generate (slen + klen - 1) f
+      where
+        f n =
+            foldl'
+                (\a k ->
+                      a <+>
+                      UnboxedVector.unsafeIndex signal k <.>
+                      UnboxedVector.unsafeIndex kernel (n - k))
+                zero
+                [kmin .. kmax]
+          where
+            kmin = max 0 (n - (klen - 1))
+            kmax = min n (slen - 1)
+        slen = UnboxedVector.length signal
+        klen = UnboxedVector.length kernel
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Double #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Float #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Double #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Float #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word64 #-}
+
+instance (UnboxedVector.Unbox a, DetectableZero a) => DetectableZero (UnboxedVector.Vector a) where
+    isZero = UnboxedVector.all isZero
+
+instance (StorableVector.Storable a, Semiring a) =>
+         Semiring (StorableVector.Vector a) where
+    one = StorableVector.singleton one
+    zero = StorableVector.empty
+    xs <+> ys =
+        case compare lxs lys of
+            EQ -> StorableVector.zipWith (<+>) xs ys
+            LT -> StorableVector.unsafeAccumulate_ (<+>) ys (StorableVector.enumFromN 0 lxs) xs
+            GT -> StorableVector.unsafeAccumulate_ (<+>) xs (StorableVector.enumFromN 0 lys) ys
+      where
+        lxs = StorableVector.length xs
+        lys = StorableVector.length ys
+    signal <.> kernel
+      | StorableVector.null signal = StorableVector.empty
+      | StorableVector.null kernel = StorableVector.empty
+      | otherwise = StorableVector.generate (slen + klen - 1) f
+      where
+        f n =
+            foldl'
+                (\a k ->
+                      a <+>
+                      StorableVector.unsafeIndex signal k <.>
+                      StorableVector.unsafeIndex kernel (n - k))
+                zero
+                [kmin .. kmax]
+          where
+            kmin = max 0 (n - (klen - 1))
+            kmax = min n (slen - 1)
+        slen = StorableVector.length signal
+        klen = StorableVector.length kernel
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Double #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Float #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Double #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Float #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word64 #-}
+
+instance (StorableVector.Storable a, DetectableZero a) => DetectableZero (StorableVector.Vector a) where
+    isZero = StorableVector.all isZero
 
 instance (Monoid a, Ord a) =>
          Semiring (Set a) where

@@ -30,6 +30,8 @@ import qualified Data.IntMap.Strict       as IntMap
 import           Data.Map.Strict          (Map)
 import qualified Data.Map.Strict          as Map
 
+import qualified Data.Vector as Vector
+
 import           Data.Semiring
 import           Data.Semiring.Free
 import           Data.Semiring.Infinite
@@ -210,7 +212,9 @@ main = do
                      "Tup2 (WordOfSize 2)"
                      [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Tup3 (WordOfSize 2))
-              in testGroup "Tup3 (WordOfSize 2)" [semiringLawsQC p, zeroLawsQC p]
+              in testGroup
+                     "Tup3 (WordOfSize 2)"
+                     [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup4 Int)
               in testGroup "Tup4 Int" [semiringLawsQC p, zeroLawsQC p]
             , let p = Proxy :: Proxy (Tup5 Int)
@@ -317,6 +321,16 @@ main = do
                                  Polynomial (xs <.> ys) ===
                                  Polynomial
                                      (refListMul xs (ys :: [WordOfSize 2])))]
+            , let p = Proxy :: Proxy (Vector.Vector Int)
+              in testGroup
+                     "Vector Int"
+                     [ semiringLawsQC p
+                     , QC.testProperty
+                           "reference implementation of <.>"
+                           (\xs ys ->
+                                 (xs <.> ys :: [Int]) ===
+                                 Vector.toList
+                                     (Vector.fromList xs <.> Vector.fromList ys))]
             , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
               in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p]
             , let p = Proxy :: Proxy (Min (Infinite Integer))
@@ -561,6 +575,10 @@ instance Arbitrary a => Arbitrary (NegativeInfinite a) where
 
 instance Arbitrary a => Arbitrary (Infinite a) where
   arbitrary = fmap (either (bool Positive Negative) Finite) arbitrary
+
+instance Arbitrary a => Arbitrary (Vector.Vector a) where
+    arbitrary = fmap Vector.fromList arbitrary
+    shrink = fmap Vector.fromList . shrink . Vector.toList
 
 instance Testable (Either String String) where
   property = either (`counterexample` False) (const (property True))
