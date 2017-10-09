@@ -22,30 +22,31 @@ sumAtSize n =
     \xs ->
          bgroup (show n) [bench "add" $ nf add xs]
 
-prodAtSize :: Int -> Int -> Benchmark
-prodAtSize n m =
+atSizeList :: Int -> Int -> Benchmark
+atSizeList n m =
     env ((,) <$> replicateM n int <*> replicateM m int) $
     \xs ->
-         bench "prod-list" (nf (uncurry (<.>)) xs)
-
-prodAtSizeVec :: Int -> Int -> Benchmark
-prodAtSizeVec n m =
-    env ((,) <$> Vector.replicateM n int <*> Vector.replicateM m int) $
-    \xs ->
          bgroup
-             "vec"
+             (show (n, m))
              [ bench (show n ++ "<.>" ++ show m) (nf (uncurry (<.>)) xs)
              , bench (show m ++ "<.>" ++ show n) (nf (uncurry (flip (<.>))) xs)
              , bench (show n ++ "<+>" ++ show m) (nf (uncurry (<+>)) xs)
-             , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)
-             ]
+             , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)]
+
+atSizeVec :: Int -> Int -> Benchmark
+atSizeVec n m =
+    env ((,) <$> Vector.replicateM n int <*> Vector.replicateM m int) $
+    \xs ->
+         bgroup
+             (show (n, m))
+             [ bench (show n ++ "<.>" ++ show m) (nf (uncurry (<.>)) xs)
+             , bench (show m ++ "<.>" ++ show n) (nf (uncurry (flip (<.>))) xs)
+             , bench (show n ++ "<+>" ++ show m) (nf (uncurry (<+>)) xs)
+             , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)]
 
 main :: IO ()
 main =
     defaultMain
-        [ prodAtSizeVec 4000 2000
-        , prodAtSizeVec 4000 2000]
-
-
-
--- prodAtSize 2000 1000, sumAtSize 10000]
+        [ bgroup "vec" [atSizeVec 4000 2000, atSizeVec 4000 2000]
+        , bgroup "list" [atSizeList 400 200, atSizeList 4000 2000]
+        , bgroup "add" [sumAtSize 100, sumAtSize 1000]]

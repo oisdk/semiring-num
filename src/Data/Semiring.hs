@@ -378,12 +378,24 @@ instance Semiring a =>
     (x:xs) <+> (y:ys) = (x <+> y) : (xs <+> ys)
     [] <.> _ = []
     _ <.> [] = []
-    (x:xs) <.> (y:ys) = (x <.> y) : add' xs ys
+    (x':xs') <.> (y':ys') = (x' <.> y') : add2 xs' ys'
       where
-        add' xs' [] = map (<.> y) xs'
-        add' [] ys' = map (x <.>) ys'
-        add' xs' ys' =
-            map (x <.>) ys' <+> map (<.> y) xs' <+> (zero : (xs' <.> ys'))
+        add2 xs [] = map (<.> y') xs
+        add2 [] ys = map (x' <.>) ys
+        add2 xx@(x:xs) yy@(y:ys) = (x' <.> y <+> x <.> y') : add3 ys xs (xx <.> yy)
+        add3 (x:xs) (y:ys) (z:zs) = (x' <.> x <+> y <.> y' <+> z) : add3 xs ys zs
+        add3 [] ys zs = zipL (<.> y') ys zs
+        add3 xs [] zs = zipL (x' <.>) xs zs
+        add3 xs ys [] = go xs ys
+          where
+            go [] rs = map (<.> y') rs
+            go ls [] = map (x' <.>) ls
+            go (x:ls) (y:rs) = (x' <.> x <+> y' <.> y) : go ls rs
+        zipL f = go
+          where
+            go [] ys = ys
+            go xs [] = map f xs
+            go (x:xs) (y:ys) = (f x <+> y) : go xs ys
 
 instance StarSemiring a => StarSemiring [a] where
     star [] = one
