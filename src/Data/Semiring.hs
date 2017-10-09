@@ -375,32 +375,22 @@ instance Semiring a =>
     zero = []
     [] <+> ys = ys
     xs <+> [] = xs
-    (x:xs) <+> (y:ys) = (x <+> y) : (xs <+> ys)
-    [] <.> _ = []
-    _ <.> [] = []
-    (x':xs') <.> (y':ys') = (x' <.> y') : add2 xs' ys'
+    (x:xs) <+> (y:ys) = x <+> y : xs <+> ys
+    xs <.> ys
+      | null ys = []
+      | otherwise = foldr f [] xs
       where
-        add2 xs [] = map (<.> y') xs
-        add2 [] ys = map (x' <.>) ys
-        add2 xx@(x:xs) yy@(y:ys) = (x' <.> y <+> x <.> y') : add3 ys xs (xx <.> yy)
-        add3 (x:xs) (y:ys) (z:zs) = (x' <.> x <+> y <.> y' <+> z) : add3 xs ys zs
-        add3 [] ys zs = zipL (<.> y') ys zs
-        add3 xs [] zs = zipL (x' <.>) xs zs
-        add3 xs ys [] = go xs ys
-          where
-            go [] rs = map (<.> y') rs
-            go ls [] = map (x' <.>) ls
-            go (x:ls) (y:rs) = (x' <.> x <+> y' <.> y) : go ls rs
-        zipL f = go
-          where
-            go [] ys = ys
-            go xs [] = map f xs
-            go (x:xs) (y:ys) = (f x <+> y) : go xs ys
+        f x zs = foldr (g x) id ys (zero : zs)
+        g x y a (z:zs) = x <.> y <+> z : a zs
+        g x y a [] = x <.> y : a []
+    {-# SPECIALISE (<.>) :: [Int] -> [Int] -> [Int] #-}
+    {-# SPECIALISE (<+>) :: [Int] -> [Int] -> [Int] #-}
 
 instance StarSemiring a => StarSemiring [a] where
     star [] = one
     star (x:xs) = r where
-      r = [star x] <.> (one : (xs <.> r))
+      r = sx : map (sx <.>) (xs <.> r)
+      sx = star x
 
 instance DetectableZero a =>
          DetectableZero [a] where
