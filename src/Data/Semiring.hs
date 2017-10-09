@@ -376,15 +376,43 @@ instance Semiring a =>
     [] <+> ys = ys
     xs <+> [] = xs
     (x:xs) <+> (y:ys) = x <+> y : xs <+> ys
+    {-# INLINABLE (<+>) #-}
     xs <.> ys
       | null ys = []
       | otherwise = foldr f [] xs
       where
         f x zs = foldr (g x) id ys (zero : zs)
+        {-# INLINABLE f #-}
         g x y a (z:zs) = x <.> y <+> z : a zs
         g x y a [] = x <.> y : a []
-    {-# SPECIALISE (<.>) :: [Int] -> [Int] -> [Int] #-}
-    {-# SPECIALISE (<+>) :: [Int] -> [Int] -> [Int] #-}
+        {-# INLINEABLE g #-}
+    {-# INLINABLE (<.>) #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Double #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Float #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Int #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Word #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryContainer [] Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Double #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Float #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Int #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Word #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryContainer [] Word64 #-}
 
 instance StarSemiring a => StarSemiring [a] where
     star [] = one
