@@ -27,7 +27,9 @@ import           Foreign.Storable    (Storable, alignment, peek, peekByteOff,
 import           Data.Coerce
 import           Data.Monoid
 
-import Data.Semiring
+import           Data.Semiring
+
+import           Data.Semiring.Newtype
 
 -- | Adds negative infinity to a type. Useful for expressing detectable infinity
 -- in types like 'Integer', etc.
@@ -91,8 +93,9 @@ instance DetectableZero a =>
     (<+>) =
         (coerce :: CoerceBinary (PositiveInfinite (Add a)) (PositiveInfinite a))
             mappend
-    x <.> y | any isZero x || any isZero y = zero
-            | otherwise = liftA2 (<.>) x y
+    x <.> y
+      | any isZero x || any isZero y = zero
+      | otherwise = liftA2 (<.>) x y
     {-# INLINE zero #-}
     {-# INLINE one #-}
     {-# INLINE (<+>) #-}
@@ -180,25 +183,25 @@ instance HasNegativeInfinity (NegativeInfinite a) where
   {-# INLINE negativeInfinity #-}
   negativeInfinity = NegativeInfinity
   isNegativeInfinity NegativeInfinity = True
-  isNegativeInfinity _ = False
+  isNegativeInfinity _                = False
 
 instance HasPositiveInfinity (PositiveInfinite a) where
   {-# INLINE positiveInfinity #-}
   positiveInfinity = PositiveInfinity
   isPositiveInfinity PositiveInfinity = True
-  isPositiveInfinity _ = False
+  isPositiveInfinity _                = False
 
 instance HasNegativeInfinity (Infinite a) where
   {-# INLINE negativeInfinity #-}
   negativeInfinity = Negative
   isNegativeInfinity Negative = True
-  isNegativeInfinity _ = False
+  isNegativeInfinity _        = False
 
 instance HasPositiveInfinity (Infinite a) where
   {-# INLINE positiveInfinity #-}
   positiveInfinity = Positive
   isPositiveInfinity Positive = True
-  isPositiveInfinity _ = False
+  isPositiveInfinity _        = False
 
 instance (Enum a, Bounded a, Eq a) => Enum (NegativeInfinite a) where
   succ = foldr (const . pure . succ) (pure minBound)
@@ -285,8 +288,6 @@ instance Num a => Num (PositiveInfinite a) where
   signum = foldr (const . pure . signum) (-1)
   (-) = liftA2 (-)
 
-type CoerceBinary a b = (a -> a -> a) -> (b -> b -> b)
-
 instance Num a => Num (Infinite a) where
   fromInteger = Finite . fromInteger
   (+) = (coerce :: CoerceBinary (Infinite (Sum a)) (Infinite a)) mappend
@@ -298,7 +299,7 @@ instance Num a => Num (Infinite a) where
   negate Negative   = Positive
   negate (Finite x) = Finite (negate x)
   abs Negative = Positive
-  abs x = fmap abs x
+  abs x        = fmap abs x
 
 -- Adapted from https://www.schoolofhaskell.com/user/snoyberg/random-code-snippets/storable-instance-of-maybe
 instance Storable a => Storable (NegativeInfinite a) where

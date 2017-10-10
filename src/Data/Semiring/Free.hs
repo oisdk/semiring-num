@@ -8,13 +8,14 @@ module Data.Semiring.Free
   ,runFree)
   where
 
-import           Data.Coerce
 import           Data.Semiring
 
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 
 import           Numeric.Natural
+
+import           Data.Semiring.Newtype
 
 -- | The free semiring
 newtype Free a = Free
@@ -37,7 +38,7 @@ instance Ord a => Num (Free a) where
 
 -- | Run a 'Free'.
 runFree :: Semiring s => (a -> s) -> Free a -> s
-runFree f = getAdd .# Map.foldMapWithKey ((rep #. Add) . mul . map f) . getFree
+runFree f = getAdd #. Map.foldMapWithKey ((rep .# Add) . mul . map f) . getFree
 {-# INLINE runFree #-}
 
 -- | Run a 'Free', interpreting it in the underlying semiring.
@@ -45,19 +46,10 @@ lowerFree :: Semiring s => Free s -> s
 lowerFree = runFree id
 {-# INLINE lowerFree #-}
 
+-- | Create a 'Free' with one item.
 liftFree :: a -> Free a
 liftFree = Free . flip Map.singleton one . pure
 {-# INLINE liftFree #-}
-
-infixr 9 #.
-(#.) :: Coercible a b => (b -> c) -> (a -> b) -> a -> c
-(#.) f _ = coerce f
-{-# INLINE (#.) #-}
-
-infixr 9 .#
-(.#) :: Coercible b c => (b -> c) -> (a  -> b) -> a -> c
-(.#) _ = coerce
-{-# INLINE (.#) #-}
 
 instance Foldable Free where
     foldMap f (Free xs) = Map.foldMapWithKey (rep . foldMap f) xs

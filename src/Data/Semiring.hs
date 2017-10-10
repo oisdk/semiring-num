@@ -73,7 +73,6 @@ import Foreign.Storable (Storable)
 
 import Data.Semiring.TH
 import Data.Functor.Classes
-import Text.Read
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -92,10 +91,11 @@ import qualified Data.Vector.Unboxed as UnboxedVector
 import Numeric.Log hiding (sum)
 import qualified Numeric.Log
 
-import Control.Monad
 import Control.Applicative
 import Data.Foldable
 import Data.Traversable
+
+import Data.Semiring.Newtype
 
 -- $setup
 -- >>> import Data.Function
@@ -389,45 +389,44 @@ instance Semiring a =>
         g x y a [] = x <.> y : a []
         {-# INLINEABLE g #-}
     {-# INLINABLE (<.>) #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Double #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Float #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Int #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Bool #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Word #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer [] Word64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Double #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Float #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Int #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Bool #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Word #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer [] Word64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word64 #-}
 
 instance StarSemiring a => StarSemiring [a] where
     star [] = one
     star (x:xs) = r where
-      r = sx : map (sx <.>) (xs <.> r)
-      sx = star x
+      r = xst : map (xst <.>) (xs <.> r)
+      xst = star x
+    {-# SPECIALISE star :: [Bool] -> [Bool] #-}
 
 instance DetectableZero a =>
          DetectableZero [a] where
     isZero = all isZero
     {-# INLINE isZero #-}
-
-type BinaryContainer c a = c a -> c a -> c a
 
 instance Semiring a =>
          Semiring (Vector.Vector a) where
@@ -456,32 +455,32 @@ instance Semiring a =>
             kmax = min n (slen - 1)
         slen = Vector.length signal
         klen = Vector.length kernel
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Double #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Float #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Bool #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer Vector.Vector Word64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Double #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Float #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Bool #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer Vector.Vector Word64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word64 #-}
 
 instance DetectableZero a => DetectableZero (Vector.Vector a) where
     isZero = Vector.all isZero
@@ -513,32 +512,32 @@ instance (UnboxedVector.Unbox a, Semiring a) =>
             kmax = min n (slen - 1)
         slen = UnboxedVector.length signal
         klen = UnboxedVector.length kernel
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Double #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Float #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Bool #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer UnboxedVector.Vector Word64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Double #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Float #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Bool #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer UnboxedVector.Vector Word64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word64 #-}
 
 instance (UnboxedVector.Unbox a, DetectableZero a) => DetectableZero (UnboxedVector.Vector a) where
     isZero = UnboxedVector.all isZero
@@ -573,32 +572,32 @@ instance (StorableVector.Storable a, Semiring a) =>
             kmax = min n (slen - 1)
         slen = StorableVector.length signal
         klen = StorableVector.length kernel
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Double #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Float #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Bool #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryContainer StorableVector.Vector Word64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Double #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Float #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Bool #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryContainer StorableVector.Vector Word64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word64 #-}
 
 instance (StorableVector.Storable a, DetectableZero a) => DetectableZero (StorableVector.Vector a) where
     isZero = StorableVector.all isZero
@@ -681,46 +680,10 @@ instance (Precise a, RealFloat a) => DetectableZero (Log a) where
     isZero = isZeroEq
     {-# INLINE isZero #-}
 
---------------------------------------------------------------------------------
--- Newtype utilities
---------------------------------------------------------------------------------
-
-showsNewtype
-    :: Coercible b a
-    => String
-    -> String
-    -> (Int -> a -> ShowS)
-    -> ([a] -> ShowS)
-    -> Int
-    -> b
-    -> ShowS
-showsNewtype cons acc = s
-  where
-    s sp _ n x =
-        showParen (n > 10) $
-        showString cons .
-        showString " {" .
-        showString acc . showString " =" . sp 0 (coerce x) . showChar '}'
-
-readsNewtype
-    :: Coercible a b
-    => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
-readsNewtype cons acc = r where
-    r rp _ = readPrec_to_S $ prec 10 $ do
-        Ident c <- lexP
-        guard (c == cons)
-        Punc "{" <- lexP
-        Ident a <- lexP
-        guard (a == acc)
-        Punc "=" <- lexP
-        x <- prec 0 $ readS_to_Prec rp
-        Punc "}" <- lexP
-        pure (coerce x)
 
 --------------------------------------------------------------------------------
 -- Addition and multiplication newtypes
 --------------------------------------------------------------------------------
-type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
 
 -- | Monoid under '<+>'. Analogous to 'Data.Monoid.Sum', but uses the
 -- 'Semiring' constraint, rather than 'Num'.
@@ -880,10 +843,6 @@ cols :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
 cols = foldr (foldr f (const [])) (repeat []) . getMatrix where
   f e a (x:xs) = (e:x) : a xs
   f _ _ [] = []
-
-infixr 9 #.
-(#.) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c
-(#.) _ = coerce
 
 instance (Show1 f, Show1 g) =>
          Show1 (Matrix f g) where

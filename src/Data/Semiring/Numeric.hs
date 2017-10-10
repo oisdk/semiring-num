@@ -22,8 +22,6 @@ module Data.Semiring.Numeric
   ) where
 
 import           Data.Coerce
-import           Text.Read
-import           Control.Monad
 
 import           Data.Semiring
 
@@ -32,9 +30,7 @@ import           Data.Typeable    (Typeable)
 import           Foreign.Storable (Storable)
 import           Data.Functor.Classes
 
-
-
-type WrapBinary f a = (a -> a -> a) -> f a -> f a -> f a
+import           Data.Semiring.Newtype
 
 -- | Useful for some constraint problems.
 --
@@ -280,25 +276,3 @@ instance Show1 PosInt where
 
 instance Read1 PosInt where
     liftReadsPrec = readsNewtype "PosInt" "getPosInt"
-
-showsNewtype :: Coercible b a => String -> String -> (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> b -> ShowS
-showsNewtype cons acc = s
-  where
-    s sp _ n x =
-        showParen (n > 10) $
-        showString cons .
-        showString " {" .
-        showString acc . showString " =" . sp 0 (coerce x) . showChar '}'
-
-readsNewtype :: Coercible a b => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
-readsNewtype cons acc = r where
-    r rp _ = readPrec_to_S $ prec 10 $ do
-        Ident c <- lexP
-        guard (c == cons)
-        Punc "{" <- lexP
-        Ident a <- lexP
-        guard (a == acc)
-        Punc "=" <- lexP
-        x <- prec 0 $ readS_to_Prec rp
-        Punc "}" <- lexP
-        pure (coerce x)
