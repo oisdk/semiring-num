@@ -40,7 +40,9 @@ module Data.Semiring
    -- * Matrix wrapper
    Matrix(..)
   ,transpose
-  ,mulMatrix)
+  ,mulMatrix
+  ,rows
+  ,cols)
   where
 
 import Data.Functor.Identity (Identity(..))
@@ -870,6 +872,14 @@ mulMatrix (Matrix xs) (Matrix ys) =
         (fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) c) xs)
   where
     c = sequenceA ys
+
+rows :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
+rows = foldr ((:) . toList) [] . getMatrix
+
+cols :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
+cols = foldr (foldr f (const [])) (repeat []) . getMatrix where
+  f e a (x:xs) = (e:x) : a xs
+  f _ _ [] = []
 
 infixr 9 #.
 (#.) :: Coercible b c => (b -> c) -> (a -> b) -> a -> c
