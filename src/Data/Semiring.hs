@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveFoldable #-}
@@ -96,6 +97,8 @@ import Data.Foldable
 import Data.Traversable
 
 import Data.Semiring.Newtype
+import GHC.Base (build)
+
 
 -- $setup
 -- >>> import Data.Function
@@ -371,50 +374,141 @@ instance StarSemiring () where
 -- where the /i/th element is the coefficient of /x^i/. This is the
 -- semiring for such a list. Adapted from
 -- <https://pdfs.semanticscholar.org/702d/348c32133997e992db362a19697d5607ab32.pdf here>.
+
+-- Effort is made to allow some of these functions to fuse. The reference
+-- implementation is:
+--
+-- @
+-- one = [one]
+-- zero = []
+-- [] <+> ys = ys
+-- xs <+> [] = xs
+-- (x:xs) <+> (y:ys) = x <+> y : (xs <+> ys)
+-- _ <.> [] = []
+-- xs <.> ys = foldr f [] xs where
+--   f x zs = map (x<.>) ys <+> (zero : zs)
+-- @
 instance Semiring a =>
          Semiring [a] where
     one = [one]
     zero = []
-    [] <+> ys = ys
-    xs <+> [] = xs
-    (x:xs) <+> (y:ys) = x <+> y : xs <+> ys
-    {-# INLINABLE (<+>) #-}
+    (<+>) = listAdd
     xs <.> ys
       | null ys = []
       | otherwise = foldr f [] xs
       where
         f x zs = foldr (g x) id ys (zero : zs)
-        {-# INLINABLE f #-}
         g x y a (z:zs) = x <.> y <+> z : a zs
         g x y a [] = x <.> y : a []
-        {-# INLINEABLE g #-}
-    {-# INLINABLE (<.>) #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Float #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Bool #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word64 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Float #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Bool #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word64 #-}
+    {-# INLINE (<+>) #-}
+    {-# INLINE (<.>) #-}
+    {-# INLINE one #-}
+    {-# INLINE zero #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int8 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int16 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int32 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int64 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word8 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word16 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word32 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word64 #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Integer #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Double #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Float #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Natural #-}
+    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Bool #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int8 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int16 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int32 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int64 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word8 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word16 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word32 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word64 #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Integer #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Double #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Float #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Natural #-}
+    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Bool #-}
+
+
+listAdd :: Semiring a => [a] -> [a] -> [a]
+listAdd [] ys = ys
+listAdd xs [] = xs
+listAdd (x:xs) (y:ys) = (x <+> y) : listAdd xs ys
+{-# NOINLINE [0] listAdd #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Int #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Int8 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Int16 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Int32 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Int64 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Word #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Word8 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Word16 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Word32 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Word64 #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Integer #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Double #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Float #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Natural #-}
+{-# SPECIALIZE listAdd :: BinaryWrapped [] Bool #-}
+
+-- a definition of addition which can be fused on its left argument
+listAddFBL :: Semiring a => ListBuilder a -> [a] -> [a]
+listAddFBL xf = xf f id  where
+  f x xs (y:ys) = x <+> y : xs ys
+  f x xs [] = x : xs []
+
+type FBL a = ListBuilder a -> [a] -> [a]
+{-# SPECIALIZE listAddFBL :: FBL Int #-}
+{-# SPECIALIZE listAddFBL :: FBL Int8 #-}
+{-# SPECIALIZE listAddFBL :: FBL Int16 #-}
+{-# SPECIALIZE listAddFBL :: FBL Int32 #-}
+{-# SPECIALIZE listAddFBL :: FBL Int64 #-}
+{-# SPECIALIZE listAddFBL :: FBL Word #-}
+{-# SPECIALIZE listAddFBL :: FBL Word8 #-}
+{-# SPECIALIZE listAddFBL :: FBL Word16 #-}
+{-# SPECIALIZE listAddFBL :: FBL Word32 #-}
+{-# SPECIALIZE listAddFBL :: FBL Word64 #-}
+{-# SPECIALIZE listAddFBL :: FBL Integer #-}
+{-# SPECIALIZE listAddFBL :: FBL Double #-}
+{-# SPECIALIZE listAddFBL :: FBL Float #-}
+{-# SPECIALIZE listAddFBL :: FBL Natural #-}
+{-# SPECIALIZE listAddFBL :: FBL Bool #-}
+
+-- a definition of addition which can be fused on its right argument
+listAddFBR :: Semiring a => [a] -> ListBuilder a -> [a]
+listAddFBR xs' yf = yf f id xs' where
+  f y ys (x:xs) = x <+> y : ys xs
+  f y ys [] = y : ys []
+
+type FBR a = [a] -> ListBuilder a -> [a]
+{-# SPECIALIZE listAddFBR :: FBR Int #-}
+{-# SPECIALIZE listAddFBR :: FBR Int8 #-}
+{-# SPECIALIZE listAddFBR :: FBR Int16 #-}
+{-# SPECIALIZE listAddFBR :: FBR Int32 #-}
+{-# SPECIALIZE listAddFBR :: FBR Int64 #-}
+{-# SPECIALIZE listAddFBR :: FBR Word #-}
+{-# SPECIALIZE listAddFBR :: FBR Word8 #-}
+{-# SPECIALIZE listAddFBR :: FBR Word16 #-}
+{-# SPECIALIZE listAddFBR :: FBR Word32 #-}
+{-# SPECIALIZE listAddFBR :: FBR Word64 #-}
+{-# SPECIALIZE listAddFBR :: FBR Integer #-}
+{-# SPECIALIZE listAddFBR :: FBR Double #-}
+{-# SPECIALIZE listAddFBR :: FBR Float #-}
+{-# SPECIALIZE listAddFBR :: FBR Natural #-}
+{-# SPECIALIZE listAddFBR :: FBR Bool #-}
+
+type ListBuilder a = forall b. (a -> b -> b) -> b -> b
+
+{-# RULES
+"listAddFB/left"  forall (g :: ListBuilder a). listAdd (build g) = listAddFBL g
+"listAddFB/right" forall xs (g :: ListBuilder a). listAdd xs (build g) = listAddFBR xs g
+  #-}
 
 instance StarSemiring a => StarSemiring [a] where
     star [] = one
