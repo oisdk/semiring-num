@@ -374,7 +374,7 @@ instance StarSemiring () where
 -- where the /i/th element is the coefficient of /x^i/. This is the
 -- semiring for such a list. Adapted from
 -- <https://pdfs.semanticscholar.org/702d/348c32133997e992db362a19697d5607ab32.pdf here>.
-
+--
 -- Effort is made to allow some of these functions to fuse. The reference
 -- implementation is:
 --
