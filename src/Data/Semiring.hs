@@ -553,10 +553,10 @@ instance Semiring a =>
                 zero
                 [kmin .. kmax]
           where
-            kmin = max 0 (n - (klen - 1))
-            kmax = min n (slen - 1)
-        slen = Vector.length signal
-        klen = Vector.length kernel
+            !kmin = max 0 (n - (klen - 1))
+            !kmax = min n (slen - 1)
+        !slen = Vector.length signal
+        !klen = Vector.length kernel
     {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Double #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Float #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int #-}
