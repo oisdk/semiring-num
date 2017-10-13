@@ -379,14 +379,14 @@ instance StarSemiring () where
 -- implementation is:
 --
 -- @
--- one = [one]
--- zero = []
--- [] <+> ys = ys
--- xs <+> [] = xs
--- (x:xs) <+> (y:ys) = x <+> y : (xs <+> ys)
--- _ <.> [] = []
--- xs <.> ys = foldr f [] xs where
---   f x zs = map (x<.>) ys <+> (zero : zs)
+-- 'one' = ['one']
+-- 'zero' = []
+-- [] '<+>' ys = ys
+-- xs '<+>' [] = xs
+-- (x:xs) '<+>' (y:ys) = x '<+>' y : (xs '<+>' ys)
+-- _ '<.>' [] = []
+-- xs '<.>' ys = 'foldr' f [] xs where
+--   f x zs = 'map' (x '<.>') ys '<+>' ('zero' : zs)
 -- @
 instance Semiring a =>
          Semiring [a] where
@@ -404,36 +404,36 @@ instance Semiring a =>
     {-# INLINE (<.>) #-}
     {-# INLINE one #-}
     {-# INLINE zero #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int8 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int16 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int32 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Int64 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word8 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word16 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word32 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Word64 #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Integer #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Double #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Float #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Natural #-}
-    {-# SPECIALIZE (<.>) :: BinaryWrapped [] Bool #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int8 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int16 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int32 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Int64 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word8 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word16 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word32 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Word64 #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Integer #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Double #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Float #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Natural #-}
-    {-# SPECIALIZE (<+>) :: BinaryWrapped [] Bool #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word8 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word16 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word32 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word64 #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Integer #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Natural #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped [] Bool #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word8 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word16 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word32 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word64 #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Integer #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Natural #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped [] Bool #-}
 
 
 listAdd :: Semiring a => [a] -> [a] -> [a]
@@ -441,21 +441,21 @@ listAdd [] ys = ys
 listAdd xs [] = xs
 listAdd (x:xs) (y:ys) = (x <+> y) : listAdd xs ys
 {-# NOINLINE [0] listAdd #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Int #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Int8 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Int16 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Int32 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Int64 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Word #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Word8 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Word16 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Word32 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Word64 #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Integer #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Double #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Float #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Natural #-}
-{-# SPECIALIZE listAdd :: BinaryWrapped [] Bool #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Int #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Int8 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Int16 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Int32 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Int64 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Word #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Word8 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Word16 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Word32 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Word64 #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Integer #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Double #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Float #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Natural #-}
+{-# SPECIALISE listAdd :: BinaryWrapped [] Bool #-}
 
 -- a definition of addition which can be fused on its left argument
 listAddFBL :: Semiring a => ListBuilder a -> [a] -> [a]
@@ -464,21 +464,21 @@ listAddFBL xf = xf f id  where
   f x xs [] = x : xs []
 
 type FBL a = ListBuilder a -> [a] -> [a]
-{-# SPECIALIZE listAddFBL :: FBL Int #-}
-{-# SPECIALIZE listAddFBL :: FBL Int8 #-}
-{-# SPECIALIZE listAddFBL :: FBL Int16 #-}
-{-# SPECIALIZE listAddFBL :: FBL Int32 #-}
-{-# SPECIALIZE listAddFBL :: FBL Int64 #-}
-{-# SPECIALIZE listAddFBL :: FBL Word #-}
-{-# SPECIALIZE listAddFBL :: FBL Word8 #-}
-{-# SPECIALIZE listAddFBL :: FBL Word16 #-}
-{-# SPECIALIZE listAddFBL :: FBL Word32 #-}
-{-# SPECIALIZE listAddFBL :: FBL Word64 #-}
-{-# SPECIALIZE listAddFBL :: FBL Integer #-}
-{-# SPECIALIZE listAddFBL :: FBL Double #-}
-{-# SPECIALIZE listAddFBL :: FBL Float #-}
-{-# SPECIALIZE listAddFBL :: FBL Natural #-}
-{-# SPECIALIZE listAddFBL :: FBL Bool #-}
+{-# SPECIALISE listAddFBL :: FBL Int #-}
+{-# SPECIALISE listAddFBL :: FBL Int8 #-}
+{-# SPECIALISE listAddFBL :: FBL Int16 #-}
+{-# SPECIALISE listAddFBL :: FBL Int32 #-}
+{-# SPECIALISE listAddFBL :: FBL Int64 #-}
+{-# SPECIALISE listAddFBL :: FBL Word #-}
+{-# SPECIALISE listAddFBL :: FBL Word8 #-}
+{-# SPECIALISE listAddFBL :: FBL Word16 #-}
+{-# SPECIALISE listAddFBL :: FBL Word32 #-}
+{-# SPECIALISE listAddFBL :: FBL Word64 #-}
+{-# SPECIALISE listAddFBL :: FBL Integer #-}
+{-# SPECIALISE listAddFBL :: FBL Double #-}
+{-# SPECIALISE listAddFBL :: FBL Float #-}
+{-# SPECIALISE listAddFBL :: FBL Natural #-}
+{-# SPECIALISE listAddFBL :: FBL Bool #-}
 
 -- a definition of addition which can be fused on its right argument
 listAddFBR :: Semiring a => [a] -> ListBuilder a -> [a]
@@ -487,21 +487,21 @@ listAddFBR xs' yf = yf f id xs' where
   f y ys [] = y : ys []
 
 type FBR a = [a] -> ListBuilder a -> [a]
-{-# SPECIALIZE listAddFBR :: FBR Int #-}
-{-# SPECIALIZE listAddFBR :: FBR Int8 #-}
-{-# SPECIALIZE listAddFBR :: FBR Int16 #-}
-{-# SPECIALIZE listAddFBR :: FBR Int32 #-}
-{-# SPECIALIZE listAddFBR :: FBR Int64 #-}
-{-# SPECIALIZE listAddFBR :: FBR Word #-}
-{-# SPECIALIZE listAddFBR :: FBR Word8 #-}
-{-# SPECIALIZE listAddFBR :: FBR Word16 #-}
-{-# SPECIALIZE listAddFBR :: FBR Word32 #-}
-{-# SPECIALIZE listAddFBR :: FBR Word64 #-}
-{-# SPECIALIZE listAddFBR :: FBR Integer #-}
-{-# SPECIALIZE listAddFBR :: FBR Double #-}
-{-# SPECIALIZE listAddFBR :: FBR Float #-}
-{-# SPECIALIZE listAddFBR :: FBR Natural #-}
-{-# SPECIALIZE listAddFBR :: FBR Bool #-}
+{-# SPECIALISE listAddFBR :: FBR Int #-}
+{-# SPECIALISE listAddFBR :: FBR Int8 #-}
+{-# SPECIALISE listAddFBR :: FBR Int16 #-}
+{-# SPECIALISE listAddFBR :: FBR Int32 #-}
+{-# SPECIALISE listAddFBR :: FBR Int64 #-}
+{-# SPECIALISE listAddFBR :: FBR Word #-}
+{-# SPECIALISE listAddFBR :: FBR Word8 #-}
+{-# SPECIALISE listAddFBR :: FBR Word16 #-}
+{-# SPECIALISE listAddFBR :: FBR Word32 #-}
+{-# SPECIALISE listAddFBR :: FBR Word64 #-}
+{-# SPECIALISE listAddFBR :: FBR Integer #-}
+{-# SPECIALISE listAddFBR :: FBR Double #-}
+{-# SPECIALISE listAddFBR :: FBR Float #-}
+{-# SPECIALISE listAddFBR :: FBR Natural #-}
+{-# SPECIALISE listAddFBR :: FBR Bool #-}
 
 type ListBuilder a = forall b. (a -> b -> b) -> b -> b
 
@@ -516,6 +516,14 @@ instance StarSemiring a => StarSemiring [a] where
       r = xst : map (xst <.>) (xs <.> r)
       xst = star x
     {-# SPECIALISE star :: [Bool] -> [Bool] #-}
+    {-# SPECIALISE star :: [Min Double]  -> [Min Double] #-}
+    {-# SPECIALISE star :: [Min Float]   -> [Min Float] #-}
+    {-# SPECIALISE star :: [Min CDouble] -> [Min CDouble] #-}
+    {-# SPECIALISE star :: [Min CFloat]  -> [Min CFloat] #-}
+    {-# SPECIALISE star :: [Max Double]  -> [Max Double] #-}
+    {-# SPECIALISE star :: [Max Float]   -> [Max Float] #-}
+    {-# SPECIALISE star :: [Max CDouble] -> [Max CDouble] #-}
+    {-# SPECIALISE star :: [Max CFloat]  -> [Max CFloat] #-}
 
 instance DetectableZero a =>
          DetectableZero [a] where
@@ -770,6 +778,11 @@ instance (Precise a, RealFloat a) => Semiring (Log a) where
     add = Numeric.Log.sum
     {-# INLINE add #-}
 
+    {-# SPECIALISE (<.>) :: BinaryWrapped Log Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Log Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Log Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Log Float #-}
+
 instance (Precise a, RealFloat a) => DetectableZero (Log a) where
     isZero = isZeroEq
     {-# INLINE isZero #-}
@@ -930,9 +943,11 @@ mulMatrix (Matrix xs) (Matrix ys) =
   where
     c = sequenceA ys
 
+-- | Convert the matrix to a nested list, in row-major form.
 rows :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
 rows = foldr ((:) . toList) [] . getMatrix
 
+-- | Convert the matrix to a nested list, in column-major form.
 cols :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
 cols = foldr (foldr f (const [])) (repeat []) . getMatrix where
   f e a (x:xs) = (e:x) : a xs
@@ -1032,60 +1047,86 @@ newtype Max a = Max
 
 instance Eq1 Max where
     liftEq = coerce
+    {-# INLINE liftEq #-}
 
 instance Ord1 Max where
     liftCompare = coerce
+    {-# INLINE liftCompare #-}
 
 instance Show1 Max where
     liftShowsPrec = showsNewtype "Max" "getMax"
+    {-# INLINE liftShowsPrec #-}
 
 instance Read1 Max where
     liftReadsPrec = readsNewtype "Max" "getMax"
+    {-# INLINE liftReadsPrec #-}
 
 instance Eq1 Min where
     liftEq = coerce
+    {-# INLINE liftEq #-}
 
 instance Ord1 Min where
     liftCompare = coerce
+    {-# INLINE liftCompare #-}
 
 instance Show1 Min where
     liftShowsPrec = showsNewtype "Min" "getMin"
+    {-# INLINE liftShowsPrec #-}
 
 instance Read1 Min where
     liftReadsPrec = readsNewtype "Min" "getMin"
+    {-# INLINE liftReadsPrec #-}
 
 instance Ord a =>
          Semigroup (Max a) where
     (<>) = (coerce :: WrapBinary Max a) max
     {-# INLINE (<>) #-}
+    stimes = stimesIdempotent
+    {-# SPECIALISE (<>) :: BinaryWrapped Max Double #-}
+    {-# SPECIALISE (<>) :: BinaryWrapped Max Float #-}
+    {-# SPECIALISE (<>) :: BinaryWrapped Max CDouble #-}
+    {-# SPECIALISE (<>) :: BinaryWrapped Max CFloat #-}
 
 instance Ord a =>
          Semigroup (Min a) where
     (<>) = (coerce :: WrapBinary Min a) min
     {-# INLINE (<>) #-}
+    stimes = stimesIdempotent
+    {-# SPECIALISE (<>) :: BinaryWrapped Min Double #-}
+    {-# SPECIALISE (<>) :: BinaryWrapped Min Float #-}
+    {-# SPECIALISE (<>) :: BinaryWrapped Min CDouble #-}
+    {-# SPECIALISE (<>) :: BinaryWrapped Min CFloat #-}
 
 -- | >>> (getMax . foldMap Max) [1..10]
 -- 10.0
 instance (Ord a, HasNegativeInfinity a) =>
          Monoid (Max a) where
     mempty = Max negativeInfinity
-    mappend = (<>)
+    mappend = (coerce :: WrapBinary Max a) max
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Max Double #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Max Float #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Max CDouble #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Max CFloat #-}
 
 -- | >>> (getMin . foldMap Min) [1..10]
 -- 1.0
 instance (Ord a, HasPositiveInfinity a) =>
          Monoid (Min a) where
     mempty = Min positiveInfinity
-    mappend = (<>)
+    mappend = (coerce :: WrapBinary Min a) min
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Min Double #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Min Float #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Min CDouble #-}
+    {-# SPECIALISE mappend :: BinaryWrapped Min CFloat #-}
 
 instance (Semiring a, Ord a, HasNegativeInfinity a) =>
          Semiring (Max a) where
-    (<+>) = mappend
-    zero = mempty
+    (<+>) = (coerce :: WrapBinary Max a) max
+    zero = Max negativeInfinity
     (<.>) = (coerce :: WrapBinary Max a) (<+>)
     one = Max zero
     {-# INLINE zero #-}
@@ -1093,28 +1134,69 @@ instance (Semiring a, Ord a, HasNegativeInfinity a) =>
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
 
+    {-# SPECIALISE (<+>) :: BinaryWrapped Max Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Max Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Max CDouble #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Max CFloat #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Max Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Max Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Max CDouble #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Max CFloat #-}
+    {-# SPECIALISE one   :: Max Double #-}
+    {-# SPECIALISE one   :: Max Float #-}
+    {-# SPECIALISE one   :: Max CDouble #-}
+    {-# SPECIALISE one   :: Max CFloat #-}
+    {-# SPECIALISE zero  :: Max Double #-}
+    {-# SPECIALISE zero  :: Max Float #-}
+    {-# SPECIALISE zero  :: Max CDouble #-}
+    {-# SPECIALISE zero  :: Max CFloat #-}
+
 instance (Semiring a, Ord a, HasPositiveInfinity a) =>
          Semiring (Min a) where
-    (<+>) = mappend
-    zero = mempty
+    (<+>) = (coerce :: WrapBinary Min a) min
+    zero = Min positiveInfinity
     (<.>) = (coerce :: WrapBinary Min a) (<+>)
     one = Min zero
     {-# INLINE zero #-}
     {-# INLINE one #-}
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Min Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Min Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Min CDouble #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped Min CFloat #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Min Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Min Float #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Min CDouble #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped Min CFloat #-}
+    {-# SPECIALISE one   :: Min Double #-}
+    {-# SPECIALISE one   :: Min Float #-}
+    {-# SPECIALISE one   :: Min CDouble #-}
+    {-# SPECIALISE one   :: Min CFloat #-}
+    {-# SPECIALISE zero  :: Min Double #-}
+    {-# SPECIALISE zero  :: Min Float #-}
+    {-# SPECIALISE zero  :: Min CDouble #-}
+    {-# SPECIALISE zero  :: Min CFloat #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
          StarSemiring (Max a) where
     star (Max x)
       | x > zero = Max positiveInfinity
       | otherwise = Max zero
+    {-# SPECIALISE star :: Max Double  -> Max Double  #-}
+    {-# SPECIALISE star :: Max Float   -> Max Float   #-}
+    {-# SPECIALISE star :: Max CDouble -> Max CDouble #-}
+    {-# SPECIALISE star :: Max CFloat  -> Max CFloat  #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
          StarSemiring (Min a) where
     star (Min x)
       | x < zero = Min negativeInfinity
       | otherwise = Min zero
+    {-# SPECIALISE star :: Min Double  -> Min Double  #-}
+    {-# SPECIALISE star :: Min Float   -> Min Float   #-}
+    {-# SPECIALISE star :: Min CDouble -> Min CDouble #-}
+    {-# SPECIALISE star :: Min CFloat  -> Min CFloat  #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a) =>
          DetectableZero (Min a) where
