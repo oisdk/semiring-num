@@ -37,6 +37,13 @@ test-suite semiring-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
+  other-modules:       Func
+                     , CompUtils
+                     , Orphans
+                     , ApproxLog
+                     , Fraction
+                     , Vectors
+                     , LimitSize
   build-depends:       base >=4.9 && <5
                      , semiring-num
                      , smallcheck >=0.2.1

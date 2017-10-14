@@ -787,7 +787,6 @@ instance (Precise a, RealFloat a) => DetectableZero (Log a) where
     isZero = isZeroEq
     {-# INLINE isZero #-}
 
-
 --------------------------------------------------------------------------------
 -- Addition and multiplication newtypes
 --------------------------------------------------------------------------------
