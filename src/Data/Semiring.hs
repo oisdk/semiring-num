@@ -1,14 +1,14 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DeriveFoldable             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 {-|
 Module: Data.Semiring
@@ -46,58 +46,59 @@ module Data.Semiring
   ,cols)
   where
 
-import Data.Functor.Identity (Identity(..))
-import Data.Complex (Complex)
-import Data.Fixed (Fixed, HasResolution)
-import Data.Ratio (Ratio)
-import Numeric.Natural (Natural)
-import Data.Int (Int16, Int32, Int64, Int8)
-import Data.Word (Word16, Word32, Word64, Word8)
-import Foreign.C.Types
-       (CChar, CClock, CDouble, CFloat, CInt, CIntMax, CIntPtr, CLLong,
-        CLong, CPtrdiff, CSChar, CSUSeconds, CShort, CSigAtomic, CSize,
-        CTime, CUChar, CUInt, CUIntMax, CUIntPtr, CULLong, CULong,
-        CUSeconds, CUShort, CWchar)
-import Foreign.Ptr (IntPtr, WordPtr)
-import System.Posix.Types
-       (CCc, CDev, CGid, CIno, CMode, CNlink, COff, CPid, CRLim, CSpeed,
-        CSsize, CTcflag, CUid, Fd)
-import Data.Scientific(Scientific)
-import Data.Time.Clock(DiffTime,NominalDiffTime)
+import           Data.Complex          (Complex)
+import           Data.Fixed            (Fixed, HasResolution)
+import           Data.Functor.Identity (Identity (..))
+import           Data.Int              (Int16, Int32, Int64, Int8)
+import           Data.Ratio            (Ratio)
+import           Data.Scientific       (Scientific)
+import           Data.Time.Clock       (DiffTime, NominalDiffTime)
+import           Data.Word             (Word16, Word32, Word64, Word8)
+import           Foreign.C.Types       (CChar, CClock, CDouble, CFloat, CInt,
+                                        CIntMax, CIntPtr, CLLong, CLong,
+                                        CPtrdiff, CSChar, CSUSeconds, CShort,
+                                        CSigAtomic, CSize, CTime, CUChar, CUInt,
+                                        CUIntMax, CUIntPtr, CULLong, CULong,
+                                        CUSeconds, CUShort, CWchar)
+import           Foreign.Ptr           (IntPtr, WordPtr)
+import           Numeric.Natural       (Natural)
+import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
+                                        COff, CPid, CRLim, CSpeed, CSsize,
+                                        CTcflag, CUid, Fd)
 
-import Data.Semigroup hiding (Max(..), Min(..))
+import           Data.Semigroup        hiding (Max (..), Min (..))
 
-import Data.Coerce
-import GHC.Generics (Generic, Generic1)
-import Data.Typeable (Typeable)
-import Foreign.Storable (Storable)
+import           Data.Coerce
+import           Data.Typeable         (Typeable)
+import           Foreign.Storable      (Storable)
+import           GHC.Generics          (Generic, Generic1)
 
-import Data.Semiring.TH
-import Data.Functor.Classes
+import           Data.Functor.Classes
+import           Data.Semiring.TH
 
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import           Data.Map.Strict       (Map)
+import qualified Data.Map.Strict       as Map
 
-import Data.Set (Set)
-import qualified Data.Set as Set
+import           Data.Set              (Set)
+import qualified Data.Set              as Set
 
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.HashSet as HashSet
-import Data.Hashable
+import           Data.Hashable
+import qualified Data.HashMap.Strict   as HashMap
+import qualified Data.HashSet          as HashSet
 
-import qualified Data.Vector as Vector
-import qualified Data.Vector.Storable as StorableVector
-import qualified Data.Vector.Unboxed as UnboxedVector
+import qualified Data.Vector           as Vector
+import qualified Data.Vector.Storable  as StorableVector
+import qualified Data.Vector.Unboxed   as UnboxedVector
 
-import Numeric.Log hiding (sum)
+import           Numeric.Log           hiding (sum)
 import qualified Numeric.Log
 
-import Control.Applicative
-import Data.Foldable
-import Data.Traversable
+import           Control.Applicative
+import           Data.Foldable
+import           Data.Traversable
 
-import Data.Semiring.Newtype
-import GHC.Base (build)
+import           Data.Semiring.Newtype
+import           GHC.Base              (build)
 
 
 -- $setup
@@ -399,7 +400,7 @@ instance Semiring a =>
       where
         f x zs = foldr (g x) id ys (zero : zs)
         g x y a (z:zs) = x <.> y <+> z : a zs
-        g x y a [] = x <.> y : a []
+        g x y a []     = x <.> y : a []
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
     {-# INLINE one #-}
@@ -437,8 +438,8 @@ instance Semiring a =>
 
 
 listAdd :: Semiring a => [a] -> [a] -> [a]
-listAdd [] ys = ys
-listAdd xs [] = xs
+listAdd [] ys         = ys
+listAdd xs []         = xs
 listAdd (x:xs) (y:ys) = (x <+> y) : listAdd xs ys
 {-# NOINLINE [0] listAdd #-}
 {-# SPECIALISE listAdd :: BinaryWrapped [] Int #-}
@@ -461,7 +462,7 @@ listAdd (x:xs) (y:ys) = (x <+> y) : listAdd xs ys
 listAddFBL :: Semiring a => ListBuilder a -> [a] -> [a]
 listAddFBL xf = xf f id  where
   f x xs (y:ys) = x <+> y : xs ys
-  f x xs [] = x : xs []
+  f x xs []     = x : xs []
 
 type FBL a = ListBuilder a -> [a] -> [a]
 {-# SPECIALISE listAddFBL :: FBL Int #-}
@@ -484,7 +485,7 @@ type FBL a = ListBuilder a -> [a] -> [a]
 listAddFBR :: Semiring a => [a] -> ListBuilder a -> [a]
 listAddFBR xs' yf = yf f id xs' where
   f y ys (x:xs) = x <+> y : ys xs
-  f y ys [] = y : ys []
+  f y ys []     = y : ys []
 
 type FBR a = [a] -> ListBuilder a -> [a]
 {-# SPECIALISE listAddFBR :: FBR Int #-}
@@ -948,7 +949,7 @@ rows = foldr ((:) . toList) [] . getMatrix
 cols :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
 cols = foldr (foldr f (const [])) (repeat []) . getMatrix where
   f e a (x:xs) = (e:x) : a xs
-  f _ _ [] = []
+  f _ _ []     = []
 
 instance (Show1 f, Show1 g) =>
          Show1 (Matrix f g) where
