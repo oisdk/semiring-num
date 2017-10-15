@@ -786,7 +786,6 @@ instance (Precise a, RealFloat a) => Semiring (Log a) where
 instance (Precise a, RealFloat a) => DetectableZero (Log a) where
     isZero = isZeroEq
     {-# INLINE isZero #-}
-
 --------------------------------------------------------------------------------
 -- Addition and multiplication newtypes
 --------------------------------------------------------------------------------
@@ -913,7 +912,7 @@ instance (Applicative f, Applicative g) =>
 
 instance (Traversable f, Applicative f, Semiring a, f ~ g) =>
          Semiring (Matrix f g a) where
-    (<.>) = mulMatrix
+    (<.>) = (coerce :: Binary (f (g a)) -> Binary (Matrix f g a)) mulMatrix
     (<+>) = liftA2 (<+>)
     zero = pure zero
     one =
@@ -934,13 +933,12 @@ transpose (Matrix xs) = Matrix (sequenceA xs)
 
 -- | Multiply two matrices.
 mulMatrix
-    :: (Applicative f, Traversable g, Applicative g, Semiring a)
-    => Matrix f g a -> Matrix g f a -> Matrix f f a
-mulMatrix (Matrix xs) (Matrix ys) =
-    Matrix
-        (fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) c) xs)
+    :: (Applicative n, Traversable m, Applicative m, Applicative p, Semiring a)
+    => n (m a) -> m (p a) -> n (p a)
+mulMatrix xs ys = fmap (\row -> fmap (addFoldable . liftA2 (<.>) row) cs) xs
   where
-    c = sequenceA ys
+    cs = sequenceA ys
+
 
 -- | Convert the matrix to a nested list, in row-major form.
 rows :: (Foldable f, Foldable g) => Matrix f g a -> [[a]]
