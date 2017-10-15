@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
@@ -89,6 +90,9 @@ import qualified Data.HashSet          as HashSet
 import qualified Data.Vector           as Vector
 import qualified Data.Vector.Storable  as StorableVector
 import qualified Data.Vector.Unboxed   as UnboxedVector
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed.Base    as U
 
 import           Numeric.Log           hiding (sum)
 import qualified Numeric.Log
@@ -1206,6 +1210,119 @@ instance (Semiring a, Ord a, HasNegativeInfinity a) =>
     isZero (Max x) = isNegativeInfinity x
     {-# INLINE isZero #-}
 
+newtype instance U.Vector (Min a) = V_Min (U.Vector a)
+newtype instance U.MVector s (Min a) = MV_Min (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (Min a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (Min a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (Min a) -> U.MVector s (Min a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (Min a) -> U.MVector s (Min a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Min a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_Min xs) i =
+        fmap (coerce :: a -> Min a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (Min a) -> Int -> Min a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (Min a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (Min a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_Min xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (Min a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_Min xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Min a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (Min a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (Min a) -> U.Vector (Min a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_Min xs) i =
+        fmap (coerce :: a -> Min a) (G.basicUnsafeIndexM xs i)
+
+newtype instance U.Vector (Max a) = V_Max (U.Vector a)
+newtype instance U.MVector s (Max a) = MV_Max (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (Max a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (Max a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (Max a) -> U.MVector s (Max a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (Max a) -> U.MVector s (Max a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Max a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_Max xs) i =
+        fmap (coerce :: a -> Max a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (Max a) -> Int -> Max a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (Max a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (Max a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_Max xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (Max a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_Max xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Max a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (Max a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (Max a) -> U.Vector (Max a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_Max xs) i =
+        fmap (coerce :: a -> Max a) (G.basicUnsafeIndexM xs i)
 --------------------------------------------------------------------------------
 -- (->) instance
 --------------------------------------------------------------------------------
