@@ -507,7 +507,7 @@ ordAddLaw (x :: a) (y :: a) (z :: a) =
 
 -- | Multiplication law for ordered 'Semiring's.
 --
--- @x '<=' y => x '<.>' z '<=' y '<.>' z '&&' z '<.>' x '<=' z '<.>' y@
+-- @x '<=' y && 'zero' '<=' z => x '<.>' z '<=' y '<.>' z '&&' z '<.>' x '<=' z '<.>' y@
 ordMulLaw
     :: (Ord a, Semiring a, Show a)
     => a -> a -> a -> Either String String
@@ -528,7 +528,7 @@ ordMulLaw (x :: a) (y :: a) (z :: a) =
                    else " not") ++
               " followed."
             , "    Law:"
-            , "        x <= y => x <.> z <= y <.> z && z <.> x <= z <.> y"
+            , "        x <= y && zero <= z => x <.> z <= y <.> z && z <.> x <= z <.> y"
             , "    x = " ++ show x
             , "    y = " ++ show y
             , "    z = " ++ show z]

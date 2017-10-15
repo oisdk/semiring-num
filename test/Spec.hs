@@ -16,6 +16,7 @@ import           Data.Monoid
 import           Data.Map.Strict          (Map)
 
 import qualified Data.Vector              as Vector
+import qualified Data.Vector.Storable     as Storable
 
 import           Data.Semiring
 import           Data.Semiring.Free
@@ -79,10 +80,10 @@ starLawsSC (_ :: f r) = testGroup "Star laws"
   [ SC.testProperty "starLaw" (starLaw :: r -> Either String String)
   , SC.testProperty "plusLaw" (plusLaw :: r -> Either String String)]
 
--- ordLawsQC :: (Show r, Ord r, Semiring r, Arbitrary r) => f r -> TestTree
--- ordLawsQC (_ :: f r) = testGroup "Ordering laws"
---   [ QC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
---   , QC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
+ordLawsQC :: (Show r, Ord r, Semiring r, Arbitrary r) => f r -> TestTree
+ordLawsQC (_ :: f r) = testGroup "Ordering laws"
+  [ QC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
+  , QC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
 
 zeroLawsQC :: (Show r, Eq r, DetectableZero r, Arbitrary r) => f r -> TestTree
 zeroLawsQC (_ :: f r) = testGroup "Zero laws"
@@ -99,6 +100,20 @@ zeroLawsSC (_ :: f r) = testGroup "Zero laws"
   [ SC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
   , SC.testProperty "zeroIsZero" (zeroIsZero (Proxy :: Proxy r))]
 
+storableQC :: (Show r, Eq r, Arbitrary r, Storable.Storable r) => f r -> TestTree
+storableQC (_ :: f r) =
+    testGroup
+        "Storable implementation"
+        [ QC.testProperty
+              "unstore . store == id"
+              (\(xs :: [r]) ->
+                    (Storable.toList |.| Storable.fromList) xs === xs)]
+
+infixr 9 |.|
+(|.|) :: (b -> c) -> (a -> b) -> a -> c
+(|.|) f g x = f (g x)
+{-# NOINLINE (|.|) #-}
+
 type Tup2 a = (a,a)
 type Tup3 a = (a,a,a)
 type Tup4 a = (a,a,a,a)
@@ -114,6 +129,25 @@ refListMul
 refListMul [] _              = []
 refListMul _ []              = []
 refListMul (x:xs) yys@(y:ys) = (x <.> y) : map (x <.>) ys <+> xs <.> yys
+
+typeclassTests :: TestTree
+typeclassTests =
+    testGroup
+        "typeclass tests"
+        [ testGroup
+              "PositiveInfinite"
+              [ let p = Proxy :: Proxy (PositiveInfinite Int)
+                in storableQC p]
+        , testGroup
+              "NegativeInfinite"
+              [ let p = Proxy :: Proxy (NegativeInfinite Int)
+                in storableQC p]
+        , testGroup
+              "Infinite"
+              [ let p = Proxy :: Proxy (Infinite Int)
+                in storableQC p]]
+
+
 
 semiringLawTests :: TestTree
 semiringLawTests =
@@ -136,7 +170,7 @@ semiringLawTests =
                  , testGroup "2" [semiringLawsQC p2]
                  , testGroup "5" [semiringLawsQC p5]]
         , let p = Proxy :: Proxy Integer
-          in testGroup "Integer" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p]
+          in testGroup "Integer" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, ordLawsQC p]
         , let p = Proxy :: Proxy (Func Bool Bool)
           in testGroup "Bool -> Bool" [semiringLawsQC p]
         , testGroup
@@ -310,6 +344,4 @@ semiringLawTests =
 main :: IO ()
 main = do
     doctest ["-isrc", "src/"]
-    defaultMain $
-        testGroup
-            "Tests" [semiringLawTests]
+    defaultMain $ testGroup "Tests" [typeclassTests, semiringLawTests]

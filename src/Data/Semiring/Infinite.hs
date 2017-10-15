@@ -31,6 +31,9 @@ import           Data.Semiring
 
 import           Data.Semiring.Newtype
 
+import           Control.DeepSeq
+
+
 -- | Adds negative infinity to a type. Useful for expressing detectable infinity
 -- in types like 'Integer', etc.
 data NegativeInfinite a
@@ -330,13 +333,13 @@ instance Storable a => Storable (Infinite a) where
     sizeOf x = sizeOf (strip x) + 1
     alignment x = alignment (strip x)
     peek ptr = (peekByteOff ptr . sizeOf . strip . stripPtr) ptr >>= \case
-      (0 :: Word8) -> Finite <$> peek (stripFPtr ptr)
-      1 -> pure Negative
+      0 -> pure Negative
+      (1 :: Word8) -> Finite <$> peek (stripFPtr ptr)
       _ -> pure Positive
     poke ptr Positive
       = pokeByteOff ptr ((sizeOf . strip . stripPtr) ptr) (2 :: Word8)
     poke ptr Negative
-      = pokeByteOff ptr ((sizeOf . strip . stripPtr) ptr) (1 :: Word8)
+      = pokeByteOff ptr ((sizeOf . strip . stripPtr) ptr) (0 :: Word8)
     poke ptr (Finite a)
       = poke (stripFPtr ptr) a
      *> pokeByteOff ptr (sizeOf a) (1 :: Word8)
@@ -349,3 +352,16 @@ stripFPtr = castPtr
 
 stripPtr :: Ptr a -> a
 stripPtr _ = error "stripPtr"
+
+instance NFData a => NFData (NegativeInfinite a) where
+    rnf NegativeInfinity = ()
+    rnf (NegFinite x) = rnf x
+
+instance NFData a => NFData (PositiveInfinite a) where
+    rnf PositiveInfinity = ()
+    rnf (PosFinite x) = rnf x
+
+instance NFData a => NFData (Infinite a) where
+    rnf Negative = ()
+    rnf Positive = ()
+    rnf (Finite x) = rnf x
