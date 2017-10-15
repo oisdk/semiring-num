@@ -33,6 +33,8 @@ import           Data.Semiring.Newtype
 
 import           Control.DeepSeq
 
+import           Data.Functor.Classes
+import           Text.Read
 
 -- | Adds negative infinity to a type. Useful for expressing detectable infinity
 -- in types like 'Integer', etc.
@@ -353,15 +355,129 @@ stripFPtr = castPtr
 stripPtr :: Ptr a -> a
 stripPtr _ = error "stripPtr"
 
-instance NFData a => NFData (NegativeInfinite a) where
+instance NFData a =>
+         NFData (NegativeInfinite a) where
     rnf NegativeInfinity = ()
     rnf (NegFinite x) = rnf x
 
-instance NFData a => NFData (PositiveInfinite a) where
+instance NFData a =>
+         NFData (PositiveInfinite a) where
     rnf PositiveInfinity = ()
     rnf (PosFinite x) = rnf x
 
-instance NFData a => NFData (Infinite a) where
+instance NFData a =>
+         NFData (Infinite a) where
     rnf Negative = ()
     rnf Positive = ()
     rnf (Finite x) = rnf x
+
+instance Eq1 NegativeInfinite where
+    liftEq eq = go
+      where
+        go NegativeInfinity NegativeInfinity = True
+        go (NegFinite x) (NegFinite y) = eq x y
+        go _ _ = False
+
+instance Eq1 PositiveInfinite where
+    liftEq eq = go
+      where
+        go PositiveInfinity PositiveInfinity = True
+        go (PosFinite x) (PosFinite y) = eq x y
+        go _ _ = False
+
+instance Eq1 Infinite where
+    liftEq eq = go
+      where
+        go Positive Positive = True
+        go Negative Negative = False
+        go (Finite x) (Finite y) = eq x y
+        go _ _ = False
+
+instance Ord1 NegativeInfinite where
+    liftCompare cmp = go
+      where
+        go NegativeInfinity NegativeInfinity = EQ
+        go (NegFinite x) (NegFinite y) = cmp x y
+        go NegativeInfinity (NegFinite _) = LT
+        go (NegFinite _) NegativeInfinity = GT
+
+instance Ord1 PositiveInfinite where
+    liftCompare cmp = go
+      where
+        go PositiveInfinity PositiveInfinity = EQ
+        go (PosFinite x) (PosFinite y) = cmp x y
+        go PositiveInfinity (PosFinite _) = GT
+        go (PosFinite _) PositiveInfinity = LT
+
+instance Ord1 Infinite where
+    liftCompare cmp = go
+      where
+        go Positive Positive = EQ
+        go Positive Negative = GT
+        go Negative Positive = LT
+        go Negative Negative = EQ
+        go Positive (Finite _) = GT
+        go Negative (Finite _) = LT
+        go (Finite _) Positive = LT
+        go (Finite _) Negative = GT
+        go (Finite x) (Finite y) = cmp x y
+
+instance Show1 PositiveInfinite where
+    liftShowsPrec sp _ n = go
+      where
+        go PositiveInfinity = showString "PositiveInfinity"
+        go (PosFinite x) =
+            showParen (n > 10) $ showString "PosFinite " . sp 11 x
+
+instance Show1 NegativeInfinite where
+    liftShowsPrec sp _ n = go
+      where
+        go NegativeInfinity = showString "NegativeInfinity"
+        go (NegFinite x) =
+            showParen (n > 10) $ showString "NegFinite " . sp 11 x
+
+instance Show1 Infinite where
+    liftShowsPrec sp _ n = go
+      where
+        go Positive = showString "Positive"
+        go Negative = showString "Negative"
+        go (Finite x) =
+            showParen (n > 10) $ showString "Finite " . sp 11 x
+
+instance Read1 PositiveInfinite where
+    liftReadsPrec rp _ =
+        readPrec_to_S $
+        parens $
+        (do Ident "PositiveInfinity" <- lexP
+            pure PositiveInfinity) +++
+        prec
+            10
+            (do Ident "PosFinite" <- lexP
+                m <- step (readS_to_Prec rp)
+                pure (PosFinite m))
+
+instance Read1 NegativeInfinite where
+    liftReadsPrec rp _ =
+        readPrec_to_S $
+        parens $
+        (do Ident "NegativeInfinity" <- lexP
+            pure NegativeInfinity) +++
+        prec
+            10
+            (do Ident "NegFinite" <- lexP
+                m <- step (readS_to_Prec rp)
+                pure (NegFinite m))
+
+instance Read1 Infinite where
+    liftReadsPrec rp _ =
+        readPrec_to_S $
+        parens $
+        (do Ident "Negative" <- lexP
+            pure Negative) +++
+        (do Ident "Positive" <- lexP
+            pure Positive) +++
+        prec
+            10
+            (do Ident "Finite" <- lexP
+                m <- step (readS_to_Prec rp)
+                pure (Finite m))
