@@ -4,6 +4,8 @@
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 
 {-|
 Module: Data.Semiring.Numeric
@@ -31,6 +33,10 @@ import           Foreign.Storable (Storable)
 import           Data.Functor.Classes
 
 import           Data.Semiring.Newtype
+
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed.Base    as U
 
 -- | Useful for some constraint problems.
 --
@@ -276,3 +282,345 @@ instance Show1 PosInt where
 
 instance Read1 PosInt where
     liftReadsPrec = readsNewtype "PosInt" "getPosInt"
+
+newtype instance U.Vector (Bottleneck a) = V_Bottleneck (U.Vector a)
+newtype instance U.MVector s (Bottleneck a) = MV_Bottleneck (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (Bottleneck a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (Bottleneck a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (Bottleneck a) -> U.MVector s (Bottleneck a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (Bottleneck a) -> U.MVector s (Bottleneck a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Bottleneck a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_Bottleneck xs) i =
+        fmap (coerce :: a -> Bottleneck a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (Bottleneck a) -> Int -> Bottleneck a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (Bottleneck a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (Bottleneck a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_Bottleneck xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (Bottleneck a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_Bottleneck xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Bottleneck a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (Bottleneck a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (Bottleneck a) -> U.Vector (Bottleneck a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_Bottleneck xs) i =
+        fmap (coerce :: a -> Bottleneck a) (G.basicUnsafeIndexM xs i)
+
+newtype instance U.Vector (Division a) = V_Division (U.Vector a)
+newtype instance U.MVector s (Division a) = MV_Division (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (Division a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (Division a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (Division a) -> U.MVector s (Division a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (Division a) -> U.MVector s (Division a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Division a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_Division xs) i =
+        fmap (coerce :: a -> Division a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (Division a) -> Int -> Division a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (Division a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (Division a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_Division xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (Division a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_Division xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Division a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (Division a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (Division a) -> U.Vector (Division a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_Division xs) i =
+        fmap (coerce :: a -> Division a) (G.basicUnsafeIndexM xs i)
+
+newtype instance U.Vector (Łukasiewicz a) = V_Łukasiewicz (U.Vector a)
+newtype instance U.MVector s (Łukasiewicz a) = MV_Łukasiewicz (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (Łukasiewicz a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (Łukasiewicz a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (Łukasiewicz a) -> U.MVector s (Łukasiewicz a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (Łukasiewicz a) -> U.MVector s (Łukasiewicz a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Łukasiewicz a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_Łukasiewicz xs) i =
+        fmap (coerce :: a -> Łukasiewicz a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (Łukasiewicz a) -> Int -> Łukasiewicz a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (Łukasiewicz a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (Łukasiewicz a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_Łukasiewicz xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (Łukasiewicz a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_Łukasiewicz xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Łukasiewicz a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (Łukasiewicz a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (Łukasiewicz a) -> U.Vector (Łukasiewicz a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_Łukasiewicz xs) i =
+        fmap (coerce :: a -> Łukasiewicz a) (G.basicUnsafeIndexM xs i)
+
+newtype instance U.Vector (Viterbi a) = V_Viterbi (U.Vector a)
+newtype instance U.MVector s (Viterbi a) = MV_Viterbi (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (Viterbi a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (Viterbi a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (Viterbi a) -> U.MVector s (Viterbi a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (Viterbi a) -> U.MVector s (Viterbi a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Viterbi a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_Viterbi xs) i =
+        fmap (coerce :: a -> Viterbi a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (Viterbi a) -> Int -> Viterbi a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (Viterbi a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (Viterbi a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_Viterbi xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (Viterbi a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_Viterbi xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (Viterbi a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (Viterbi a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (Viterbi a) -> U.Vector (Viterbi a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_Viterbi xs) i =
+        fmap (coerce :: a -> Viterbi a) (G.basicUnsafeIndexM xs i)
+
+newtype instance U.Vector (PosFrac a) = V_PosFrac (U.Vector a)
+newtype instance U.MVector s (PosFrac a) = MV_PosFrac (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (PosFrac a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (PosFrac a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (PosFrac a) -> U.MVector s (PosFrac a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (PosFrac a) -> U.MVector s (PosFrac a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (PosFrac a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_PosFrac xs) i =
+        fmap (coerce :: a -> PosFrac a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (PosFrac a) -> Int -> PosFrac a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (PosFrac a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (PosFrac a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_PosFrac xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (PosFrac a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_PosFrac xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (PosFrac a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (PosFrac a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (PosFrac a) -> U.Vector (PosFrac a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_PosFrac xs) i =
+        fmap (coerce :: a -> PosFrac a) (G.basicUnsafeIndexM xs i)
+
+newtype instance U.Vector (PosInt a) = V_PosInt (U.Vector a)
+newtype instance U.MVector s (PosInt a) = MV_PosInt (U.MVector s a)
+
+instance U.Unbox a =>
+         M.MVector U.MVector (PosInt a) where
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    basicLength =
+        (coerce :: (U.MVector s a -> Int) -> U.MVector s (PosInt a) -> Int)
+            M.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.MVector s a -> U.MVector s a) -> Int -> Int -> U.MVector s (PosInt a) -> U.MVector s (PosInt a))
+            M.basicUnsafeSlice
+    basicOverlaps =
+        (coerce :: (U.MVector s a -> U.MVector s a -> Bool) -> U.MVector s (PosInt a) -> U.MVector s (PosInt a) -> Bool)
+            M.basicOverlaps
+    basicUnsafeNew n =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (PosInt a))
+            (M.basicUnsafeNew n)
+    basicUnsafeRead (MV_PosInt xs) i =
+        fmap (coerce :: a -> PosInt a) (M.basicUnsafeRead xs i)
+    basicUnsafeWrite =
+        (coerce :: (U.MVector s a -> Int -> a -> m ()) -> U.MVector s (PosInt a) -> Int -> PosInt a -> m ())
+            M.basicUnsafeWrite
+    basicInitialize =
+        (coerce :: (U.MVector s a -> m ()) -> U.MVector s (PosInt a) -> m ())
+            M.basicInitialize
+
+instance U.Unbox a =>
+         G.Vector U.Vector (PosInt a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeFreeze (MV_PosInt xs) =
+        fmap
+            (coerce :: U.Vector a -> U.Vector (PosInt a))
+            (G.basicUnsafeFreeze xs)
+    basicUnsafeThaw (V_PosInt xs) =
+        fmap
+            (coerce :: U.MVector s a -> U.MVector s (PosInt a))
+            (G.basicUnsafeThaw xs)
+    basicLength =
+        (coerce :: (U.Vector a -> Int) -> U.Vector (PosInt a) -> Int)
+            G.basicLength
+    basicUnsafeSlice =
+        (coerce :: (Int -> Int -> U.Vector a -> U.Vector a) -> Int -> Int -> U.Vector (PosInt a) -> U.Vector (PosInt a))
+            G.basicUnsafeSlice
+    basicUnsafeIndexM (V_PosInt xs) i =
+        fmap (coerce :: a -> PosInt a) (G.basicUnsafeIndexM xs i)
