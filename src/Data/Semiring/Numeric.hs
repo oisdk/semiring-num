@@ -38,6 +38,8 @@ import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Unboxed.Base    as U
 
+import           Control.DeepSeq
+
 -- | Useful for some constraint problems.
 --
 -- @('<+>') = 'max'
@@ -45,10 +47,10 @@ import qualified Data.Vector.Unboxed.Base    as U
 --'zero'  = 'minBound'
 --'one'   = 'maxBound'@
 newtype Bottleneck a = Bottleneck
-  { getBottleneck :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable)
+    { getBottleneck :: a
+    } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,NFData)
 
 instance (Bounded a, Ord a) => Semiring (Bottleneck a) where
   (<+>) = (coerce :: WrapBinary Bottleneck a) max
@@ -82,10 +84,10 @@ instance Read1 Bottleneck where
 --'zero'  = 'zero'
 --'one'   = 'one'@
 newtype Division a = Division
-  { getDivision :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable,DetectableZero)
+    { getDivision :: a
+    } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,DetectableZero,NFData)
 
 -- | Only expects positive numbers
 instance (Integral a, Semiring a) => Semiring (Division a) where
@@ -120,10 +122,10 @@ instance Read1 Division where
 --'zero'    = 'zero'
 --'one'     = 'one'@
 newtype Łukasiewicz a = Łukasiewicz
-  { getŁukasiewicz :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable)
+    { getŁukasiewicz :: a
+    } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,NFData)
 
 instance (Ord a, Num a) => Semiring (Łukasiewicz a) where
   (<+>) = (coerce :: WrapBinary Łukasiewicz a) max
@@ -160,10 +162,10 @@ instance Read1 Łukasiewicz where
 --'zero'  = 'zero'
 --'one'   = 'one'@
 newtype Viterbi a = Viterbi
-  { getViterbi :: a
-  } deriving (Eq, Ord, Read, Show, Bounded, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable,DetectableZero)
+    { getViterbi :: a
+    } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,DetectableZero,NFData)
 
 instance (Ord a, Semiring a) => Semiring (Viterbi a) where
   (<+>) = (coerce :: WrapBinary Viterbi a) max
@@ -195,10 +197,10 @@ instance Read1 Viterbi where
 --'one'    = 'one'
 --'star' x = if x < 1 then 1 / (1 - x) else 'positiveInfinity'@
 newtype PosFrac a = PosFrac
-  { getPosFrac :: a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable)
+    { getPosFrac :: a
+    } deriving (Eq,Ord,Read,Show,Generic,Generic1,Num,Enum,Typeable,Storable
+               ,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,DetectableZero,NFData)
 
 instance (Bounded a, Semiring a) => Bounded (PosFrac a) where
   minBound = PosFrac zero
@@ -213,9 +215,6 @@ instance Semiring a => Semiring (PosFrac a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
-
-instance (Eq a, Semiring a) => DetectableZero (PosFrac a) where
-  isZero = (zero==)
 
 instance (Ord a, Fractional a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosFrac a) where
@@ -244,10 +243,10 @@ instance Read1 PosFrac where
 --'star' 0 = 1
 --'star' _ = 'positiveInfinity'@
 newtype PosInt a = PosInt
-  { getPosInt :: a
-  } deriving (Eq, Ord, Read, Show, Generic, Generic1, Num
-             ,Enum, Typeable, Storable, Fractional, Real, RealFrac
-             ,Functor, Foldable, Traversable)
+    { getPosInt :: a
+    } deriving (Eq,Ord,Read,Show,Generic,Generic1,Num,Enum,Typeable,Storable
+               ,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,DetectableZero,NFData)
 
 instance (Bounded a, Semiring a) => Bounded (PosInt a) where
   minBound = PosInt zero
@@ -262,9 +261,6 @@ instance Semiring a => Semiring (PosInt a) where
   {-# INLINE (<.>) #-}
   {-# INLINE zero #-}
   {-# INLINE one #-}
-
-instance (Eq a, Semiring a) => DetectableZero (PosInt a) where
-  isZero = (zero==)
 
 instance (Eq a, Semiring a, HasPositiveInfinity a) =>
          StarSemiring (PosInt a) where
