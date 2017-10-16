@@ -1,10 +1,10 @@
 {-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
@@ -47,54 +47,58 @@ module Data.Semiring
   ,cols)
   where
 
-import           Data.Complex          (Complex)
-import           Data.Fixed            (Fixed, HasResolution)
-import           Data.Functor.Identity (Identity (..))
-import           Data.Int              (Int16, Int32, Int64, Int8)
-import           Data.Ratio            (Ratio)
-import           Data.Scientific       (Scientific)
-import           Data.Time.Clock       (DiffTime, NominalDiffTime)
-import           Data.Word             (Word16, Word32, Word64, Word8)
-import           Foreign.C.Types       (CChar, CClock, CDouble, CFloat, CInt,
-                                        CIntMax, CIntPtr, CLLong, CLong,
-                                        CPtrdiff, CSChar, CSUSeconds, CShort,
-                                        CSigAtomic, CSize, CTime, CUChar, CUInt,
-                                        CUIntMax, CUIntPtr, CULLong, CULong,
-                                        CUSeconds, CUShort, CWchar)
-import           Foreign.Ptr           (IntPtr, WordPtr)
-import           Numeric.Natural       (Natural)
-import           System.Posix.Types    (CCc, CDev, CGid, CIno, CMode, CNlink,
-                                        COff, CPid, CRLim, CSpeed, CSsize,
-                                        CTcflag, CUid, Fd)
+import           Data.Complex                (Complex)
+import           Data.Fixed                  (Fixed, HasResolution)
+import           Data.Functor.Identity       (Identity (..))
+import           Data.Int                    (Int16, Int32, Int64, Int8)
+import           Data.Ratio                  (Ratio)
+import           Data.Scientific             (Scientific)
+import           Data.Time.Clock             (DiffTime, NominalDiffTime)
+import           Data.Word                   (Word16, Word32, Word64, Word8)
+import           Foreign.C.Types             (CChar, CClock, CDouble, CFloat,
+                                              CInt, CIntMax, CIntPtr, CLLong,
+                                              CLong, CPtrdiff, CSChar,
+                                              CSUSeconds, CShort, CSigAtomic,
+                                              CSize, CTime, CUChar, CUInt,
+                                              CUIntMax, CUIntPtr, CULLong,
+                                              CULong, CUSeconds, CUShort,
+                                              CWchar)
+import           Foreign.Ptr                 (IntPtr, WordPtr)
+import           Numeric.Natural             (Natural)
+import           System.Posix.Types          (CCc, CDev, CGid, CIno, CMode,
+                                              CNlink, COff, CPid, CRLim, CSpeed,
+                                              CSsize, CTcflag, CUid, Fd)
 
-import           Data.Semigroup        hiding (Max (..), Min (..))
+import           Data.Semigroup              hiding (Max (..), Min (..))
 
 import           Data.Coerce
-import           Data.Typeable         (Typeable)
-import           Foreign.Storable      (Storable)
-import           GHC.Generics          (Generic, Generic1)
+import           Data.Typeable               (Typeable)
+import           Foreign.Storable            (Storable)
+import           GHC.Generics                (Generic, Generic1)
 
 import           Data.Functor.Classes
 import           Data.Semiring.TH
 
-import           Data.Map.Strict       (Map)
-import qualified Data.Map.Strict       as Map
+import           Data.Map.Strict             (Map)
+import qualified Data.Map.Strict             as Map
 
-import           Data.Set              (Set)
-import qualified Data.Set              as Set
+import           Data.Set                    (Set)
+import qualified Data.Set                    as Set
 
 import           Data.Hashable
-import qualified Data.HashMap.Strict   as HashMap
-import qualified Data.HashSet          as HashSet
+import qualified Data.HashMap.Strict         as HashMap
+import qualified Data.HashSet                as HashSet
 
-import qualified Data.Vector           as Vector
-import qualified Data.Vector.Storable  as StorableVector
-import qualified Data.Vector.Unboxed   as UnboxedVector
+import qualified Data.Vector                 as Vector
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Storable        as StorableVector
+import qualified Data.Vector.Unboxed         as UnboxedVector
 import qualified Data.Vector.Unboxed.Base    as U
 
-import           Numeric.Log           hiding (sum)
+import           Control.DeepSeq
+
+import           Numeric.Log                 hiding (sum)
 import qualified Numeric.Log
 
 import           Control.Applicative
@@ -102,7 +106,7 @@ import           Data.Foldable
 import           Data.Traversable
 
 import           Data.Semiring.Newtype
-import           GHC.Base              (build)
+import           GHC.Base                    (build)
 
 
 -- $setup
@@ -1025,7 +1029,8 @@ instance (Ord1 f, Ord1 g, Ord a) => Ord (Matrix f g a) where
 newtype Min a = Min
     { getMin :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,NFData)
 
 -- | The "<https://ncatlab.org/nlab/show/max-plus+algebra Arctic>"
 -- or max-plus semiring. It is a semiring where:
@@ -1045,7 +1050,8 @@ newtype Min a = Min
 newtype Max a = Max
     { getMax :: a
     } deriving (Eq,Ord,Read,Show,Bounded,Generic,Generic1,Num,Enum,Typeable
-               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable)
+               ,Storable,Fractional,Real,RealFrac,Functor,Foldable,Traversable
+               ,NFData)
 
 instance Eq1 Max where
     liftEq = coerce
