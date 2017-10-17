@@ -155,6 +155,8 @@ semiringLawTests =
         "Semiring/StarSemiring Laws"
         [ let p = Proxy :: Proxy (ApproxLog Double)
           in testGroup "Log" [semiringLawsSC p]
+        , let p = Proxy :: Proxy (SApproxLog Double)
+          in testGroup "Log" [semiringLawsSC p]
         , let p = Proxy :: Proxy (Map String Int)
           in testGroup
                  "Map"

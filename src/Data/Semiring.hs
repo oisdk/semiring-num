@@ -100,6 +100,7 @@ import           Control.DeepSeq
 
 import           Numeric.Log                 hiding (sum)
 import qualified Numeric.Log
+import           Numeric.Log.Signed
 
 import           Control.Applicative
 import           Data.Foldable
@@ -710,7 +711,8 @@ instance (StorableVector.Storable a, Semiring a) =>
     {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word32 #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word64 #-}
 
-instance (StorableVector.Storable a, DetectableZero a) => DetectableZero (StorableVector.Vector a) where
+instance (StorableVector.Storable a, DetectableZero a) =>
+         DetectableZero (StorableVector.Vector a) where
     isZero = StorableVector.all isZero
 
 instance (Monoid a, Ord a) =>
@@ -793,6 +795,25 @@ instance (Precise a, RealFloat a) => Semiring (Log a) where
     {-# SPECIALISE (<+>) :: BinaryWrapped Log Float #-}
 
 instance (Precise a, RealFloat a) => DetectableZero (Log a) where
+    isZero = isZeroEq
+    {-# INLINE isZero #-}
+
+instance (Precise a, RealFloat a) => Semiring (SignedLog a) where
+    (<.>) = (*)
+    {-# INLINE (<.>) #-}
+    (<+>) = (+)
+    {-# INLINE (<+>) #-}
+    one = SLExp True 0
+    {-# INLINE one #-}
+    zero = SLExp False (-(1/0))
+    {-# INLINE zero #-}
+
+    {-# SPECIALISE (<.>) :: BinaryWrapped SignedLog Double #-}
+    {-# SPECIALISE (<.>) :: BinaryWrapped SignedLog Float #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped SignedLog Double #-}
+    {-# SPECIALISE (<+>) :: BinaryWrapped SignedLog Float #-}
+
+instance (Precise a, RealFloat a) => DetectableZero (SignedLog a) where
     isZero = isZeroEq
     {-# INLINE isZero #-}
 --------------------------------------------------------------------------------
