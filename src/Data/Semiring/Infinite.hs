@@ -1,9 +1,11 @@
-{-# LANGUAGE DeriveFoldable      #-}
-{-# LANGUAGE DeriveFunctor       #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE DeriveTraversable   #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveFoldable        #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveTraversable     #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 -- | This module provides various "infinite" wrappers, which can provide
 -- a detectable infinity to an otherwise non-infinite type.
@@ -15,17 +17,19 @@ module Data.Semiring.Infinite
   , Infinite(..)
   ) where
 
-import           Control.Applicative (liftA2)
-import           Data.Typeable       (Typeable)
-import           GHC.Generics        (Generic, Generic1)
+import           Control.Applicative         (liftA2)
+import           Data.Typeable               (Typeable)
+import           GHC.Generics                (Generic, Generic1)
 
-import           Data.Word           (Word8)
-import           Foreign.Ptr         (Ptr, castPtr)
-import           Foreign.Storable    (Storable, alignment, peek, peekByteOff,
-                                      poke, pokeByteOff, sizeOf)
+import           Data.Word                   (Word8)
+import           Foreign.Ptr                 (Ptr, castPtr)
+import           Foreign.Storable            (Storable, alignment, peek,
+                                              peekByteOff, poke, pokeByteOff,
+                                              sizeOf)
 
 import           Data.Coerce
 import           Data.Monoid
+import           Data.Bool
 
 import           Data.Semiring
 
@@ -35,6 +39,10 @@ import           Control.DeepSeq
 
 import           Data.Functor.Classes
 import           Text.Read
+
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed.Base    as U
 
 -- | Adds negative infinity to a type. Useful for expressing detectable infinity
 -- in types like 'Integer', etc.
@@ -358,68 +366,68 @@ stripPtr _ = error "stripPtr"
 instance NFData a =>
          NFData (NegativeInfinite a) where
     rnf NegativeInfinity = ()
-    rnf (NegFinite x) = rnf x
+    rnf (NegFinite x)    = rnf x
 
 instance NFData a =>
          NFData (PositiveInfinite a) where
     rnf PositiveInfinity = ()
-    rnf (PosFinite x) = rnf x
+    rnf (PosFinite x)    = rnf x
 
 instance NFData a =>
          NFData (Infinite a) where
-    rnf Negative = ()
-    rnf Positive = ()
+    rnf Negative   = ()
+    rnf Positive   = ()
     rnf (Finite x) = rnf x
 
 instance Eq1 NegativeInfinite where
     liftEq eq = go
       where
         go NegativeInfinity NegativeInfinity = True
-        go (NegFinite x) (NegFinite y) = eq x y
-        go _ _ = False
+        go (NegFinite x) (NegFinite y)       = eq x y
+        go _ _                               = False
 
 instance Eq1 PositiveInfinite where
     liftEq eq = go
       where
         go PositiveInfinity PositiveInfinity = True
-        go (PosFinite x) (PosFinite y) = eq x y
-        go _ _ = False
+        go (PosFinite x) (PosFinite y)       = eq x y
+        go _ _                               = False
 
 instance Eq1 Infinite where
     liftEq eq = go
       where
-        go Positive Positive = True
-        go Negative Negative = False
+        go Positive Positive     = True
+        go Negative Negative     = False
         go (Finite x) (Finite y) = eq x y
-        go _ _ = False
+        go _ _                   = False
 
 instance Ord1 NegativeInfinite where
     liftCompare cmp = go
       where
         go NegativeInfinity NegativeInfinity = EQ
-        go (NegFinite x) (NegFinite y) = cmp x y
-        go NegativeInfinity (NegFinite _) = LT
-        go (NegFinite _) NegativeInfinity = GT
+        go (NegFinite x) (NegFinite y)       = cmp x y
+        go NegativeInfinity (NegFinite _)    = LT
+        go (NegFinite _) NegativeInfinity    = GT
 
 instance Ord1 PositiveInfinite where
     liftCompare cmp = go
       where
         go PositiveInfinity PositiveInfinity = EQ
-        go (PosFinite x) (PosFinite y) = cmp x y
-        go PositiveInfinity (PosFinite _) = GT
-        go (PosFinite _) PositiveInfinity = LT
+        go (PosFinite x) (PosFinite y)       = cmp x y
+        go PositiveInfinity (PosFinite _)    = GT
+        go (PosFinite _) PositiveInfinity    = LT
 
 instance Ord1 Infinite where
     liftCompare cmp = go
       where
-        go Positive Positive = EQ
-        go Positive Negative = GT
-        go Negative Positive = LT
-        go Negative Negative = EQ
-        go Positive (Finite _) = GT
-        go Negative (Finite _) = LT
-        go (Finite _) Positive = LT
-        go (Finite _) Negative = GT
+        go Positive Positive     = EQ
+        go Positive Negative     = GT
+        go Negative Positive     = LT
+        go Negative Negative     = EQ
+        go Positive (Finite _)   = GT
+        go Negative (Finite _)   = LT
+        go (Finite _) Positive   = LT
+        go (Finite _) Negative   = GT
         go (Finite x) (Finite y) = cmp x y
 
 instance Show1 PositiveInfinite where
@@ -481,3 +489,222 @@ instance Read1 Infinite where
             (do Ident "Finite" <- lexP
                 m <- step (readS_to_Prec rp)
                 pure (Finite m))
+
+
+data instance
+     U.MVector s
+       (NegativeInfinite
+          a) = MV_NegativeInfinite {-# UNPACK #-} !(U.MVector s Bool)
+                                   !(U.MVector s a)
+
+
+data instance
+     U.Vector
+       (NegativeInfinite a) = V_NegativeInfinite {-# UNPACK #-} !(U.Vector
+                                                                    Bool)
+                                                 !(U.Vector a)
+
+instance U.Unbox a => U.Unbox (NegativeInfinite a)
+
+instance (U.Unbox a) =>
+         M.MVector U.MVector (NegativeInfinite a) where
+    {-# INLINE basicLength #-}
+    basicLength (MV_NegativeInfinite xs _) = M.basicLength xs
+    {-# INLINE basicUnsafeSlice #-}
+    basicUnsafeSlice i_ m_ (MV_NegativeInfinite as bs) =
+        MV_NegativeInfinite
+            (M.basicUnsafeSlice i_ m_ as)
+            (M.basicUnsafeSlice i_ m_ bs)
+    {-# INLINE basicOverlaps #-}
+    basicOverlaps (MV_NegativeInfinite as1 bs1) (MV_NegativeInfinite as2 bs2) =
+        M.basicOverlaps as1 as2 || M.basicOverlaps bs1 bs2
+    {-# INLINE basicUnsafeNew #-}
+    basicUnsafeNew n_ =
+        liftA2
+            MV_NegativeInfinite
+            (M.basicUnsafeNew n_)
+            (M.basicUnsafeNew n_)
+    {-# INLINE basicInitialize #-}
+    basicInitialize (MV_NegativeInfinite as bs) =
+        M.basicInitialize as *> M.basicInitialize bs
+    {-# INLINE basicUnsafeReplicate #-}
+    basicUnsafeReplicate n_ NegativeInfinity =
+        liftA2
+            MV_NegativeInfinite
+            (M.basicUnsafeReplicate n_ False)
+            (M.basicUnsafeNew n_)
+    basicUnsafeReplicate n_ (NegFinite x) =
+        liftA2
+            MV_NegativeInfinite
+            (M.basicUnsafeReplicate n_ True)
+            (M.basicUnsafeReplicate n_ x)
+    {-# INLINE basicUnsafeRead #-}
+    basicUnsafeRead (MV_NegativeInfinite as bs) i_ =
+        M.basicUnsafeRead as i_ >>=
+        bool (pure NegativeInfinity) (NegFinite <$> M.basicUnsafeRead bs i_)
+    {-# INLINE basicUnsafeWrite #-}
+    basicUnsafeWrite (MV_NegativeInfinite as _) i_ NegativeInfinity =
+        M.basicUnsafeWrite as i_ False
+    basicUnsafeWrite (MV_NegativeInfinite as bs) i_ (NegFinite x) =
+        M.basicUnsafeWrite as i_ True *> M.basicUnsafeWrite bs i_ x
+    {-# INLINE basicClear #-}
+    basicClear (MV_NegativeInfinite as bs) =
+        M.basicClear as *> M.basicClear bs
+    {-# INLINE basicSet #-}
+    basicSet (MV_NegativeInfinite as bs) NegativeInfinity =
+        M.basicSet as False *> M.basicClear bs
+    basicSet (MV_NegativeInfinite as bs) (NegFinite x) =
+        M.basicSet as True *> M.basicSet bs x
+    {-# INLINE basicUnsafeCopy #-}
+    basicUnsafeCopy (MV_NegativeInfinite as1 bs1) (MV_NegativeInfinite as2 bs2) =
+        M.basicUnsafeCopy as1 as2 *> M.basicUnsafeCopy bs1 bs2
+    {-# INLINE basicUnsafeMove #-}
+    basicUnsafeMove (MV_NegativeInfinite as1 bs1) (MV_NegativeInfinite as2 bs2) =
+        M.basicUnsafeMove as1 as2 *> M.basicUnsafeMove bs1 bs2
+    {-# INLINE basicUnsafeGrow #-}
+    basicUnsafeGrow (MV_NegativeInfinite as bs) m_ =
+        liftA2
+            MV_NegativeInfinite
+            (M.basicUnsafeGrow as m_)
+            (M.basicUnsafeGrow bs m_)
+
+instance (U.Unbox a) =>
+         G.Vector U.Vector (NegativeInfinite a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    basicUnsafeFreeze (MV_NegativeInfinite as bs) =
+        liftA2
+            V_NegativeInfinite
+            (G.basicUnsafeFreeze as)
+            (G.basicUnsafeFreeze bs)
+    {-# INLINE basicUnsafeThaw #-}
+    basicUnsafeThaw (V_NegativeInfinite as bs) =
+        liftA2
+            MV_NegativeInfinite
+            (G.basicUnsafeThaw as)
+            (G.basicUnsafeThaw bs)
+    {-# INLINE basicLength #-}
+    basicLength (V_NegativeInfinite xs _) = G.basicLength xs
+    {-# INLINE basicUnsafeSlice #-}
+    basicUnsafeSlice i_ m_ (V_NegativeInfinite as bs) =
+        V_NegativeInfinite
+            (G.basicUnsafeSlice i_ m_ as)
+            (G.basicUnsafeSlice i_ m_ bs)
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeIndexM (V_NegativeInfinite as bs) i_ =
+        G.basicUnsafeIndexM as i_ >>=
+        bool (pure NegativeInfinity) (NegFinite <$> G.basicUnsafeIndexM bs i_)
+    {-# INLINE basicUnsafeCopy #-}
+    basicUnsafeCopy (MV_NegativeInfinite as1 bs1) (V_NegativeInfinite as2 bs2) =
+        G.basicUnsafeCopy as1 as2 *> G.basicUnsafeCopy bs1 bs2
+    {-# INLINE elemseq #-}
+    elemseq _ NegativeInfinity b = b
+    elemseq _ (NegFinite x) b = G.elemseq (undefined :: U.Vector a) x b
+
+data instance
+     U.MVector s
+       (PositiveInfinite
+          a) = MV_PositiveInfinite {-# UNPACK #-} !(U.MVector s Bool)
+                                   !(U.MVector s a)
+
+
+data instance
+     U.Vector
+       (PositiveInfinite a) = V_PositiveInfinite {-# UNPACK #-} !(U.Vector
+                                                                    Bool)
+                                                 !(U.Vector a)
+
+instance U.Unbox a => U.Unbox (PositiveInfinite a)
+
+instance (U.Unbox a) =>
+         M.MVector U.MVector (PositiveInfinite a) where
+    {-# INLINE basicLength #-}
+    basicLength (MV_PositiveInfinite xs _) = M.basicLength xs
+    {-# INLINE basicUnsafeSlice #-}
+    basicUnsafeSlice i_ m_ (MV_PositiveInfinite as bs) =
+        MV_PositiveInfinite
+            (M.basicUnsafeSlice i_ m_ as)
+            (M.basicUnsafeSlice i_ m_ bs)
+    {-# INLINE basicOverlaps #-}
+    basicOverlaps (MV_PositiveInfinite as1 bs1) (MV_PositiveInfinite as2 bs2) =
+        M.basicOverlaps as1 as2 || M.basicOverlaps bs1 bs2
+    {-# INLINE basicUnsafeNew #-}
+    basicUnsafeNew n_ =
+        liftA2
+            MV_PositiveInfinite
+            (M.basicUnsafeNew n_)
+            (M.basicUnsafeNew n_)
+    {-# INLINE basicInitialize #-}
+    basicInitialize (MV_PositiveInfinite as bs) =
+        M.basicInitialize as *> M.basicInitialize bs
+    {-# INLINE basicUnsafeReplicate #-}
+    basicUnsafeReplicate n_ PositiveInfinity =
+        liftA2
+            MV_PositiveInfinite
+            (M.basicUnsafeReplicate n_ False)
+            (M.basicUnsafeNew n_)
+    basicUnsafeReplicate n_ (PosFinite x) =
+        liftA2
+            MV_PositiveInfinite
+            (M.basicUnsafeReplicate n_ True)
+            (M.basicUnsafeReplicate n_ x)
+    {-# INLINE basicUnsafeRead #-}
+    basicUnsafeRead (MV_PositiveInfinite as bs) i_ =
+        M.basicUnsafeRead as i_ >>=
+        bool (pure PositiveInfinity) (PosFinite <$> M.basicUnsafeRead bs i_)
+    {-# INLINE basicUnsafeWrite #-}
+    basicUnsafeWrite (MV_PositiveInfinite as _) i_ PositiveInfinity =
+        M.basicUnsafeWrite as i_ False
+    basicUnsafeWrite (MV_PositiveInfinite as bs) i_ (PosFinite x) =
+        M.basicUnsafeWrite as i_ True *> M.basicUnsafeWrite bs i_ x
+    {-# INLINE basicClear #-}
+    basicClear (MV_PositiveInfinite as bs) =
+        M.basicClear as *> M.basicClear bs
+    {-# INLINE basicSet #-}
+    basicSet (MV_PositiveInfinite as bs) PositiveInfinity =
+        M.basicSet as False *> M.basicClear bs
+    basicSet (MV_PositiveInfinite as bs) (PosFinite x) =
+        M.basicSet as True *> M.basicSet bs x
+    {-# INLINE basicUnsafeCopy #-}
+    basicUnsafeCopy (MV_PositiveInfinite as1 bs1) (MV_PositiveInfinite as2 bs2) =
+        M.basicUnsafeCopy as1 as2 *> M.basicUnsafeCopy bs1 bs2
+    {-# INLINE basicUnsafeMove #-}
+    basicUnsafeMove (MV_PositiveInfinite as1 bs1) (MV_PositiveInfinite as2 bs2) =
+        M.basicUnsafeMove as1 as2 *> M.basicUnsafeMove bs1 bs2
+    {-# INLINE basicUnsafeGrow #-}
+    basicUnsafeGrow (MV_PositiveInfinite as bs) m_ =
+        liftA2
+            MV_PositiveInfinite
+            (M.basicUnsafeGrow as m_)
+            (M.basicUnsafeGrow bs m_)
+
+instance (U.Unbox a) =>
+         G.Vector U.Vector (PositiveInfinite a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    basicUnsafeFreeze (MV_PositiveInfinite as bs) =
+        liftA2
+            V_PositiveInfinite
+            (G.basicUnsafeFreeze as)
+            (G.basicUnsafeFreeze bs)
+    {-# INLINE basicUnsafeThaw #-}
+    basicUnsafeThaw (V_PositiveInfinite as bs) =
+        liftA2
+            MV_PositiveInfinite
+            (G.basicUnsafeThaw as)
+            (G.basicUnsafeThaw bs)
+    {-# INLINE basicLength #-}
+    basicLength (V_PositiveInfinite xs _) = G.basicLength xs
+    {-# INLINE basicUnsafeSlice #-}
+    basicUnsafeSlice i_ m_ (V_PositiveInfinite as bs) =
+        V_PositiveInfinite
+            (G.basicUnsafeSlice i_ m_ as)
+            (G.basicUnsafeSlice i_ m_ bs)
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeIndexM (V_PositiveInfinite as bs) i_ =
+        G.basicUnsafeIndexM as i_ >>=
+        bool (pure PositiveInfinity) (PosFinite <$> G.basicUnsafeIndexM bs i_)
+    {-# INLINE basicUnsafeCopy #-}
+    basicUnsafeCopy (MV_PositiveInfinite as1 bs1) (V_PositiveInfinite as2 bs2) =
+        G.basicUnsafeCopy as1 as2 *> G.basicUnsafeCopy bs1 bs2
+    {-# INLINE elemseq #-}
+    elemseq _ PositiveInfinity b = b
+    elemseq _ (PosFinite x) b = G.elemseq (undefined :: U.Vector a) x b

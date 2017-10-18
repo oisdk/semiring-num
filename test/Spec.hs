@@ -17,6 +17,7 @@ import           Data.Map.Strict          (Map)
 
 import qualified Data.Vector              as Vector
 import qualified Data.Vector.Storable     as Storable
+import qualified Data.Vector.Unboxed      as Unboxed
 
 import           Data.Semiring
 import           Data.Semiring.Free
@@ -172,7 +173,9 @@ semiringLawTests =
                  , testGroup "2" [semiringLawsQC p2]
                  , testGroup "5" [semiringLawsQC p5]]
         , let p = Proxy :: Proxy Integer
-          in testGroup "Integer" [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, ordLawsQC p]
+          in testGroup
+                 "Integer"
+                 [semiringLawsSC p, ordLawsSC p, zeroLawsSC p, ordLawsQC p]
         , let p = Proxy :: Proxy (Func Bool Bool)
           in testGroup "Bool -> Bool" [semiringLawsQC p]
         , testGroup
@@ -324,6 +327,34 @@ semiringLawTests =
                              (xs <.> ys :: [Int]) ===
                              Vector.toList
                                  (Vector.fromList xs <.> Vector.fromList ys))]
+        , let p = Proxy :: Proxy (Storable.Vector Int)
+          in testGroup
+                 "Storable Vector Int"
+                 [ semiringLawsQC p
+                 , QC.testProperty
+                       "reference implementation of <.>"
+                       (\xs ys ->
+                             (xs <.> ys :: [Int]) ===
+                             Vector.toList
+                                 (Vector.fromList xs <.> Vector.fromList ys))]
+        , let p = Proxy :: Proxy (Unboxed.Vector Int)
+          in testGroup
+                 "Unboxed Vector Int"
+                 [ semiringLawsQC p
+                 , QC.testProperty
+                       "reference implementation of <.>"
+                       (\xs ys ->
+                             (xs <.> ys :: [Int]) ===
+                             Unboxed.toList
+                                 (Unboxed.fromList xs <.> Unboxed.fromList ys))]
+        , testGroup
+              "Unboxed Vector (NegativeInfinite Int)"
+              [ QC.testProperty
+                    "reference implementation of <.>"
+                    (\xs ys ->
+                          (xs <.> ys :: [NegativeInfinite Int]) ===
+                          Unboxed.toList
+                              (Unboxed.fromList xs <.> Unboxed.fromList ys))]
         , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
           in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p]
         , let p = Proxy :: Proxy (Min (Infinite Integer))

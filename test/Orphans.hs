@@ -13,7 +13,11 @@ import           Data.Semiring
 import           Data.Semiring.Infinite
 import           Data.Semiring.Free
 import           Data.Semiring.Numeric
+
 import qualified Data.Vector as Vector
+import qualified Data.Vector.Unboxed as Unboxed
+import qualified Data.Vector.Storable as Storable
+
 import           Numeric.Natural
 import           Numeric.Sized.WordOfSize
 import           Data.Monoid
@@ -35,8 +39,12 @@ instance CoArbitrary a => CoArbitrary (Add a) where
 instance Arbitrary a => Arbitrary (PositiveInfinite a) where
   arbitrary = fmap (maybe PositiveInfinity PosFinite) arbitrary
 
-instance Arbitrary a => Arbitrary (NegativeInfinite a) where
-  arbitrary = fmap (maybe NegativeInfinity NegFinite) arbitrary
+instance Arbitrary a =>
+         Arbitrary (NegativeInfinite a) where
+    arbitrary = fmap (maybe NegativeInfinity NegFinite) arbitrary
+    shrink =
+        map (maybe NegativeInfinity NegFinite) .
+        shrink . foldr (const . Just) Nothing
 
 instance Arbitrary a => Arbitrary (Infinite a) where
   arbitrary = fmap (either (bool Positive Negative) Finite) arbitrary
@@ -105,3 +113,13 @@ instance (Serial m a, Monad m) => Serial m (Viterbi a) where
 
 instance Serial m a => Serial m (Log a) where
     series = fmap Exp series
+
+instance (Arbitrary a, Unboxed.Unbox a) =>
+         Arbitrary (Unboxed.Vector a) where
+    arbitrary = fmap Unboxed.fromList arbitrary
+    shrink = map Unboxed.fromList . shrink . Unboxed.toList
+
+instance (Arbitrary a, Storable.Storable a) =>
+         Arbitrary (Storable.Vector a) where
+    arbitrary = fmap Storable.fromList arbitrary
+    shrink = map Storable.fromList . shrink . Storable.toList
