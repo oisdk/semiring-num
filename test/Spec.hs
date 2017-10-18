@@ -355,6 +355,14 @@ semiringLawTests =
                           (xs <.> ys :: [NegativeInfinite Int]) ===
                           Unboxed.toList
                               (Unboxed.fromList xs <.> Unboxed.fromList ys))]
+        , testGroup
+              "Unboxed Vector (Infinite Int)"
+              [ QC.testProperty
+                    "reference implementation of <.>"
+                    (\xs ys ->
+                          (xs <.> ys :: [Infinite Int]) ===
+                          Unboxed.toList
+                              (Unboxed.fromList xs <.> Unboxed.fromList ys))]
         , let p = Proxy :: Proxy (Min (PositiveInfinite Integer))
           in testGroup "Min Inf Integer" [semiringLawsSC p, zeroLawsSC p]
         , let p = Proxy :: Proxy (Min (Infinite Integer))

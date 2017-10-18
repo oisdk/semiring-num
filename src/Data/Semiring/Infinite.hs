@@ -708,3 +708,123 @@ instance (U.Unbox a) =>
     {-# INLINE elemseq #-}
     elemseq _ PositiveInfinity b = b
     elemseq _ (PosFinite x) b = G.elemseq (undefined :: U.Vector a) x b
+
+data instance
+     U.MVector s (Infinite a) = MV_Infinite {-# UNPACK #-} !(U.MVector s
+                                                               Word8)
+                                            !(U.MVector s a)
+
+
+data instance
+     U.Vector (Infinite a) = V_Infinite {-# UNPACK #-} !(U.Vector Word8)
+                                        !(U.Vector a)
+
+instance U.Unbox a => U.Unbox (Infinite a)
+
+instance (U.Unbox a) =>
+         M.MVector U.MVector (Infinite a) where
+    {-# INLINE basicLength #-}
+    basicLength (MV_Infinite xs _) = M.basicLength xs
+    {-# INLINE basicUnsafeSlice #-}
+    basicUnsafeSlice i_ m_ (MV_Infinite as bs) =
+        MV_Infinite
+            (M.basicUnsafeSlice i_ m_ as)
+            (M.basicUnsafeSlice i_ m_ bs)
+    {-# INLINE basicOverlaps #-}
+    basicOverlaps (MV_Infinite as1 bs1) (MV_Infinite as2 bs2) =
+        M.basicOverlaps as1 as2 || M.basicOverlaps bs1 bs2
+    {-# INLINE basicUnsafeNew #-}
+    basicUnsafeNew n_ =
+        liftA2
+            MV_Infinite
+            (M.basicUnsafeNew n_)
+            (M.basicUnsafeNew n_)
+    {-# INLINE basicInitialize #-}
+    basicInitialize (MV_Infinite as bs) =
+        M.basicInitialize as *> M.basicInitialize bs
+    {-# INLINE basicUnsafeReplicate #-}
+    basicUnsafeReplicate n_ Positive =
+        liftA2
+            MV_Infinite
+            (M.basicUnsafeReplicate n_ 2)
+            (M.basicUnsafeNew n_)
+    basicUnsafeReplicate n_ Negative =
+        liftA2
+            MV_Infinite
+            (M.basicUnsafeReplicate n_ 0)
+            (M.basicUnsafeNew n_)
+    basicUnsafeReplicate n_ (Finite x) =
+        liftA2
+            MV_Infinite
+            (M.basicUnsafeReplicate n_ 1)
+            (M.basicUnsafeReplicate n_ x)
+    {-# INLINE basicUnsafeRead #-}
+    basicUnsafeRead (MV_Infinite as bs) i_ =
+        M.basicUnsafeRead as i_ >>= \case
+          0 -> pure Negative
+          1 -> Finite <$> M.basicUnsafeRead bs i_
+          _ -> pure Positive
+    {-# INLINE basicUnsafeWrite #-}
+    basicUnsafeWrite (MV_Infinite as _) i_ Positive =
+        M.basicUnsafeWrite as i_ 2
+    basicUnsafeWrite (MV_Infinite as _) i_ Negative =
+        M.basicUnsafeWrite as i_ 0
+    basicUnsafeWrite (MV_Infinite as bs) i_ (Finite x) =
+        M.basicUnsafeWrite as i_ 1 *> M.basicUnsafeWrite bs i_ x
+    {-# INLINE basicClear #-}
+    basicClear (MV_Infinite as bs) =
+        M.basicClear as *> M.basicClear bs
+    {-# INLINE basicSet #-}
+    basicSet (MV_Infinite as bs) Positive =
+        M.basicSet as 2 *> M.basicClear bs
+    basicSet (MV_Infinite as bs) Negative =
+        M.basicSet as 0 *> M.basicClear bs
+    basicSet (MV_Infinite as bs) (Finite x) =
+        M.basicSet as 1 *> M.basicSet bs x
+    {-# INLINE basicUnsafeCopy #-}
+    basicUnsafeCopy (MV_Infinite as1 bs1) (MV_Infinite as2 bs2) =
+        M.basicUnsafeCopy as1 as2 *> M.basicUnsafeCopy bs1 bs2
+    {-# INLINE basicUnsafeMove #-}
+    basicUnsafeMove (MV_Infinite as1 bs1) (MV_Infinite as2 bs2) =
+        M.basicUnsafeMove as1 as2 *> M.basicUnsafeMove bs1 bs2
+    {-# INLINE basicUnsafeGrow #-}
+    basicUnsafeGrow (MV_Infinite as bs) m_ =
+        liftA2
+            MV_Infinite
+            (M.basicUnsafeGrow as m_)
+            (M.basicUnsafeGrow bs m_)
+
+instance (U.Unbox a) =>
+         G.Vector U.Vector (Infinite a) where
+    {-# INLINE basicUnsafeFreeze #-}
+    basicUnsafeFreeze (MV_Infinite as bs) =
+        liftA2
+            V_Infinite
+            (G.basicUnsafeFreeze as)
+            (G.basicUnsafeFreeze bs)
+    {-# INLINE basicUnsafeThaw #-}
+    basicUnsafeThaw (V_Infinite as bs) =
+        liftA2
+            MV_Infinite
+            (G.basicUnsafeThaw as)
+            (G.basicUnsafeThaw bs)
+    {-# INLINE basicLength #-}
+    basicLength (V_Infinite xs _) = G.basicLength xs
+    {-# INLINE basicUnsafeSlice #-}
+    basicUnsafeSlice i_ m_ (V_Infinite as bs) =
+        V_Infinite
+            (G.basicUnsafeSlice i_ m_ as)
+            (G.basicUnsafeSlice i_ m_ bs)
+    {-# INLINE basicUnsafeIndexM #-}
+    basicUnsafeIndexM (V_Infinite as bs) i_ =
+        G.basicUnsafeIndexM as i_ >>= \case
+          0 -> pure Negative
+          1 -> Finite <$> G.basicUnsafeIndexM bs i_
+          _ -> pure Positive
+    {-# INLINE basicUnsafeCopy #-}
+    basicUnsafeCopy (MV_Infinite as1 bs1) (V_Infinite as2 bs2) =
+        G.basicUnsafeCopy as1 as2 *> G.basicUnsafeCopy bs1 bs2
+    {-# INLINE elemseq #-}
+    elemseq _ Positive b = b
+    elemseq _ Negative b = b
+    elemseq _ (Finite x) b = G.elemseq (undefined :: U.Vector a) x b
