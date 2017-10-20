@@ -397,7 +397,7 @@ instance Eq1 Infinite where
     liftEq eq = go
       where
         go Positive Positive     = True
-        go Negative Negative     = False
+        go Negative Negative     = True
         go (Finite x) (Finite y) = eq x y
         go _ _                   = False
 

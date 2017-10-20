@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -24,12 +25,15 @@ import           Data.Semiring.Free
 import           Data.Semiring.Infinite
 import           Data.Semiring.Numeric
 
+import           Data.Functor.Classes
+
 import           Numeric.Natural
 import           Numeric.Sized.WordOfSize
 
 import           Test.DocTest
 import           Test.QuickCheck          hiding (Positive (..), generate,
                                            (.&.))
+import           Test.QuickCheck.Poly
 import           Test.SmallCheck.Series   hiding (Positive)
 import           Test.Tasty
 import qualified Test.Tasty.QuickCheck    as QC
@@ -43,7 +47,6 @@ import           Func
 import           LimitSize
 import           Orphans                  ()
 import           Vectors
-
 
 ------------------------------------------------------------------------
 
@@ -115,6 +118,63 @@ infixr 9 |.|
 (|.|) f g x = f (g x)
 {-# NOINLINE (|.|) #-}
 
+deriving instance Ord A
+
+instance Read A where
+    readsPrec p xs =
+        [ (A x, rs)
+        | (x,rs) <- readsPrec p xs ]
+
+liftedQC
+    :: (Show1 r
+       ,Eq1 r
+       ,Ord1 r
+       ,Read1 r
+       ,Arbitrary (r A)
+       ,Show (r A)
+       ,Eq (r A)
+       ,Ord (r A)
+       ,Read A)
+    => f (r b) -> TestTree
+liftedQC (_ :: f (r b)) =
+    testGroup
+        "liftedClasses"
+        [ testGroup
+              "Eq1"
+              [ QC.testProperty
+                    "x == x"
+                    (\(x :: r A) ->
+                          eq1 x x)
+              , QC.testProperty
+                    "same as =="
+                    (\(x :: r A) (y :: r A) ->
+                          counterexample (show (x, y)) ((x == y) == eq1 x y))]
+        , testGroup
+              "Ord1"
+              [ QC.testProperty
+                    "cmp x x == EQ"
+                    (\(x :: r A) ->
+                          counterexample (show x) (compare1 x x === EQ))
+              , QC.testProperty
+                    "compare1 == compare"
+                    (\(x :: r A) (y :: r A) ->
+                          counterexample
+                              (show (x, y))
+                              (compare x y == compare1 x y))]
+        , testGroup
+              "Show1"
+              [ QC.testProperty
+                    "show1 == show"
+                    (\(x :: r A) ->
+                          liftShowsPrec showsPrec showList 0 x "" === show x)]
+        , testGroup
+              "Read1"
+              [ QC.testProperty
+                    "read1 . show == id"
+                    (\(x :: r A) ->
+                          (liftReadsPrec readsPrec readList 0 . show) x ===
+                          [(x, "")])]]
+
 type Tup2 a = (a,a)
 type Tup3 a = (a,a,a)
 type Tup4 a = (a,a,a,a)
@@ -135,20 +195,33 @@ typeclassTests :: TestTree
 typeclassTests =
     testGroup
         "typeclass tests"
-        [ testGroup
-              "PositiveInfinite"
-              [ let p = Proxy :: Proxy (PositiveInfinite Int)
-                in storableQC p]
-        , testGroup
-              "NegativeInfinite"
-              [ let p = Proxy :: Proxy (NegativeInfinite Int)
-                in storableQC p]
-        , testGroup
-              "Infinite"
-              [ let p = Proxy :: Proxy (Infinite Int)
-                in storableQC p]]
-
-
+        [ let p = Proxy :: Proxy (PositiveInfinite Int)
+          in testGroup "PositiveInfinite" [storableQC p, liftedQC p]
+        , let p = Proxy :: Proxy (NegativeInfinite Int)
+          in testGroup "NegativeInfinite" [storableQC p, liftedQC p]
+        , let p = Proxy :: Proxy (Infinite Int)
+          in testGroup "Infinite" [storableQC p, liftedQC p]
+        , let p = Proxy :: Proxy (Add A)
+          in testGroup "Add" [liftedQC p]
+        , let p = Proxy :: Proxy (Mul A)
+          in testGroup "Mul" [liftedQC p]
+        , let p = Proxy :: Proxy (Max A)
+          in testGroup "Max" [liftedQC p]
+        , let p = Proxy :: Proxy (Min A)
+          in testGroup "Min" [liftedQC p]
+        , let p = Proxy :: Proxy (Bottleneck A)
+          in testGroup "Min" [liftedQC p]
+        , let p = Proxy :: Proxy (Division A)
+          in testGroup "Min" [liftedQC p]
+        , let p = Proxy :: Proxy (Łukasiewicz A)
+          in testGroup "Min" [liftedQC p]
+        , let p = Proxy :: Proxy (Viterbi A)
+          in testGroup "Min" [liftedQC p]
+        , let p = Proxy :: Proxy (PosFrac A)
+          in testGroup "Min" [liftedQC p]
+        , let p = Proxy :: Proxy (PosInt A)
+          in testGroup "Min" [liftedQC p]
+        ]
 
 semiringLawTests :: TestTree
 semiringLawTests =

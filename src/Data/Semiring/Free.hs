@@ -10,20 +10,23 @@ module Data.Semiring.Free
 
 import           Data.Semiring
 
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import           Data.Map.Strict       (Map)
+import qualified Data.Map.Strict       as Map
 
 import           Numeric.Natural
 
 import           Data.Semiring.Newtype
 
+import           Data.Sequence         (Seq)
+import qualified Data.Sequence         as Seq
+
 -- | The free semiring
 newtype Free a = Free
-  { getFree :: Map [a] Natural
+  { getFree :: Map (Seq a) Natural
   } deriving (Show, Read, Eq, Ord, Semiring)
 
 instance Ord a => Num (Free a) where
-    fromInteger = Free . Map.singleton [] . fromInteger
+    fromInteger = Free . Map.singleton Seq.empty . fromInteger
     {-# INLINE fromInteger #-}
     (+) = (<+>)
     {-# INLINE (+) #-}
@@ -38,7 +41,7 @@ instance Ord a => Num (Free a) where
 
 -- | Run a 'Free'.
 runFree :: Semiring s => (a -> s) -> Free a -> s
-runFree f = getAdd #. Map.foldMapWithKey ((rep .# Add) . mul . map f) . getFree
+runFree f = getAdd #. Map.foldMapWithKey ((rep .# Add) . mulFoldable . fmap f) . getFree
 {-# INLINE runFree #-}
 
 -- | Run a 'Free', interpreting it in the underlying semiring.

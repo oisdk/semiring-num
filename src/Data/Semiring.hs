@@ -169,7 +169,7 @@ class Semiring a  where
     -- True
     add
         :: [a] -> a
-    add = getAdd . foldMap Add
+    add = foldl' (<+>) zero
     {-# INLINE add #-}
     -- | Takes the product of the elements of a list. Analogous to
     -- 'product' on numbers, or 'and' on 'Bool's.
@@ -184,7 +184,7 @@ class Semiring a  where
     -- False
     mul
         :: [a] -> a
-    mul = getMul . foldMap Mul
+    mul = foldl' (<.>) one
     {-# INLINE mul #-}
 
 -- | The product of the contents of a 'Foldable'.

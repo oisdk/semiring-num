@@ -2,6 +2,7 @@
 
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
 
 module Orphans where
 
@@ -23,18 +24,29 @@ import           Numeric.Sized.WordOfSize
 import           Data.Monoid
 import           Numeric.Log
 
-import           CompUtils
-
 import           Data.Bool
 import           GHC.TypeLits
 
-
-instance Arbitrary a => Arbitrary (Add a) where
-    arbitrary = Add <#$> arbitrary
-    shrink = map Add #. shrink .# getAdd
-
-instance CoArbitrary a => CoArbitrary (Add a) where
-    coarbitrary = coarbitrary .# getAdd
+deriving instance Arbitrary a => Arbitrary (Add a)
+deriving instance CoArbitrary a => CoArbitrary (Add a)
+deriving instance Arbitrary a => Arbitrary (Mul a)
+deriving instance CoArbitrary a => CoArbitrary (Mul a)
+deriving instance Arbitrary a => Arbitrary (Min a)
+deriving instance CoArbitrary a => CoArbitrary (Min a)
+deriving instance Arbitrary a   => Arbitrary (Max a)
+deriving instance CoArbitrary a => CoArbitrary (Max a)
+deriving instance Arbitrary a => Arbitrary (Bottleneck a)
+deriving instance CoArbitrary a => CoArbitrary (Bottleneck a)
+deriving instance Arbitrary a => Arbitrary (Division a)
+deriving instance CoArbitrary a => CoArbitrary (Division a)
+deriving instance Arbitrary a => Arbitrary (Łukasiewicz a)
+deriving instance CoArbitrary a => CoArbitrary (Łukasiewicz a)
+deriving instance Arbitrary a => Arbitrary (Viterbi a)
+deriving instance CoArbitrary a => CoArbitrary (Viterbi a)
+deriving instance Arbitrary a => Arbitrary (PosFrac a)
+deriving instance CoArbitrary a => CoArbitrary (PosFrac a)
+deriving instance Arbitrary a => Arbitrary (PosInt a)
+deriving instance CoArbitrary a => CoArbitrary (PosInt a)
 
 instance Arbitrary a => Arbitrary (PositiveInfinite a) where
   arbitrary = fmap (maybe PositiveInfinity PosFinite) arbitrary

@@ -4,7 +4,9 @@ module Data.Semiring.Newtype where
 
 import Data.Coerce
 import Text.Read
-import Control.Monad
+import Text.Read.Lex
+-- import Text.ParserCombinators.ReadPrec
+-- import Control.Monad
 
 --------------------------------------------------------------------------------
 -- Show1, Read1
@@ -39,7 +41,7 @@ showsNewtype cons acc = s
         showParen (n > 10) $
         showString cons .
         showString " {" .
-        showString acc . showString " =" . sp 0 (coerce x) . showChar '}'
+        showString acc . showString " = " . sp 0 (coerce x) . showChar '}'
 {-# INLINE showsNewtype #-}
 
 -- | A definition for 'Data.Functor.Classes.liftReadsPrec' suitable for
@@ -60,18 +62,15 @@ readsNewtype
     :: Coercible a b
     => String -> String -> (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS b
 readsNewtype cons acc = r where
-    r rp _ = readPrec_to_S $ prec 10 $ do
-        Ident c <- lexP
-        guard (c == cons)
+    r rp _ = readPrec_to_S $ parens $ prec 10 $ do
+        lift $ expect (Ident cons)
         Punc "{" <- lexP
-        Ident a <- lexP
-        guard (a == acc)
+        lift $ expect (Ident acc)
         Punc "=" <- lexP
-        x <- prec 0 $ readS_to_Prec rp
+        x <- reset (readS_to_Prec rp)
         Punc "}" <- lexP
         pure (coerce x)
 {-# INLINE readsNewtype #-}
-
 
 --------------------------------------------------------------------------------
 -- Typealiases to make coercion signatures shorter
