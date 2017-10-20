@@ -46,7 +46,7 @@ test-suite semiring-test
                      , Vectors
                      , LimitSize
   build-depends:       base >=4.9 && <5
-                     , semiring-num >=0.1.0.0
+                     , semiring-num
                      , smallcheck >=0.2.1
                      , doctest >=0.3.0
                      , containers >=0.5
@@ -68,7 +68,7 @@ benchmark bench
   hs-source-dirs:      bench
   main-is:             bench.hs
   build-depends:       base -any
-                     , semiring-num >=0.1.0.0
+                     , semiring-num
                      , criterion >=0.1
                      , random >=1.0.0.0
                      , containers >=0.5
