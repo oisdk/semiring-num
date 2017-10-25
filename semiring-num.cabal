@@ -45,6 +45,8 @@ test-suite semiring-test
                      , Fraction
                      , Vectors
                      , LimitSize
+                     , TypeLevel
+                     , Properties
   build-depends:       base >=4.9 && <5
                      , semiring-num
                      , smallcheck >=0.2.1

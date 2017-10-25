@@ -7,6 +7,7 @@
 module Orphans where
 
 import           Test.QuickCheck hiding (Positive(..), generate)
+import           Test.QuickCheck.Poly
 import           Test.SmallCheck.Series hiding (Positive(..))
 import qualified Test.SmallCheck.Series as SC
 
@@ -135,3 +136,10 @@ instance (Arbitrary a, Storable.Storable a) =>
          Arbitrary (Storable.Vector a) where
     arbitrary = fmap Storable.fromList arbitrary
     shrink = map Storable.fromList . shrink . Storable.toList
+
+deriving instance Ord A
+
+instance Read A where
+    readsPrec p xs =
+        [ (A x, rs)
+        | (x,rs) <- readsPrec p xs ]
