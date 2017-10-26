@@ -4,12 +4,12 @@
 {-# LANGUAGE FlexibleInstances       #-}
 {-# LANGUAGE KindSignatures          #-}
 {-# LANGUAGE MultiParamTypeClasses   #-}
+{-# LANGUAGE PolyKinds               #-}
 {-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ScopedTypeVariables     #-}
 {-# LANGUAGE TypeFamilies            #-}
 {-# LANGUAGE TypeOperators           #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE PolyKinds #-}
 
 module TypeLevel where
 
@@ -36,5 +36,5 @@ instance Reifiable xs =>
          Reifiable (x ': xs) where
     reify p _ f = f (Proxy :: Proxy x) : reify p (Proxy :: Proxy xs) f
 
-class (c a, d a) => (c && d) a where
-instance (c a, d a) => (c && d) a
+class (c a, d a) => (c & d) a where
+instance (c a, d a) => (c & d) a

@@ -1,8 +1,10 @@
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE RankNTypes           #-}
 
 module Properties where
 
@@ -25,129 +27,186 @@ import           GHC.Exts (IsList(..))
 
 import           TypeLevel
 import           Orphans ()
+import           CompUtils
 
-nameType :: Typeable a => (Proxy a -> [TestTree]) -> Proxy a -> TestTree
-nameType f p = testGroup (show (typeRep p)) (f p)
+--------------------------------------------------------------------------------
+-- Property lists, generic to the test framework
+--------------------------------------------------------------------------------
+
+semiringLawsCL
+    :: (Show r
+       ,Eq r
+       ,Semiring r
+       ,testable (r -> Either String String)
+       ,testable (r -> r -> Either String String)
+       ,testable (r -> r -> r -> Either String String))
+    => Proxy testable
+    -> (forall f. testable f =>
+                  String -> f -> TestTree)
+    -> Proxy r
+    -> [TestTree]
+semiringLawsCL _ f (_ :: Proxy r) =
+  [ f "plusId" (plusId :: r -> Either String String)
+  , f "mulId" (mulId  :: r -> Either String String)
+  , f "annihilateL" (annihilateL  :: r -> Either String String)
+  , f "annihilateR" (annihilateR  :: r -> Either String String)
+  , f "plusComm" (plusComm  :: r -> r -> Either String String)
+  , f "plusAssoc" (plusAssoc  :: r -> r -> r -> Either String String)
+  , f "mulAssoc" (mulAssoc  :: r -> r -> r -> Either String String)
+  , f "mulDistribL" (mulDistribL  :: r -> r -> r -> Either String String)
+  , f "mulDistribR" (mulDistribR  :: r -> r -> r -> Either String String)]
+
+starLawsCL
+    :: (Show r, Eq r, StarSemiring r, testable (r -> Either String String))
+    => Proxy testable
+    -> (forall f. testable f =>
+                  String -> f -> TestTree)
+    -> Proxy r
+    -> [TestTree]
+starLawsCL _ f (_ :: Proxy r) =
+  [ f "starLaw" (starLaw :: r -> Either String String)
+  , f "plusLaw" (plusLaw :: r -> Either String String)]
+
+ordLawsCL
+    :: (Show r, Ord r, Semiring r, testable (r -> r -> r -> Either String String))
+    => Proxy testable
+    -> (forall f. testable f =>
+                  String -> f -> TestTree)
+    -> Proxy r
+    -> [TestTree]
+ordLawsCL _ f (_ :: Proxy r) =
+  [ f "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
+  , f "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
+
+--------------------------------------------------------------------------------
+-- Property lists: SmallCheck
+--------------------------------------------------------------------------------
 
 semiringLawsSCL :: (Show r, Eq r, Semiring r, Serial IO r) => f r -> [TestTree]
 semiringLawsSCL (_ :: f r) =
-  [ SC.testProperty "plusId" (plusId :: r -> Either String String)
-  , SC.testProperty "mulId" (mulId  :: r -> Either String String)
-  , SC.testProperty "annihilateL" (annihilateL  :: r -> Either String String)
-  , SC.testProperty "annihilateR" (annihilateR  :: r -> Either String String)
-  , SC.testProperty "plusComm" (plusComm  :: r -> r -> Either String String)
-  , SC.testProperty "plusAssoc" (plusAssoc  :: r -> r -> r -> Either String String)
-  , SC.testProperty "mulAssoc" (mulAssoc  :: r -> r -> r -> Either String String)
-  , SC.testProperty "mulDistribL" (mulDistribL  :: r -> r -> r -> Either String String)
-  , SC.testProperty "mulDistribR" (mulDistribR  :: r -> r -> r -> Either String String)]
+    semiringLawsCL
+        (Proxy :: Proxy (SC.Testable IO))
+        SC.testProperty
+        (Proxy :: Proxy r)
+
+starLawsSCL
+    :: (Show r, Eq r, StarSemiring r, Serial IO r)
+    => f r -> [TestTree]
+starLawsSCL (_ :: f r) =
+    starLawsCL
+        (Proxy :: Proxy (SC.Testable IO))
+        SC.testProperty
+        (Proxy :: Proxy r)
+
+zeroLawsSCL
+    :: (Show r, Eq r, DetectableZero r, Serial IO r)
+    => f r -> [TestTree]
+zeroLawsSCL (_ :: f r) =
+    [ SC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
+    , SC.testProperty "zeroIsZero" (zeroIsZero (Proxy :: Proxy r))]
+
+ordLawsSCL
+    :: (Show r, Ord r, Semiring r, Serial IO r)
+    => f r -> [TestTree]
+ordLawsSCL (_ :: f r) =
+    ordLawsCL
+        (Proxy :: Proxy (SC.Testable IO))
+        SC.testProperty
+        (Proxy :: Proxy r)
+
+--------------------------------------------------------------------------------
+-- Property lists: QuickCheck
+--------------------------------------------------------------------------------
 
 semiringLawsQCL :: (Show r, Eq r, Semiring r, Arbitrary r) => f r -> [TestTree]
 semiringLawsQCL (_ :: f r) =
-  [ QC.testProperty "plusId" (plusId :: r -> Either String String)
-  , QC.testProperty "mulId" (mulId  :: r -> Either String String)
-  , QC.testProperty "annihilateL" (annihilateL  :: r -> Either String String)
-  , QC.testProperty "annihilateR" (annihilateR  :: r -> Either String String)
-  , QC.testProperty "plusComm" (plusComm  :: r -> r -> Either String String)
-  , QC.testProperty "plusAssoc" (plusAssoc  :: r -> r -> r -> Either String String)
-  , QC.testProperty "mulAssoc" (mulAssoc  :: r -> r -> r -> Either String String)
-  , QC.testProperty "mulDistribL" (mulDistribL  :: r -> r -> r -> Either String String)
-  , QC.testProperty "mulDistribR" (mulDistribR  :: r -> r -> r -> Either String String)]
+    semiringLawsCL
+        (Proxy :: Proxy QC.Testable)
+        QC.testProperty
+        (Proxy :: Proxy r)
 
-starLawsQCL :: (Show r, Eq r, StarSemiring r, Arbitrary r) => f r -> [TestTree]
+starLawsQCL
+    :: (Show r, Eq r, StarSemiring r, Arbitrary r)
+    => f r -> [TestTree]
 starLawsQCL (_ :: f r) =
-  [ QC.testProperty "starLaw" (starLaw :: r -> Either String String)
-  , QC.testProperty "plusLaw" (plusLaw :: r -> Either String String)]
+    starLawsCL (Proxy :: Proxy QC.Testable) QC.testProperty (Proxy :: Proxy r)
 
-semiringLawsSC :: (Show r, Eq r, Semiring r, Serial IO r) => f r -> TestTree
-semiringLawsSC (p :: f r) = testGroup "Semiring Laws" (semiringLawsSCL p)
-
-semiringLawsQC :: (Show r, Eq r, Semiring r, Arbitrary r) => f r -> TestTree
-semiringLawsQC (p :: f r) = testGroup "Semiring Laws" (semiringLawsQCL p)
-
-starLawsQC :: (Show r, Eq r, StarSemiring r, Arbitrary r) => f r -> TestTree
-starLawsQC (p :: f r) = testGroup "Star laws" (starLawsQCL p)
-
-starLawsQCT
-    :: (Reifiable xs
-       ,AllAre (Show && Eq && StarSemiring && Arbitrary && Typeable) xs)
-    => Proxy xs -> TestTree
-starLawsQCT p =
-    testGroup
-        "Star Laws"
-        (reify
-             (Proxy :: Proxy (Show && Eq && StarSemiring && Arbitrary && Typeable))
-             p
-             (nameType starLawsQCL))
-
-starLawsSCT
-    :: (Reifiable xs
-       ,AllAre (Show && Eq && StarSemiring && Serial IO && Typeable) xs)
-    => Proxy xs -> TestTree
-starLawsSCT p =
-    testGroup
-        "Star Laws"
-        (reify
-             (Proxy :: Proxy (Show && Eq && StarSemiring && Serial IO && Typeable))
-             p
-             (nameType starLawsSCL))
-
-semiringLawsQCT
-    :: (Reifiable xs
-       ,AllAre (Show && Eq && Semiring && Arbitrary && Typeable) xs)
-    => Proxy xs -> TestTree
-semiringLawsQCT p =
-    testGroup
-        "Semiring Laws"
-        (reify
-             (Proxy :: Proxy (Show && Eq && Semiring && Arbitrary && Typeable))
-             p
-             (nameType semiringLawsQCL))
-
-semiringLawsSCT
-    :: (Reifiable xs
-       ,AllAre (Show && Eq && Semiring && Serial IO && Typeable) xs)
-    => Proxy xs -> TestTree
-semiringLawsSCT p =
-    testGroup
-        "Semiring Laws"
-        (reify
-             (Proxy :: Proxy (Show && Eq && Semiring && Serial IO && Typeable))
-             p
-             (nameType semiringLawsSCL))
-
-starLawsSC :: (Show r, Eq r, StarSemiring r, Serial IO r) => f r -> TestTree
-starLawsSC (p :: f r) = testGroup "Star laws" (starLawsSCL p)
-
-starLawsSCL :: (Show r, Eq r, StarSemiring r, Serial IO r) => f r -> [TestTree]
-starLawsSCL (_ :: f r) =
-  [ SC.testProperty "starLaw" (starLaw :: r -> Either String String)
-  , SC.testProperty "plusLaw" (plusLaw :: r -> Either String String)]
-
-ordLawsQCL :: (Show r, Ord r, Semiring r, Arbitrary r) => f r -> [TestTree]
-ordLawsQCL (_ :: f r) =
-  [ QC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
-  , QC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
-
-zeroLawsQCL :: (Show r, Eq r, DetectableZero r, Arbitrary r) => f r -> [TestTree]
+zeroLawsQCL
+    :: (Show r, Eq r, DetectableZero r, Arbitrary r)
+    => f r -> [TestTree]
 zeroLawsQCL (_ :: f r) =
-  [ QC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
-  , QC.testProperty "zeroIsZero" (once $ zeroIsZero (Proxy :: Proxy r))]
+    [ QC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
+    , QC.testProperty "zeroIsZero" (once $ zeroIsZero (Proxy :: Proxy r))]
 
-ordLawsSCL :: (Show r, Ord r, Semiring r, Serial IO r) => f r -> [TestTree]
-ordLawsSCL (_ :: f r) =
-  [ SC.testProperty "mulLaw" (ordMulLaw :: r -> r -> r -> Either String String)
-  , SC.testProperty "addLaw" (ordAddLaw :: r -> r -> r -> Either String String)]
+ordLawsQCL
+    :: (Show r, Ord r, Semiring r, Arbitrary r)
+    => f r -> [TestTree]
+ordLawsQCL (_ :: f r) =
+    ordLawsCL
+        (Proxy :: Proxy QC.Testable)
+        QC.testProperty
+        (Proxy :: Proxy r)
 
-zeroLawsSCL :: (Show r, Eq r, DetectableZero r, Serial IO r) => f r -> [TestTree]
-zeroLawsSCL (_ :: f r) =
-  [ SC.testProperty "zeroLaw" (zeroLaw :: r -> Either String String)
-  , SC.testProperty "zeroIsZero" (zeroIsZero (Proxy :: Proxy r))]
+storableQCL
+    :: (Show r, Eq r, Arbitrary r, Storable.Storable r)
+    => f r -> [TestTree]
+storableQCL (_ :: f r) =
+        [ QC.testProperty
+              "unstore . store == id"
+              (\(xs :: [r]) ->
+                    (Storable.toList |.| Storable.fromList) xs === xs)]
 
-ordLawsQC :: (Show r, Ord r, Semiring r, Arbitrary r) => f r -> TestTree
-ordLawsQC (p :: f r) = testGroup "Ordering laws" (ordLawsQCL p)
+liftedQCL
+    :: (Show1 r
+       ,Eq1 r
+       ,Ord1 r
+       ,Read1 r
+       ,Arbitrary (r A)
+       ,Show (r A)
+       ,Eq (r A)
+       ,Ord (r A)
+       ,Read A)
+    => f r -> [TestTree]
+liftedQCL (_ :: f r) =
+    [ testGroup
+          "Eq1"
+          [ QC.testProperty
+                "x == x"
+                (\(x :: r A) ->
+                      eq1 x x)
+          , QC.testProperty
+                "same as =="
+                (\(x :: r A) (y :: r A) ->
+                      counterexample (show (x, y)) ((x == y) == eq1 x y))]
+    , testGroup
+          "Ord1"
+          [ QC.testProperty
+                "cmp x x == EQ"
+                (\(x :: r A) ->
+                      counterexample (show x) (compare1 x x === EQ))
+          , QC.testProperty
+                "compare1 == compare"
+                (\(x :: r A) (y :: r A) ->
+                      counterexample
+                          (show (x, y))
+                          (compare x y == compare1 x y))]
+    , testGroup
+          "Show1"
+          [ QC.testProperty
+                "show1 == show"
+                (\(x :: r A) ->
+                      liftShowsPrec showsPrec showList 0 x "" === show x)]
+    , testGroup
+          "Read1"
+          [ QC.testProperty
+                "read1 . show == id"
+                (\(x :: r A) ->
+                      (liftReadsPrec readsPrec readList 0 . show) x ===
+                      [(x, "")])]]
 
-zeroLawsQC :: (Show r, Eq r, DetectableZero r, Arbitrary r) => f r -> TestTree
-zeroLawsQC (p :: f r) = testGroup "Zero laws" (zeroLawsQCL p)
+--------------------------------------------------------------------------------
+-- Single-type tests: SmallCheck
+--------------------------------------------------------------------------------
 
 ordLawsSC :: (Show r, Ord r, Semiring r, Serial IO r) => f r -> TestTree
 ordLawsSC (p :: f r) = testGroup "Ordering laws" (ordLawsSCL p)
@@ -155,94 +214,173 @@ ordLawsSC (p :: f r) = testGroup "Ordering laws" (ordLawsSCL p)
 zeroLawsSC :: (Show r, Eq r, DetectableZero r, Serial IO r) => f r -> TestTree
 zeroLawsSC (p :: f r) = testGroup "Zero laws" (zeroLawsSCL p)
 
-storableQC :: (Show r, Eq r, Arbitrary r, Storable.Storable r) => f r -> TestTree
-storableQC (p :: f r) = testGroup "Storable implementation" (storableQCL p)
+--------------------------------------------------------------------------------
+-- Single-type tests: QuickCheck
+--------------------------------------------------------------------------------
 
-ordLawsQCT
+semiringLawsQC
+    :: (Show r, Eq r, Semiring r, Arbitrary r)
+    => f r -> TestTree
+semiringLawsQC (p :: f r) = testGroup "Semiring Laws" (semiringLawsQCL p)
+
+zeroLawsQC :: (Show r, Eq r, DetectableZero r, Arbitrary r) => f r -> TestTree
+zeroLawsQC (p :: f r) = testGroup "Zero laws" (zeroLawsQCL p)
+
+refListMulQC
+    :: (Semiring (Item t), Semiring t, Eq (Item t), Show (Item t), IsList t)
+    => Proxy t -> [Item t] -> [Item t] -> Property
+refListMulQC (_ :: Proxy t) xs ys =
+    refListMul xs ys ===
+    (toList :: t -> [Item t]) (fromList xs <.> fromList ys)
+  where
+    refListMul [] _ = []
+    refListMul _ [] = []
+    refListMul (x:xs') yys@(y:ys') = (x <.> y) : map (x <.>) ys' <+> xs' <.> yys
+
+--------------------------------------------------------------------------------
+-- Multi-type tests: SmallCheck
+--------------------------------------------------------------------------------
+
+semiringLawsSCT
     :: (Reifiable xs
-       ,AllAre (Show && Eq && Arbitrary && Typeable && Semiring && Ord) xs)
+       ,AllAre (Diffable & Semiring & Serial IO) xs)
     => Proxy xs -> TestTree
-ordLawsQCT p =
+semiringLawsSCT p =
     testGroup
-        "Ordering laws"
+        "Semiring Laws"
         (reify
-             (Proxy :: Proxy (Show && Eq && Arbitrary && Typeable && Semiring && Ord))
+             (Proxy :: Proxy (Diffable & Semiring & Serial IO))
              p
-             (nameType ordLawsQCL))
+             (nameType semiringLawsSCL))
+
+starLawsSCT
+    :: (Reifiable xs
+       ,AllAre (Diffable & StarSemiring & Serial IO) xs)
+    => Proxy xs -> TestTree
+starLawsSCT p =
+    testGroup
+        "Star Laws"
+        (reify
+             (Proxy :: Proxy (Diffable & StarSemiring & Serial IO))
+             p
+             (nameType starLawsSCL))
 
 ordLawsSCT
     :: (Reifiable xs
-       ,AllAre (Show && Eq && Serial IO && Typeable && Semiring && Ord) xs)
+       ,AllAre (Diffable & Serial IO & Semiring & Ord) xs)
     => Proxy xs -> TestTree
 ordLawsSCT p =
     testGroup
         "Ordering laws"
         (reify
-             (Proxy :: Proxy (Show && Eq && Serial IO && Typeable && Semiring && Ord))
+             (Proxy :: Proxy (Diffable & Serial IO & Semiring & Ord))
              p
              (nameType ordLawsSCL))
 
-zeroLawsSCT :: (Reifiable xs, AllAre (Show && Eq && Serial IO && Typeable && DetectableZero) xs) => Proxy xs -> TestTree
+zeroLawsSCT
+    :: (Reifiable xs
+       ,AllAre (Diffable & Serial IO & DetectableZero) xs)
+    => Proxy xs -> TestTree
 zeroLawsSCT p =
     testGroup
         "Zero laws"
         (reify
-             (Proxy :: Proxy (Show && Eq && Serial IO && Typeable && DetectableZero))
+             (Proxy :: Proxy (Diffable & Serial IO & DetectableZero))
              p
              (nameType zeroLawsSCL))
 
-zeroLawsQCT :: (Reifiable xs, AllAre (Show && Eq && Arbitrary && Typeable && DetectableZero) xs) => Proxy xs -> TestTree
+--------------------------------------------------------------------------------
+-- Multi-type tests: QuickCheck
+--------------------------------------------------------------------------------
+
+starLawsQCT
+    :: (Reifiable xs
+       ,AllAre (Diffable & StarSemiring & Arbitrary) xs)
+    => Proxy xs -> TestTree
+starLawsQCT p =
+    testGroup
+        "Star Laws"
+        (reify
+             (Proxy :: Proxy (Diffable & StarSemiring & Arbitrary))
+             p
+             (nameType starLawsQCL))
+
+semiringLawsQCT
+    :: (Reifiable xs
+       ,AllAre (Show & Eq & Semiring & Arbitrary & Typeable) xs)
+    => Proxy xs -> TestTree
+semiringLawsQCT p =
+    testGroup
+        "Semiring Laws"
+        (reify
+             (Proxy :: Proxy (Show & Eq & Semiring & Arbitrary & Typeable))
+             p
+             (nameType semiringLawsQCL))
+
+ordLawsQCT
+    :: (Reifiable xs
+       ,AllAre (Diffable & Arbitrary & Semiring & Ord) xs)
+    => Proxy xs -> TestTree
+ordLawsQCT p =
+    testGroup
+        "Ordering laws"
+        (reify
+             (Proxy :: Proxy (Diffable & Arbitrary & Semiring & Ord))
+             p
+             (nameType ordLawsQCL))
+
+zeroLawsQCT
+    :: (Reifiable xs
+       ,AllAre (Diffable & Arbitrary & DetectableZero) xs)
+    => Proxy xs -> TestTree
 zeroLawsQCT p =
     testGroup
         "Zero laws"
         (reify
-             (Proxy :: Proxy (Show && Eq && Arbitrary && Typeable && DetectableZero))
+             (Proxy :: Proxy (Diffable & Arbitrary & DetectableZero))
              p
              (nameType zeroLawsQCL))
 
-storableQCL :: (Show r, Eq r, Arbitrary r, Storable.Storable r) => f r -> [TestTree]
-storableQCL (_ :: f r) =
-        [ QC.testProperty
-              "unstore . store == id"
-              (\(xs :: [r]) ->
-                    (Storable.toList |.| Storable.fromList) xs === xs)]
-
 storableQCT
     :: (Reifiable xs
-       ,AllAre (Show && Eq && Arbitrary && Typeable && Storable.Storable) xs)
+       ,AllAre (Diffable & Arbitrary & Storable.Storable) xs)
     => Proxy xs -> TestTree
 storableQCT p =
     testGroup
         "Storable implementation"
         (reify
-             (Proxy :: Proxy (Show && Eq && Arbitrary && Typeable && Storable.Storable))
+             (Proxy :: Proxy (Diffable & Arbitrary & Storable.Storable))
              p
              (nameType storableQCL))
 
+class (IsList t
+      ,Semiring (Item t)
+      ,Arbitrary (Item t)
+      ,Show (Item t)
+      ,Eq (Item t)
+      ,Typeable t
+      ,Semiring t) =>
+      ListPoly t
+instance (IsList t
+         ,Semiring (Item t)
+         ,Arbitrary (Item t)
+         ,Show (Item t)
+         ,Eq (Item t)
+         ,Typeable t
+         ,Semiring t) =>
+         ListPoly t
 
-class (IsList t, Semiring (Item t), Arbitrary (Item t), Show (Item t), Eq (Item t)) => ListPoly t
-instance (IsList t, Semiring (Item t), Arbitrary (Item t), Show (Item t), Eq (Item t)) => ListPoly t
-
-
-refListMulQCT :: (Reifiable xs, AllAre (Typeable && Semiring && ListPoly) xs) => Proxy xs -> TestTree
+refListMulQCT
+    :: (Reifiable xs, AllAre ListPoly xs)
+    => Proxy xs -> TestTree
 refListMulQCT p =
     testGroup
         "Reference convolution"
         (reify
-             (Proxy :: Proxy (Typeable && Semiring && ListPoly))
+             (Proxy :: Proxy ListPoly)
              p
              (\(t :: Proxy l) ->
-                   QC.testProperty
-                       (show (typeRep t))
-                       (refListMulQC t)
-                            ))
-
-
-infixr 9 |.|
-(|.|) :: (b -> c) -> (a -> b) -> a -> c
-(|.|) f g x = f (g x)
-{-# NOINLINE (|.|) #-}
-
+                   QC.testProperty (show (typeRep t)) (refListMulQC t)))
 
 class (Show1 r
       ,Eq1 r
@@ -265,8 +403,6 @@ instance (Show1 r
          ,Typeable (r A)) =>
          Lifted r
 
-
-
 liftedQCT
     :: (Reifiable xs, AllAre Lifted xs)
     => Proxy xs -> TestTree
@@ -281,64 +417,11 @@ liftedQCT p =
                        (show (typeRep (Proxy :: Proxy (f A))))
                        (liftedQCL t)))
 
-liftedQCL
-    :: (Show1 r
-       ,Eq1 r
-       ,Ord1 r
-       ,Read1 r
-       ,Arbitrary (r A)
-       ,Show (r A)
-       ,Eq (r A)
-       ,Ord (r A)
-       ,Read A)
-    => f r -> [TestTree]
-liftedQCL (_ :: f r) =
-        [ testGroup
-              "Eq1"
-              [ QC.testProperty
-                    "x == x"
-                    (\(x :: r A) ->
-                          eq1 x x)
-              , QC.testProperty
-                    "same as =="
-                    (\(x :: r A) (y :: r A) ->
-                          counterexample (show (x, y)) ((x == y) == eq1 x y))]
-        , testGroup
-              "Ord1"
-              [ QC.testProperty
-                    "cmp x x == EQ"
-                    (\(x :: r A) ->
-                          counterexample (show x) (compare1 x x === EQ))
-              , QC.testProperty
-                    "compare1 == compare"
-                    (\(x :: r A) (y :: r A) ->
-                          counterexample
-                              (show (x, y))
-                              (compare x y == compare1 x y))]
-        , testGroup
-              "Show1"
-              [ QC.testProperty
-                    "show1 == show"
-                    (\(x :: r A) ->
-                          liftShowsPrec showsPrec showList 0 x "" === show x)]
-        , testGroup
-              "Read1"
-              [ QC.testProperty
-                    "read1 . show == id"
-                    (\(x :: r A) ->
-                          (liftReadsPrec readsPrec readList 0 . show) x ===
-                          [(x, "")])]]
+--------------------------------------------------------------------------------
+-- Utils
+--------------------------------------------------------------------------------
 
-refListMul
-    :: Semiring a
-    => [a] -> [a] -> [a]
-refListMul [] _              = []
-refListMul _ []              = []
-refListMul (x:xs) yys@(y:ys) = (x <.> y) : map (x <.>) ys <+> xs <.> yys
+nameType :: Typeable a => (Proxy a -> [TestTree]) -> Proxy a -> TestTree
+nameType f p = testGroup (show (typeRep p)) (f p)
 
-refListMulQC
-    :: (Semiring (Item t), Semiring t, Eq (Item t), Show (Item t), IsList t)
-    => Proxy t -> [Item t] -> [Item t] -> Property
-refListMulQC (_ :: Proxy t) xs ys =
-    refListMul xs ys ===
-    (toList :: t -> [Item t]) (fromList xs <.> fromList ys)
+type Diffable = Show & Eq & Typeable
