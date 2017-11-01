@@ -263,11 +263,19 @@ simdBehaviour =
     testGroup
         "SIMD behaviour"
         [ QC.testProperty
-              "plus"
+              "plus 32"
+              (\xs ys ->
+                    addInt8s xs ys QC.=== (xs <+> ys))
+        , QC.testProperty
+              "mult 32"
+              (\xs ys ->
+                    convInt8s xs ys QC.=== (xs <.> ys))
+        , QC.testProperty
+              "plus 32"
               (\xs ys ->
                     addInt32s xs ys QC.=== (xs <+> ys))
         , QC.testProperty
-              "mult"
+              "mult 32"
               (\xs ys ->
                     convInt32s xs ys QC.=== (xs <.> ys))]
 
