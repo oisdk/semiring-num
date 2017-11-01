@@ -263,11 +263,35 @@ simdBehaviour =
     testGroup
         "SIMD behaviour"
         [ QC.testProperty
-              "plus 32"
+              "plus double"
+              (\xs ys ->
+                    addDoubles xs ys QC.=== (xs <+> ys))
+        , QC.testProperty
+              "mult double"
+              (\xs ys ->
+                    convDoubles xs ys QC.=== (xs <.> ys))
+        , QC.testProperty
+              "plus float"
+              (\xs ys ->
+                    addFloats xs ys QC.=== (xs <+> ys))
+        , QC.testProperty
+              "mult float"
+              (\xs ys ->
+                    convFloats xs ys QC.=== (xs <.> ys))
+        , QC.testProperty
+              "plus 64"
+              (\xs ys ->
+                    addInt64s xs ys QC.=== (xs <+> ys))
+        , QC.testProperty
+              "mult 64"
+              (\xs ys ->
+                    convInt64s xs ys QC.=== (xs <.> ys))
+        , QC.testProperty
+              "plus 8"
               (\xs ys ->
                     addInt8s xs ys QC.=== (xs <+> ys))
         , QC.testProperty
-              "mult 32"
+              "mult 8"
               (\xs ys ->
                     convInt8s xs ys QC.=== (xs <.> ys))
         , QC.testProperty

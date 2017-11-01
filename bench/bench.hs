@@ -15,7 +15,7 @@ import Data.Int
 threeInts :: IO (Int,Int,Int)
 threeInts = (,,) <$> randomIO <*> randomIO <*> randomIO
 
-int :: IO Int8
+int :: IO Int32
 int = randomIO
 
 sumAtSize :: Int -> Benchmark
@@ -48,10 +48,10 @@ atSizeVec n m =
              , bench (show m ++ "<.>" ++ show n) (nf (uncurry (flip (<.>))) xs)
              , bench (show n ++ "<+>" ++ show m) (nf (uncurry (<+>)) xs)
              , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)
-             , bench (show n ++ "p+" ++ show m) (nf (uncurry addInt8s) xs)
-             , bench (show m ++ "p+" ++ show n) (nf (uncurry (flip addInt8s)) xs)
-             , bench (show n ++ "p*" ++ show m) (nf (uncurry convInt8s) xs)
-             , bench (show m ++ "p*" ++ show n) (nf (uncurry (flip convInt8s)) xs)
+             , bench (show n ++ "p+" ++ show m) (nf (uncurry addInt32s) xs)
+             , bench (show m ++ "p+" ++ show n) (nf (uncurry (flip addInt32s)) xs)
+             , bench (show n ++ "p*" ++ show m) (nf (uncurry convInt32s) xs)
+             , bench (show m ++ "p*" ++ show n) (nf (uncurry (flip convInt32s)) xs)
              ]
 
 main :: IO ()
