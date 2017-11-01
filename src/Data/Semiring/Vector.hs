@@ -39,7 +39,7 @@ addInt32s (V_Int32 (Vector lo@(I# lo') ls lb@(ByteArray lb'))) (V_Int32 (Vector 
             _  -> (rs, ls)
     is = sizeOf (undefined :: Int32)
     d8 = unsafeShiftR ms 3
-    r8 = xor d8 7
+    r8 = ms .&. complement 7
     paradd (MutableByteArray bb) j =
         for_ [0 .. j - 1] $
         \(I# j') -> let i' = uncheckedIShiftL# j' 3# in

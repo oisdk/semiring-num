@@ -22,11 +22,11 @@ import qualified Data.Vector.Unboxed      as Unboxed
 import           Data.Semiring
 import           Data.Semiring.Infinite
 import           Data.Semiring.Numeric
+import           Data.Semiring.Vector
 
 import           Numeric.Natural
 import           Numeric.Sized.WordOfSize
 
-import           Test.DocTest
 import           Test.Tasty
 import qualified Test.Tasty.QuickCheck    as QC
 import qualified Test.Tasty.SmallCheck    as SC
@@ -257,7 +257,22 @@ semiringLawTests =
                     (mulAssoc :: TernaryLaws (Infinite Integer))]
         ]
 
+
+simdBehaviour :: TestTree
+simdBehaviour =
+    testGroup
+        "SIMD behaviour"
+        [ QC.testProperty
+              "plus"
+              (\xs ys ->
+                    addInt32s xs ys QC.=== (xs <+> ys))
+        , QC.testProperty
+              "mult"
+              (\xs ys ->
+                    convInt32s xs ys QC.=== (xs <.> ys))]
+
+
+
 main :: IO ()
-main = do
-    doctest ["-isrc", "src/"]
-    defaultMain $ testGroup "Tests" [typeclassTests, semiringLawTests]
+main = defaultMain $ testGroup "Tests" [simdBehaviour, typeclassTests, semiringLawTests]
+    -- doctest ["-isrc", "src/"]
