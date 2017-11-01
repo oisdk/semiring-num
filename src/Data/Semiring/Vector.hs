@@ -115,6 +115,32 @@ convInt32s (V_Int32 lv@(Vector (I# lo') ls (ByteArray lb'))) (V_Int32 rv@(Vector
                            (# y1,y2,y3,y4,y5,y6,y7,y8 #) ->
                                I32# (a' +# y1 +# y2 +# y3 +# y4 +# y5 +# y6 +# y7 +# y8)
 
+-- convInt32s :: Unboxed.Vector Int32 -> Unboxed.Vector Int32 -> Unboxed.Vector Int32
+-- convInt32s (V_Int32 lv@(Vector (I# lo') ls (ByteArray lb'))) rvr
+--   | ls == 0 = Unboxed.empty
+--   | rs == 0 = Unboxed.empty
+--   | otherwise = Unboxed.generate (ls + rs - 1) f
+--   where
+--     !(V_Int32 !rv@(Vector (I# ro') rs@(I# rs') (ByteArray rb'))) = Unboxed.reverse rvr
+--     f n@(I# n') =
+--         foldl'
+--             (\a k -> a + Vector.unsafeIndex lv k * Vector.unsafeIndex rv (rs - (n - k) - 1))
+--             (foldl' h 0 [0 .. sz - 1])
+--             [unsafeShiftL sz 3 + kmin .. kmax]
+--       where
+--         !kmin@(I# kmin') = max 0 (n - (rs - 1))
+--         !kmax = min n (ls - 1)
+--         !sz = unsafeShiftR ((kmax + 1) - kmin) 3
+--         h (I32# a') (I# j') =
+--             let i' = (uncheckedIShiftL# j' 3# +# kmin')
+--             in 
+--                        case unpackInt32X8#
+--                                 (timesInt32X8#
+--                                      (indexInt32ArrayAsInt32X8# lb' (i' +# lo'))
+--                                      (indexInt32ArrayAsInt32X8# rb' ((rs' -# (n' -# i') -# 1#) +# ro'))) of
+--                            (# y1,y2,y3,y4,y5,y6,y7,y8 #) ->
+--                                I32# (a' +# y1 +# y2 +# y3 +# y4 +# y5 +# y6 +# y7 +# y8)
+
 addInt8s :: Unboxed.Vector Int8 -> Unboxed.Vector Int8 -> Unboxed.Vector Int8
 addInt8s =
         (coerce :: Binary (Vector.Vector Int8) -> Binary (Unboxed.Vector Int8)) $

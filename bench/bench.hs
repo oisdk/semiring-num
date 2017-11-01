@@ -18,6 +18,9 @@ threeInts = (,,) <$> randomIO <*> randomIO <*> randomIO
 int :: IO Int32
 int = randomIO
 
+flt :: IO Float
+flt = randomIO
+
 sumAtSize :: Int -> Benchmark
 sumAtSize n =
     env (replicateM n threeInts) $
@@ -45,19 +48,15 @@ atSizeVec n m =
          bgroup
              (show (n, m))
              [ bench (show n ++ "<.>" ++ show m) (nf (uncurry (<.>)) xs)
-             , bench (show m ++ "<.>" ++ show n) (nf (uncurry (flip (<.>))) xs)
              , bench (show n ++ "<+>" ++ show m) (nf (uncurry (<+>)) xs)
-             , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)
              , bench (show n ++ "p+" ++ show m) (nf (uncurry addInt32s) xs)
-             , bench (show m ++ "p+" ++ show n) (nf (uncurry (flip addInt32s)) xs)
              , bench (show n ++ "p*" ++ show m) (nf (uncurry convInt32s) xs)
-             , bench (show m ++ "p*" ++ show n) (nf (uncurry (flip convInt32s)) xs)
              ]
 
 main :: IO ()
 main =
     defaultMain
         -- [ bgroup "list star" [starList 2000]
-        [ bgroup "vec" [atSizeVec 4000 4000, atSizeVec 4000 2000]]
+        [ bgroup "vec" [atSizeVec 1024 16, atSizeVec 4000 2000]]
         -- , bgroup "list" [atSizeList 400 200, atSizeList 4000 2000]
         -- , bgroup "add" [sumAtSize 100, sumAtSize 1000]]
