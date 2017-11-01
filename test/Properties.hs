@@ -425,3 +425,12 @@ nameType :: Typeable a => (Proxy a -> [TestTree]) -> Proxy a -> TestTree
 nameType f p = testGroup (show (typeRep p)) (f p)
 
 type Diffable = Show & Eq & Typeable
+
+(=.=) :: (Eq a, Show a) => [a] -> [a] -> Property
+xs =.= ys = go xs ys where
+  go [] [] = property True
+  go [] ys' = counterexample (show xs ++ "\n/=\n" ++ show ys ++ "\nrhs longer, with extra elements:\n" ++ show ys') False
+  go xs' [] = counterexample (show xs ++ "\n/=\n" ++ show ys ++ "\nlhs longer, with extra elements:\n" ++ show xs') False
+  go (x:xs') (y:ys')
+      | x /= y = counterexample (show xs ++ "\n/=\n" ++ show ys ++ "\n" ++ show x ++ " /= " ++ show y) False
+      | otherwise = go xs' ys'

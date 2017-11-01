@@ -265,43 +265,53 @@ simdBehaviour =
         [ QC.testProperty
               "plus double"
               (\xs ys ->
-                    addDoubles xs ys QC.=== (xs <+> ys))
+                    Unboxed.toList (addDoubles xs ys) QC.===
+                    (Unboxed.toList xs <+> Unboxed.toList ys))
         , QC.testProperty
               "mult double"
               (\xs ys ->
-                    convDoubles xs ys QC.=== (xs <.> ys))
+                    map Approx (Unboxed.toList (convDoubles xs ys)) =.=
+                    map Approx (Unboxed.toList xs <.> Unboxed.toList ys))
         , QC.testProperty
               "plus float"
               (\xs ys ->
-                    addFloats xs ys QC.=== (xs <+> ys))
+                    addFloats xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <+> Unboxed.toList ys))
         , QC.testProperty
               "mult float"
               (\xs ys ->
-                    convFloats xs ys QC.=== (xs <.> ys))
+                    map Approx (Unboxed.toList (convFloats xs ys)) =.=
+                    map Approx (Unboxed.toList xs <.> Unboxed.toList ys))
         , QC.testProperty
-              "plus 64"
+              "plus Int64"
               (\xs ys ->
-                    addInt64s xs ys QC.=== (xs <+> ys))
+                    addInt64s xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <+> Unboxed.toList ys))
         , QC.testProperty
-              "mult 64"
+              "mult Int64"
               (\xs ys ->
-                    convInt64s xs ys QC.=== (xs <.> ys))
+                    convInt64s xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <.> Unboxed.toList ys))
         , QC.testProperty
-              "plus 8"
+              "plus Int8"
               (\xs ys ->
-                    addInt8s xs ys QC.=== (xs <+> ys))
+                    addInt8s xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <+> Unboxed.toList ys))
         , QC.testProperty
-              "mult 8"
+              "mult Int8"
               (\xs ys ->
-                    convInt8s xs ys QC.=== (xs <.> ys))
+                    convInt8s xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <.> Unboxed.toList ys))
         , QC.testProperty
-              "plus 32"
+              "plus Int32"
               (\xs ys ->
-                    addInt32s xs ys QC.=== (xs <+> ys))
+                    addInt32s xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <+> Unboxed.toList ys))
         , QC.testProperty
-              "mult 32"
+              "mult Int32"
               (\xs ys ->
-                    convInt32s xs ys QC.=== (xs <.> ys))]
+                    convInt32s xs ys QC.===
+                    Unboxed.fromList (Unboxed.toList xs <.> Unboxed.toList ys))]
 
 
 

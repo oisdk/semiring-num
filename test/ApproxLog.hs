@@ -59,3 +59,16 @@ instance (RealFloat a, Ord a) => Ord (SApproxLog a) where
     compare (SApproxLog x) (SApproxLog y)
       | SApproxLog x == SApproxLog y = EQ
       | otherwise = compare x y
+
+newtype Approx a =
+    Approx a
+    deriving (Show)
+
+instance Arbitrary a => Arbitrary (Approx a) where
+    arbitrary = fmap Approx arbitrary
+    shrink (Approx x) = fmap Approx (shrink x)
+
+instance (RealFloat a, Ord a) =>
+         Eq (Approx a) where
+    Approx x == Approx y =
+        isInfinite x && isInfinite y || x == y || abs ((x - y) / max (abs x) (abs y)) < 0.01
