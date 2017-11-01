@@ -7,13 +7,15 @@ import           System.Random
 import           Control.Monad
 
 import           Data.Semiring
+import           Data.Semiring.Vector
 
-import qualified Data.Vector as Vector
+import qualified Data.Vector.Unboxed as Vector
+import Data.Int
 
 threeInts :: IO (Int,Int,Int)
 threeInts = (,,) <$> randomIO <*> randomIO <*> randomIO
 
-int :: IO Int
+int :: IO Int32
 int = randomIO
 
 sumAtSize :: Int -> Benchmark
@@ -45,12 +47,17 @@ atSizeVec n m =
              [ bench (show n ++ "<.>" ++ show m) (nf (uncurry (<.>)) xs)
              , bench (show m ++ "<.>" ++ show n) (nf (uncurry (flip (<.>))) xs)
              , bench (show n ++ "<+>" ++ show m) (nf (uncurry (<+>)) xs)
-             , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)]
+             , bench (show m ++ "<+>" ++ show n) (nf (uncurry (flip (<+>))) xs)
+             , bench (show n ++ "p+" ++ show m) (nf (uncurry addInt32s) xs)
+             , bench (show m ++ "p+" ++ show n) (nf (uncurry (flip addInt32s)) xs)
+             , bench (show n ++ "p*" ++ show m) (nf (uncurry convInt32s) xs)
+             , bench (show m ++ "p*" ++ show n) (nf (uncurry (flip convInt32s)) xs)
+             ]
 
 main :: IO ()
 main =
     defaultMain
-        [ bgroup "list star" [starList 2000]
-        , bgroup "vec" [atSizeVec 4000 2000, atSizeVec 4000 2000]
-        , bgroup "list" [atSizeList 400 200, atSizeList 4000 2000]
-        , bgroup "add" [sumAtSize 100, sumAtSize 1000]]
+        -- [ bgroup "list star" [starList 2000]
+        [ bgroup "vec" [atSizeVec 4000 4000, atSizeVec 4000 2000]]
+        -- , bgroup "list" [atSizeList 400 200, atSizeList 4000 2000]
+        -- , bgroup "add" [sumAtSize 100, sumAtSize 1000]]
