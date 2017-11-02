@@ -51,9 +51,11 @@ addsimd vecp@(I# vecp') mask act = go where
       is = sizeOf (undefined :: a)
       d = unsafeShiftR ms vecp
       r = ms .&. complement mask
+      paradd :: MutableByteArray s -> Int -> ST s ()
       paradd (MutableByteArray bb) j =
           for_ [0 .. j - 1] $
           \(I# j') -> let i' = uncheckedIShiftL# j' vecp' in inline act bb i' lb' lo' rb' ro'
+      seqadd :: MutableByteArray s -> Int -> Int -> ST s ()
       seqadd ba f t =
           for_ [f .. t - 1] $
           \i ->
@@ -61,13 +63,13 @@ addsimd vecp@(I# vecp') mask act = go where
                   ba
                   i
                   (indexByteArray lb (i + lo) + indexByteArray rb (i + ro) :: a)
+      endcpy :: MutableByteArray s -> ST s ()
       endcpy ba =
           case cs of
               EQ -> pure ()
               LT -> copyByteArray ba (ls * is) rb ((ro + ls) * is) ((rs - ls) * is)
               GT -> copyByteArray ba (rs * is) lb ((lo + rs) * is) ((ls - rs) * is)
 {-# INLINE addsimd #-}
-
 
 convsimd
     :: (Prim a, Num a)
@@ -164,8 +166,7 @@ convInt8s =
                                (packInt8X32#
                                     (# x32,x31,x30,x29,x28,x27,x26,x25,x24,x23,x22,x21,x20,x19,x18,x17,x16,x15,x14,x13,x12,x11,x10,x9,x8,x7,x6,x5,x4,x3,x2,x1 #))) of
                      (# y1,y2,y3,y4,y5,y6,y7,y8,y9,y10,y11,y12,y13,y14,y15,y16,y17,y18,y19,y20,y21,y22,y23,y24,y25,y26,y27,y28,y29,y30,y31,y32 #) ->
-                         I8#
-                             (a' +# y1 +# y2 +# y3 +# y4 +# y5 +# y6 +# y7 +# y8 +# y9 +# y10 +# y11 +# y12 +# y13 +# y14 +# y15 +# y16 +# y17 +# y18 +# y19 +# y20 +# y21 +# y22 +# y23 +# y24 +# y25 +# y26 +# y27 +# y28 +# y29 +# y30 +# y31 +# y32)
+                         I8# (a' +# y1 +# y2 +# y3 +# y4 +# y5 +# y6 +# y7 +# y8 +# y9 +# y10 +# y11 +# y12 +# y13 +# y14 +# y15 +# y16 +# y17 +# y18 +# y19 +# y20 +# y21 +# y22 +# y23 +# y24 +# y25 +# y26 +# y27 +# y28 +# y29 +# y30 +# y31 +# y32)
 
 addInt64s :: Unboxed.Vector Int64 -> Unboxed.Vector Int64 -> Unboxed.Vector Int64
 addInt64s =
