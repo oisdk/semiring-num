@@ -15,7 +15,7 @@ import Data.Int
 threeInts :: IO (Int,Int,Int)
 threeInts = (,,) <$> randomIO <*> randomIO <*> randomIO
 
-int :: IO Int32
+int :: IO Int8
 int = randomIO
 
 flt :: IO Float
@@ -49,14 +49,14 @@ atSizeVec n m =
              (show (n, m))
              [ bench (show n ++ "<.>" ++ show m) (nf (uncurry (<.>)) xs)
              , bench (show n ++ "<+>" ++ show m) (nf (uncurry (<+>)) xs)
-             , bench (show n ++ "p+" ++ show m) (nf (uncurry addInt32s) xs)
-             , bench (show n ++ "p*" ++ show m) (nf (uncurry convInt32s) xs)
+             , bench (show n ++ "p+" ++ show m) (nf (uncurry addInt8s) xs)
+             , bench (show n ++ "p*" ++ show m) (nf (uncurry convInt8s) xs)
              ]
 
 main :: IO ()
 main =
     defaultMain
         -- [ bgroup "list star" [starList 2000]
-        [ bgroup "vec" [atSizeVec 1024 16, atSizeVec 4000 2000]]
+        [ bgroup "vec" [atSizeVec 4096 64, atSizeVec 4000 2000]]
         -- , bgroup "list" [atSizeList 400 200, atSizeList 4000 2000]
         -- , bgroup "add" [sumAtSize 100, sumAtSize 1000]]
