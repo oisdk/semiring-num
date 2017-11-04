@@ -415,35 +415,11 @@ instance Semiring a =>
     {-# INLINE one #-}
     {-# INLINE zero #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped [] Int #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Int64 #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped [] Word #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Word64 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Integer #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped [] Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Float #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Natural #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped [] Bool #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped [] Int #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Int64 #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped [] Word #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Word64 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Integer #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped [] Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Float #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Natural #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped [] Bool #-}
 
 
 listAdd :: Semiring a => [a] -> [a] -> [a]
@@ -452,20 +428,8 @@ listAdd xs []         = xs
 listAdd (x:xs) (y:ys) = (x <+> y) : listAdd xs ys
 {-# NOINLINE [0] listAdd #-}
 {-# SPECIALISE listAdd :: BinaryWrapped [] Int #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Int8 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Int16 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Int32 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Int64 #-}
 {-# SPECIALISE listAdd :: BinaryWrapped [] Word #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Word8 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Word16 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Word32 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Word64 #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Integer #-}
 {-# SPECIALISE listAdd :: BinaryWrapped [] Double #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Float #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Natural #-}
-{-# SPECIALISE listAdd :: BinaryWrapped [] Bool #-}
 
 -- a definition of addition which can be fused on its left argument
 listAddFBL :: Semiring a => ListBuilder a -> [a] -> [a]
@@ -475,20 +439,8 @@ listAddFBL xf = xf f id  where
 
 type FBL a = ListBuilder a -> [a] -> [a]
 {-# SPECIALISE listAddFBL :: FBL Int #-}
-{-# SPECIALISE listAddFBL :: FBL Int8 #-}
-{-# SPECIALISE listAddFBL :: FBL Int16 #-}
-{-# SPECIALISE listAddFBL :: FBL Int32 #-}
-{-# SPECIALISE listAddFBL :: FBL Int64 #-}
 {-# SPECIALISE listAddFBL :: FBL Word #-}
-{-# SPECIALISE listAddFBL :: FBL Word8 #-}
-{-# SPECIALISE listAddFBL :: FBL Word16 #-}
-{-# SPECIALISE listAddFBL :: FBL Word32 #-}
-{-# SPECIALISE listAddFBL :: FBL Word64 #-}
-{-# SPECIALISE listAddFBL :: FBL Integer #-}
 {-# SPECIALISE listAddFBL :: FBL Double #-}
-{-# SPECIALISE listAddFBL :: FBL Float #-}
-{-# SPECIALISE listAddFBL :: FBL Natural #-}
-{-# SPECIALISE listAddFBL :: FBL Bool #-}
 
 -- a definition of addition which can be fused on its right argument
 listAddFBR :: Semiring a => [a] -> ListBuilder a -> [a]
@@ -498,20 +450,8 @@ listAddFBR xs' yf = yf f id xs' where
 
 type FBR a = [a] -> ListBuilder a -> [a]
 {-# SPECIALISE listAddFBR :: FBR Int #-}
-{-# SPECIALISE listAddFBR :: FBR Int8 #-}
-{-# SPECIALISE listAddFBR :: FBR Int16 #-}
-{-# SPECIALISE listAddFBR :: FBR Int32 #-}
-{-# SPECIALISE listAddFBR :: FBR Int64 #-}
 {-# SPECIALISE listAddFBR :: FBR Word #-}
-{-# SPECIALISE listAddFBR :: FBR Word8 #-}
-{-# SPECIALISE listAddFBR :: FBR Word16 #-}
-{-# SPECIALISE listAddFBR :: FBR Word32 #-}
-{-# SPECIALISE listAddFBR :: FBR Word64 #-}
-{-# SPECIALISE listAddFBR :: FBR Integer #-}
 {-# SPECIALISE listAddFBR :: FBR Double #-}
-{-# SPECIALISE listAddFBR :: FBR Float #-}
-{-# SPECIALISE listAddFBR :: FBR Natural #-}
-{-# SPECIALISE listAddFBR :: FBR Bool #-}
 
 type ListBuilder a = forall b. (a -> b -> b) -> b -> b
 
@@ -527,13 +467,7 @@ instance StarSemiring a => StarSemiring [a] where
       xst = star x
     {-# SPECIALISE star :: [Bool] -> [Bool] #-}
     {-# SPECIALISE star :: [Min Double]  -> [Min Double] #-}
-    {-# SPECIALISE star :: [Min Float]   -> [Min Float] #-}
-    {-# SPECIALISE star :: [Min CDouble] -> [Min CDouble] #-}
-    {-# SPECIALISE star :: [Min CFloat]  -> [Min CFloat] #-}
     {-# SPECIALISE star :: [Max Double]  -> [Max Double] #-}
-    {-# SPECIALISE star :: [Max Float]   -> [Max Float] #-}
-    {-# SPECIALISE star :: [Max CDouble] -> [Max CDouble] #-}
-    {-# SPECIALISE star :: [Max CFloat]  -> [Max CFloat] #-}
 
 instance DetectableZero a =>
          DetectableZero [a] where
@@ -568,31 +502,11 @@ instance Semiring a =>
         !slen = Vector.length signal
         !klen = Vector.length kernel
     {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Float #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Bool #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Vector.Vector Word64 #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Float #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Bool #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Vector.Vector Word64 #-}
 
 instance DetectableZero a => DetectableZero (Vector.Vector a) where
     isZero = Vector.all isZero
@@ -625,31 +539,11 @@ instance (UnboxedVector.Unbox a, Semiring a) =>
         slen = UnboxedVector.length signal
         klen = UnboxedVector.length kernel
     {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Float #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Bool #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped UnboxedVector.Vector Word64 #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Float #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Bool #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped UnboxedVector.Vector Word64 #-}
 
 instance (UnboxedVector.Unbox a, DetectableZero a) => DetectableZero (UnboxedVector.Vector a) where
     isZero = UnboxedVector.all isZero
@@ -685,31 +579,11 @@ instance (StorableVector.Storable a, Semiring a) =>
         slen = StorableVector.length signal
         klen = StorableVector.length kernel
     {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Float #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Bool #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Int64 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word8 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word16 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word32 #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped StorableVector.Vector Word64 #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Float #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Bool #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Int64 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word8 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word16 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word32 #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped StorableVector.Vector Word64 #-}
 
 instance (StorableVector.Storable a, DetectableZero a) =>
          DetectableZero (StorableVector.Vector a) where
@@ -790,9 +664,7 @@ instance (Precise a, RealFloat a) => Semiring (Log a) where
     {-# INLINE add #-}
 
     {-# SPECIALISE (<.>) :: BinaryWrapped Log Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Log Float #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped Log Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Log Float #-}
 
 instance (Precise a, RealFloat a) => DetectableZero (Log a) where
     isZero = isZeroEq
@@ -809,9 +681,7 @@ instance (Precise a, RealFloat a) => Semiring (SignedLog a) where
     {-# INLINE zero #-}
 
     {-# SPECIALISE (<.>) :: BinaryWrapped SignedLog Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped SignedLog Float #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped SignedLog Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped SignedLog Float #-}
 
 instance (Precise a, RealFloat a) => DetectableZero (SignedLog a) where
     isZero = isZeroEq
@@ -1112,9 +982,6 @@ instance Ord a =>
     {-# INLINE (<>) #-}
     stimes = stimesIdempotent
     {-# SPECIALISE (<>) :: BinaryWrapped Max Double #-}
-    {-# SPECIALISE (<>) :: BinaryWrapped Max Float #-}
-    {-# SPECIALISE (<>) :: BinaryWrapped Max CDouble #-}
-    {-# SPECIALISE (<>) :: BinaryWrapped Max CFloat #-}
 
 instance Ord a =>
          Semigroup (Min a) where
@@ -1122,9 +989,6 @@ instance Ord a =>
     {-# INLINE (<>) #-}
     stimes = stimesIdempotent
     {-# SPECIALISE (<>) :: BinaryWrapped Min Double #-}
-    {-# SPECIALISE (<>) :: BinaryWrapped Min Float #-}
-    {-# SPECIALISE (<>) :: BinaryWrapped Min CDouble #-}
-    {-# SPECIALISE (<>) :: BinaryWrapped Min CFloat #-}
 
 -- | >>> (getMax . foldMap Max) [1..10]
 -- 10.0
@@ -1135,9 +999,6 @@ instance (Ord a, HasNegativeInfinity a) =>
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
     {-# SPECIALISE mappend :: BinaryWrapped Max Double #-}
-    {-# SPECIALISE mappend :: BinaryWrapped Max Float #-}
-    {-# SPECIALISE mappend :: BinaryWrapped Max CDouble #-}
-    {-# SPECIALISE mappend :: BinaryWrapped Max CFloat #-}
 
 -- | >>> (getMin . foldMap Min) [1..10]
 -- 1.0
@@ -1148,9 +1009,6 @@ instance (Ord a, HasPositiveInfinity a) =>
     {-# INLINE mempty #-}
     {-# INLINE mappend #-}
     {-# SPECIALISE mappend :: BinaryWrapped Min Double #-}
-    {-# SPECIALISE mappend :: BinaryWrapped Min Float #-}
-    {-# SPECIALISE mappend :: BinaryWrapped Min CDouble #-}
-    {-# SPECIALISE mappend :: BinaryWrapped Min CFloat #-}
 
 instance (Semiring a, Ord a, HasNegativeInfinity a) =>
          Semiring (Max a) where
@@ -1164,21 +1022,7 @@ instance (Semiring a, Ord a, HasNegativeInfinity a) =>
     {-# INLINE (<.>) #-}
 
     {-# SPECIALISE (<+>) :: BinaryWrapped Max Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Max Float #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Max CDouble #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Max CFloat #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped Max Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Max Float #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Max CDouble #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Max CFloat #-}
-    {-# SPECIALISE one   :: Max Double #-}
-    {-# SPECIALISE one   :: Max Float #-}
-    {-# SPECIALISE one   :: Max CDouble #-}
-    {-# SPECIALISE one   :: Max CFloat #-}
-    {-# SPECIALISE zero  :: Max Double #-}
-    {-# SPECIALISE zero  :: Max Float #-}
-    {-# SPECIALISE zero  :: Max CDouble #-}
-    {-# SPECIALISE zero  :: Max CFloat #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a) =>
          Semiring (Min a) where
@@ -1191,21 +1035,7 @@ instance (Semiring a, Ord a, HasPositiveInfinity a) =>
     {-# INLINE (<+>) #-}
     {-# INLINE (<.>) #-}
     {-# SPECIALISE (<+>) :: BinaryWrapped Min Double #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Min Float #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Min CDouble #-}
-    {-# SPECIALISE (<+>) :: BinaryWrapped Min CFloat #-}
     {-# SPECIALISE (<.>) :: BinaryWrapped Min Double #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Min Float #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Min CDouble #-}
-    {-# SPECIALISE (<.>) :: BinaryWrapped Min CFloat #-}
-    {-# SPECIALISE one   :: Min Double #-}
-    {-# SPECIALISE one   :: Min Float #-}
-    {-# SPECIALISE one   :: Min CDouble #-}
-    {-# SPECIALISE one   :: Min CFloat #-}
-    {-# SPECIALISE zero  :: Min Double #-}
-    {-# SPECIALISE zero  :: Min Float #-}
-    {-# SPECIALISE zero  :: Min CDouble #-}
-    {-# SPECIALISE zero  :: Min CFloat #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
          StarSemiring (Max a) where
@@ -1213,9 +1043,6 @@ instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
       | x > zero = Max positiveInfinity
       | otherwise = Max zero
     {-# SPECIALISE star :: Max Double  -> Max Double  #-}
-    {-# SPECIALISE star :: Max Float   -> Max Float   #-}
-    {-# SPECIALISE star :: Max CDouble -> Max CDouble #-}
-    {-# SPECIALISE star :: Max CFloat  -> Max CFloat  #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
          StarSemiring (Min a) where
@@ -1223,9 +1050,6 @@ instance (Semiring a, Ord a, HasPositiveInfinity a, HasNegativeInfinity a) =>
       | x < zero = Min negativeInfinity
       | otherwise = Min zero
     {-# SPECIALISE star :: Min Double  -> Min Double  #-}
-    {-# SPECIALISE star :: Min Float   -> Min Float   #-}
-    {-# SPECIALISE star :: Min CDouble -> Min CDouble #-}
-    {-# SPECIALISE star :: Min CFloat  -> Min CFloat  #-}
 
 instance (Semiring a, Ord a, HasPositiveInfinity a) =>
          DetectableZero (Min a) where
