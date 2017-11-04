@@ -27,7 +27,7 @@ addsimd
     :: (Prim a, Num a)
     => Int
     -> Int
-    -> (forall s. MutableByteArray# s -> Int# -> ByteArray# -> Int# -> ByteArray# -> Int# -> ST s ())
+    -> (forall s. MutableByteArray# s -> ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> State# s -> State# s)
     -> Vector.Vector a
     -> Vector.Vector a
     -> Vector.Vector a
@@ -52,9 +52,11 @@ addsimd vecp@(I# vecp') mask act = go where
       d = unsafeShiftR ms vecp
       r = ms .&. complement mask
       paradd :: MutableByteArray s -> Int -> ST s ()
-      paradd (MutableByteArray bb) j =
-          for_ [0 .. j - 1] $
-          \(I# j') -> let i' = uncheckedIShiftL# j' vecp' in inline act bb i' lb' lo' rb' ro'
+      paradd (MutableByteArray bb) j = ST (\s -> (# loop 0 s, () #) ) where
+        fn = act bb lb' lo' rb' ro'
+        loop c@(I# j') !s
+            | c >= j = s
+            | otherwise = loop (c+1) (fn (uncheckedIShiftL# j' vecp') s)
       seqadd :: MutableByteArray s -> Int -> Int -> ST s ()
       seqadd ba f t =
           for_ [f .. t - 1] $
@@ -107,17 +109,13 @@ addInt32s =
     addsimd
         3
         7
-        (\bb i' lb' lo' rb' ro' ->
-              ST
-                  (\st ->
-                        (# writeInt32ArrayAsInt32X8#
-                              bb
-                              i'
-                              (plusInt32X8#
-                                   (indexInt32ArrayAsInt32X8# lb' (i' +# lo'))
-                                   (indexInt32ArrayAsInt32X8# rb' (i' +# ro')))
-                              st
-                        , () #)))
+        (\bb lb' lo' rb' ro' i' ->
+              (writeInt32ArrayAsInt32X8#
+                   bb
+                   i'
+                   (plusInt32X8#
+                        (indexInt32ArrayAsInt32X8# lb' (i' +# lo'))
+                        (indexInt32ArrayAsInt32X8# rb' (i' +# ro')))))
 
 convInt32s :: Unboxed.Vector Int32 -> Unboxed.Vector Int32 -> Unboxed.Vector Int32
 convInt32s =
@@ -140,18 +138,14 @@ addInt8s =
     addsimd
         5
         31
-        (\bb i' lb' lo' rb' ro' ->
-             ST
-                 (\st ->
-                       (# writeInt8ArrayAsInt8X32#
+        (\bb lb' lo' rb' ro' i' ->
+                       ( writeInt8ArrayAsInt8X32#
                              bb
                              i'
                              (plusInt8X32#
                                   (indexInt8ArrayAsInt8X32# lb' (i' +# lo'))
                                   (indexInt8ArrayAsInt8X32# rb' (i' +# ro')))
-                             st
-                       , () #)))
-
+                        ))
 convInt8s :: Unboxed.Vector Int8 -> Unboxed.Vector Int8 -> Unboxed.Vector Int8
 convInt8s =
     (coerce :: Binary (Vector.Vector Int8) -> Binary (Unboxed.Vector Int8)) $
@@ -170,21 +164,17 @@ convInt8s =
 
 addInt64s :: Unboxed.Vector Int64 -> Unboxed.Vector Int64 -> Unboxed.Vector Int64
 addInt64s =
-  (coerce :: Binary (Vector.Vector Int64) -> Binary (Unboxed.Vector Int64)) $
+    (coerce :: Binary (Vector.Vector Int64) -> Binary (Unboxed.Vector Int64)) $
     addsimd
         2
         3
-        (\bb i' lb' lo' rb' ro' ->
-             ST
-                 (\st ->
-                       (# writeInt64ArrayAsInt64X4#
-                             bb
-                             i'
-                             (plusInt64X4#
-                                  (indexInt64ArrayAsInt64X4# lb' (i' +# lo'))
-                                  (indexInt64ArrayAsInt64X4# rb' (i' +# ro')))
-                             st
-                       , () #)))
+        (\bb lb' lo' rb' ro' i' ->
+              (writeInt64ArrayAsInt64X4#
+                   bb
+                   i'
+                   (plusInt64X4#
+                        (indexInt64ArrayAsInt64X4# lb' (i' +# lo'))
+                        (indexInt64ArrayAsInt64X4# rb' (i' +# ro')))))
 
 convInt64s :: Unboxed.Vector Int64 -> Unboxed.Vector Int64 -> Unboxed.Vector Int64
 convInt64s =
@@ -203,27 +193,23 @@ convInt64s =
                                I64# (a' +# y1 +# y2 +# y3 +# y4)
 
 addDoubles :: Unboxed.Vector Double -> Unboxed.Vector Double -> Unboxed.Vector Double
-addDoubles
-  = (coerce :: Binary (Vector.Vector Double) -> Binary (Unboxed.Vector Double)) $
-      addsimd
-          2
-          3
-          (\bb i' lb' lo' rb' ro' ->
-             ST
-                 (\st ->
-                       (# writeDoubleArrayAsDoubleX4#
-                             bb
-                             i'
-                             (plusDoubleX4#
-                                  (indexDoubleArrayAsDoubleX4# lb' (i' +# lo'))
-                                  (indexDoubleArrayAsDoubleX4# rb' (i' +# ro')))
-                             st
-                       , () #)))
+addDoubles =
+    (coerce :: Binary (Vector.Vector Double) -> Binary (Unboxed.Vector Double)) $
+    addsimd
+        2
+        3
+        (\bb lb' lo' rb' ro' i' ->
+              (writeDoubleArrayAsDoubleX4#
+                   bb
+                   i'
+                   (plusDoubleX4#
+                        (indexDoubleArrayAsDoubleX4# lb' (i' +# lo'))
+                        (indexDoubleArrayAsDoubleX4# rb' (i' +# ro')))))
 
 convDoubles :: Unboxed.Vector Double -> Unboxed.Vector Double -> Unboxed.Vector Double
 convDoubles
   = (coerce :: Binary (Vector.Vector Double) -> Binary (Unboxed.Vector Double)) $
-      convsimd 2 $ \i' n' lb' lo' rb' ro' (D# a') -> 
+      convsimd 2 $ \i' n' lb' lo' rb' ro' (D# a') ->
             case unpackDoubleX4#
                         (indexDoubleArrayAsDoubleX4#
                              rb'
@@ -237,22 +223,18 @@ convDoubles
                                D# (a' +## y1 +## y2 +## y3 +## y4)
 
 addFloats :: Unboxed.Vector Float -> Unboxed.Vector Float -> Unboxed.Vector Float
-addFloats
-  = (coerce :: Binary (Vector.Vector Float) -> Binary (Unboxed.Vector Float)) $
-      addsimd
-          3
-          7
-          (\bb i' lb' lo' rb' ro' ->
-             ST
-                 (\st ->
-                       (# writeFloatArrayAsFloatX8#
-                             bb
-                             i'
-                             (plusFloatX8#
-                                  (indexFloatArrayAsFloatX8# lb' (i' +# lo'))
-                                  (indexFloatArrayAsFloatX8# rb' (i' +# ro')))
-                             st
-                       , () #)))
+addFloats =
+    (coerce :: Binary (Vector.Vector Float) -> Binary (Unboxed.Vector Float)) $
+    addsimd
+        3
+        7
+        (\bb lb' lo' rb' ro' i' ->
+              (writeFloatArrayAsFloatX8#
+                   bb
+                   i'
+                   (plusFloatX8#
+                        (indexFloatArrayAsFloatX8# lb' (i' +# lo'))
+                        (indexFloatArrayAsFloatX8# rb' (i' +# ro')))))
 
 convFloats :: Unboxed.Vector Float -> Unboxed.Vector Float -> Unboxed.Vector Float
 convFloats
