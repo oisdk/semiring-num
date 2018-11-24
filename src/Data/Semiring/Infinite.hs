@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveGeneric         #-}
@@ -28,7 +29,7 @@ import           Foreign.Storable            (Storable, alignment, peek,
                                               sizeOf)
 
 import           Data.Coerce
-import           Data.Monoid
+import           Data.Semigroup as Sem
 import           Data.Bool
 
 import           Data.Semiring
@@ -262,28 +263,49 @@ instance (Enum a, Bounded a, Eq a) => Enum (Infinite a) where
   enumFrom Negative   = Negative : map pure [minBound..] ++ [Positive]
   enumFrom (Finite x) = map pure (enumFrom x) ++ [Positive]
 
-instance Monoid a => Monoid (NegativeInfinite a) where
-  {-# INLINE mempty #-}
-  {-# INLINE mappend #-}
-  mempty = pure mempty
-  mappend = liftA2 mappend
+-- Follows advice for compatible Semigroup/Monoid code from
+-- https://prime.haskell.org/wiki/Libraries/Proposals/SemigroupMonoid#Writingcompatiblecode
 
-instance Monoid a => Monoid (PositiveInfinite a) where
-  {-# INLINE mempty #-}
-  {-# INLINE mappend #-}
-  mempty = pure mempty
-  mappend = liftA2 mappend
+instance Sem.Semigroup a => Sem.Semigroup (NegativeInfinite a) where
+  {-# INLINE (<>) #-}
+  (<>) = liftA2 (<>)
 
-instance Monoid a => Monoid (Infinite a) where
+instance (Sem.Semigroup a, Monoid a) => Monoid (NegativeInfinite a) where
   {-# INLINE mempty #-}
-  {-# INLINE mappend #-}
   mempty = pure mempty
-  Negative `mappend` Positive = Positive
-  Positive `mappend` Negative = Positive
-  Finite x `mappend` Finite y = pure (x `mappend` y)
-  Negative `mappend` _ = Negative
-  Positive `mappend` _ = Positive
-  _ `mappend` y = y
+#if !(MIN_VERSION_base(4,11,0))
+  {-# INLINE mappend #-}
+  mappend = (<>)
+#endif
+
+instance Sem.Semigroup a => Sem.Semigroup (PositiveInfinite a) where
+  {-# INLINE (<>) #-}
+  (<>) = liftA2 (<>)
+
+instance (Sem.Semigroup a, Monoid a) => Monoid (PositiveInfinite a) where
+  {-# INLINE mempty #-}
+  mempty = pure mempty
+#if !(MIN_VERSION_base(4,11,0))
+  {-# INLINE mappend #-}
+  mappend = (<>)
+#endif
+
+instance Sem.Semigroup a => Sem.Semigroup (Infinite a) where
+  {-# INLINE (<>) #-}
+  Negative <> Positive = Positive
+  Positive <> Negative = Positive
+  Finite x <> Finite y = pure (x <> y)
+  Negative <> _ = Negative
+  Positive <> _ = Positive
+  _ <> y = y
+
+instance (Sem.Semigroup a, Monoid a) => Monoid (Infinite a) where
+  {-# INLINE mempty #-}
+  mempty = pure mempty
+#if !(MIN_VERSION_base(4,11,0))
+  {-# INLINE mappend #-}
+  mappend = (<>)
+#endif
 
 instance Num a => Num (NegativeInfinite a) where
   fromInteger = pure . fromInteger
