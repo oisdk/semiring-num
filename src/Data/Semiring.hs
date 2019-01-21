@@ -218,7 +218,6 @@ addFoldable = add . toList
 -- 'Control.Applicative.Alternative'.
 class Semiring a =>
       StarSemiring a  where
-    {-# MINIMAL star | plus #-}
     star :: a -> a
     plus :: a -> a
     star x = one <+> plus x
