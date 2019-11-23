@@ -1,5 +1,5 @@
 name:                semiring-num
-version:             1.6.0.3
+version:             1.6.0.4
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring-num
@@ -24,7 +24,7 @@ library
   build-depends:       base >=4.9 && <5
                      , template-haskell >=2.11
                      , containers >=0.5
-                     , log-domain >=0.10.3.1
+                     , log-domain >=0.10.3.1 && <0.13
                      , scientific >=0.3.4.4
                      , time >=1.6
                      , unordered-containers >=0.2.6.0
