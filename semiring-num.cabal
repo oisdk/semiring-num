@@ -1,5 +1,5 @@
 name:                semiring-num
-version:             1.6.0.2
+version:             1.6.0.3
 synopsis:            Basic semiring class and instances
 description:         Adds a basic semiring class
 homepage:            https://github.com/oisdk/semiring-num
@@ -49,10 +49,10 @@ test-suite semiring-test
                      , Properties
   build-depends:       base >=4.9 && <5
                      , semiring-num
-                     , smallcheck >=0.2.1
+                     , smallcheck >=1.1.3
                      , doctest >=0.3.0
                      , containers >=0.5
-                     , QuickCheck >=1.0
+                     , QuickCheck >=2.10
                      , nat-sized-numbers >=0.1.0.0
                      , tasty >=0.1
                      , tasty-smallcheck >=0.1

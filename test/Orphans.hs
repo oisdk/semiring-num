@@ -6,7 +6,7 @@
 
 module Orphans where
 
-import           Test.QuickCheck hiding (Positive(..), generate)
+import           Test.QuickCheck as QC hiding (Positive(..), generate)
 import           Test.QuickCheck.Poly
 import           Test.SmallCheck.Series hiding (Positive(..))
 import qualified Test.SmallCheck.Series as SC
@@ -97,9 +97,6 @@ instance (Monad m, Serial m a) => Serial m (NegativeInfinite a) where
 instance (Monad m, Serial m a) => Serial m (Infinite a) where
   series = fmap (either (bool Positive Negative) Finite) series
 
-instance Monad m => Serial m Natural where
-  series = generate (`take` [0..])
-
 instance Monad m => Serial m Any where
   series = fmap Any series
 
@@ -111,6 +108,10 @@ instance (Monad m, Serial m a) => Serial m (Min a) where
 
 instance (Monad m, Serial m a) => Serial m (Max a) where
   series = fmap Max series
+
+instance Arbitrary Natural where
+  arbitrary = fmap (fromInteger . QC.getNonNegative) arbitrary
+  shrink = fmap (fromInteger . QC.getNonNegative) . shrink . QC.NonNegative . toInteger
 
 instance (Ord a, Arbitrary a) => Arbitrary (Free a) where
   arbitrary = fmap Free arbitrary
